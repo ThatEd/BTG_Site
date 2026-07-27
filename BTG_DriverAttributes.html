@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Be The Grid — Driver Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0c0b0c;
+  --ink-deep:#121011;
+  --card:#191717;
+  --card-raised:#211e1e;
+  --card-high:#2a2626;
+  --edge:#332e2d;
+  --edge-strong:#453f3e;
+  --copy:#f5f1ee;
+  --copy-soft:#b9b0ac;
+  --copy-faint:#847b77;
+  --ember:#b91d2e;
+  --ember-hot:#e8433f;
+  --ember-on:#fff2f0;
+  --brass:#d99a3d;
+  --moss:#4f9d6e;
+  --focus-ring:0 0 0 2px var(--ink), 0 0 0 4px var(--ember-hot);
+  --head-face:'Rajdhani', system-ui, sans-serif;
+  --body-face:'Manrope', system-ui, sans-serif;
+  --data-face:'IBM Plex Mono', monospace;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{
+  background:
+    radial-gradient(120% 90% at 12% -15%, color-mix(in oklab, var(--ember) 10%, transparent), transparent 55%),
+    linear-gradient(180deg, var(--ink-deep), var(--ink));
+  color:var(--copy); font-family:var(--body-face); font-size:15px; padding:44px 40px 90px;
+  min-height:100vh;
+}
+.page{max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:32px;}
+.eyebrow{font-family:var(--data-face); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--ember-hot); margin-bottom:8px;}
+section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-transform:uppercase; letter-spacing:.02em; margin-bottom:14px; color:var(--copy);}
+
+/* ---- Masthead ---- */
+.masthead{display:flex; justify-content:space-between; align-items:flex-end; border-bottom:1px solid var(--edge); padding-bottom:22px;}
+.identity{display:flex; align-items:center; gap:14px;}
+.identity .flag{width:14px; height:30px; background:var(--ember); transform:skewX(-19deg);}
+.identity .name{font-family:var(--head-face); font-weight:700; font-size:24px; letter-spacing:.01em; text-transform:uppercase;}
+.identity .role{font-family:var(--data-face); font-size:11px; color:var(--copy-faint); padding-left:14px; border-left:1px solid var(--edge);}
+.masthead-right{display:flex; align-items:center; gap:12px;}
+.status-pill{display:inline-flex; align-items:center; gap:6px; font-family:var(--data-face); font-size:11px; letter-spacing:.08em; text-transform:uppercase; padding:5px 10px; background:var(--card-high); color:var(--copy-soft); border:1px solid var(--edge);}
+.status-pill .mark{width:6px; height:6px; border-radius:50%; background:currentColor;}
+.status-pill.locked{color:var(--ember-hot); border-color:color-mix(in oklab, var(--ember) 45%, var(--edge));}
+.status-pill.driver{color:var(--moss); border-color:color-mix(in oklab, var(--moss) 40%, var(--edge));}
+.status-pill.admin{color:var(--brass); border-color:color-mix(in oklab, var(--brass) 40%, var(--edge));}
+.logout-link{font-family:var(--data-face); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--copy-faint); background:none; border:none; cursor:pointer; text-decoration:underline; text-underline-offset:3px;}
+.logout-link:hover{color:var(--copy);}
+
+/* ---- Actions ---- */
+.action{
+  position:relative; display:inline-flex; align-items:center; gap:8px;
+  font-family:var(--head-face); font-weight:600; font-size:15px; text-transform:uppercase; letter-spacing:.03em;
+  color:var(--copy); background:var(--card-high); border:none; padding:12px 24px;
+  cursor:pointer; white-space:nowrap; transition:.12s ease;
+  transform:skewX(-16deg);
+}
+.action > span{display:inline-block; transform:skewX(16deg);}
+.action:hover{background:var(--edge-strong);}
+.action-lead{background:linear-gradient(180deg, var(--ember-hot), var(--ember)); color:var(--ember-on);}
+.action-lead:hover{filter:brightness(1.1);}
+.action-quiet{background:transparent; box-shadow:inset 0 0 0 1px var(--edge-strong);}
+.action-compact{padding:9px 17px; font-size:12.5px;}
+.action:disabled{opacity:.4; cursor:not-allowed; filter:none;}
+.action:focus-visible{outline:none; box-shadow:var(--focus-ring);}
+
+/* ---- Fields ---- */
+.field{display:flex; flex-direction:column; gap:6px;}
+.field label{font-family:var(--data-face); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--copy-faint);}
+.field input, .field select{
+  background:var(--card-high); border:1px solid var(--edge-strong); color:var(--copy);
+  font-family:var(--data-face); font-size:14px; padding:11px 14px; width:100%;
+}
+.field select{appearance:none; -webkit-appearance:none; cursor:pointer;
+  background-image:linear-gradient(45deg, transparent 50%, var(--copy-faint) 50%), linear-gradient(135deg, var(--copy-faint) 50%, transparent 50%);
+  background-position:calc(100% - 18px) center, calc(100% - 13px) center; background-size:5px 5px; background-repeat:no-repeat;}
+.field input:focus-visible, .field select:focus-visible{outline:none; box-shadow:var(--focus-ring);}
+.field-row{display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;}
+.field-row .field{flex:1; min-width:150px;}
+.error-line{font-family:var(--data-face); font-size:12px; color:var(--ember-hot); display:none;}
+
+/* ---- Surface ---- */
+.surface{background:var(--card); border:1px solid var(--edge); padding:18px 20px; position:relative;}
+.surface .rail{position:absolute; top:0; left:0; bottom:0; width:3px; background:var(--ember);}
+.readouts{display:flex; gap:26px; flex-wrap:wrap; align-items:baseline;}
+.readout .value{font-family:var(--data-face); font-weight:600; font-size:26px; line-height:1;}
+.readout .caption{font-family:var(--data-face); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--copy-faint); margin-top:5px;}
+
+/* ---- Driver hero (big name + flag) ---- */
+.driver-hero{display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-bottom:18px;}
+.driver-hero-name{font-family:var(--head-face); font-weight:700; text-transform:uppercase; letter-spacing:.01em; font-size:clamp(30px,5vw,52px); line-height:1.02; color:var(--copy);}
+.driver-hero-flag{font-size:clamp(32px,4vw,48px); line-height:1;}
+.driver-hero-nation-code{font-family:var(--data-face); font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--copy-soft);}
+
+/* ---- Attribute groups ---- */
+.group-surface{background:var(--card); border:1px solid var(--edge); position:relative; overflow:hidden;}
+.group-surface .rail{position:absolute; top:0; left:0; bottom:0; width:3px; background:var(--ember);}
+.group-head{font-family:var(--head-face); font-weight:700; font-size:13px; letter-spacing:.1em; text-transform:uppercase; color:var(--copy-faint); padding:12px 20px 6px 22px;}
+.attr-row{display:flex; justify-content:space-between; align-items:center; padding:11px 20px 11px 22px; border-top:1px solid var(--edge);}
+.attr-name{font-family:var(--head-face); font-weight:600; text-transform:uppercase; font-size:14px; letter-spacing:.01em;}
+.attr-readout{display:flex; align-items:baseline; gap:4px; font-family:var(--data-face);}
+.attr-base{font-size:16px; color:var(--copy-soft);}
+.attr-plus{font-size:13px; color:var(--brass); min-width:26px;}
+.stepper{display:flex; align-items:center; gap:10px; margin-left:18px;}
+.stepper button{
+  width:28px; height:28px; background:var(--card-high); border:1px solid var(--edge-strong);
+  color:var(--copy); font-family:var(--data-face); font-size:16px; line-height:1; cursor:pointer; transition:.12s;
+}
+.stepper button:hover:not(:disabled){background:var(--edge-strong);}
+.stepper button:disabled{opacity:.3; cursor:not-allowed;}
+.stepper button.plus{color:var(--ember-hot);}
+
+/* ---- Tags ---- */
+.tag{display:inline-flex; align-items:center; gap:6px; font-family:var(--data-face); font-size:11px;
+  letter-spacing:.08em; text-transform:uppercase; padding:5px 10px; background:var(--card-high); color:var(--copy-soft);
+  border:1px solid var(--edge); white-space:nowrap;}
+.tag-brass{color:var(--brass); border-color:color-mix(in oklab, var(--brass) 40%, var(--edge));}
+.tag-moss{color:var(--moss); border-color:color-mix(in oklab, var(--moss) 40%, var(--edge));}
+.tag-ember{color:var(--ember-hot); border-color:color-mix(in oklab, var(--ember) 45%, var(--edge));}
+
+/* ---- Divider / card group for admin tools ---- */
+.tool-card{background:var(--card); border:1px solid var(--edge); padding:18px 20px;}
+.tool-card + .tool-card{margin-top:14px;}
+.tool-card h3{font-family:var(--head-face); font-weight:600; font-size:13.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--copy-soft); margin-bottom:12px;}
+
+/* ---- utility ---- */
+.hidden{display:none !important;}
+.muted{color:var(--copy-soft); font-size:13px; line-height:1.6;}
+.footer-row{display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;}
+.result-line{font-family:var(--data-face); font-size:13px; padding:12px 14px; border:1px solid var(--edge); display:none;}
+.result-line.ok{color:var(--moss); border-color:color-mix(in oklab, var(--moss) 40%, var(--edge));}
+.result-line.err{color:var(--ember-hot); border-color:color-mix(in oklab, var(--ember) 45%, var(--edge));}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="masthead">
+    <div class="identity">
+      <div class="flag"></div>
+      <div class="name">Be The Grid</div>
+      <div class="role">Driver Console</div>
+    </div>
+    <div class="masthead-right">
+      <button class="logout-link hidden" id="logout-btn">Log out</button>
+      <div id="status-pill" class="status-pill locked"><span class="mark"></span><span id="status-pill-label">Locked</span></div>
+    </div>
+  </div>
+
+  <!-- 01 · ACCESS -->
+  <section id="gate-section">
+    <div class="eyebrow">01 · Access</div>
+    <h2>Log in</h2>
+    <p class="muted" style="max-width:520px; margin-bottom:16px;">
+      Both admin and driver accounts log in here with a username and
+      password. Nothing on this page can verify credentials itself —
+      every check happens on the backend, and this page only ever
+      finds out whether it was accepted.
+    </p>
+    <div class="field-row" style="max-width:520px;">
+      <div class="field">
+        <label for="gate-username">Username</label>
+        <input type="text" id="gate-username" placeholder="username" autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="gate-password">Password</label>
+        <input type="password" id="gate-password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="action action-lead" id="unlock-btn"><span>Log in →</span></button>
+    </div>
+    <div class="error-line" id="gate-error" style="margin-top:10px;"></div>
+  </section>
+
+  <!-- 02 · ADMIN TOOLS (admin role only) -->
+  <section id="admin-section" class="hidden">
+    <div class="eyebrow">02 · Admin</div>
+    <h2>Admin tools</h2>
+
+    <div class="tool-card">
+      <h3>Create a new driver</h3>
+      <p class="muted" style="margin-bottom:12px;">Every rating starts at 70, with 0 upgrade points until you set an allowance.</p>
+      <div class="field-row">
+        <div class="field">
+          <label for="new-driver-name">Driver name</label>
+          <input type="text" id="new-driver-name" placeholder="e.g. Frederik Frid">
+        </div>
+        <div class="field" style="flex:2; min-width:200px;">
+          <label for="new-driver-nation">Nation</label>
+          <input type="text" id="new-driver-nation" list="nation-list" placeholder="Type nation or IOC code…" autocomplete="off">
+          <datalist id="nation-list"></datalist>
+        </div>
+        <div id="nation-preview" style="display:flex; align-items:center; gap:8px; min-width:60px; padding-top:6px;"></div>
+        <button class="action action-compact" id="create-driver-btn"><span>Create Driver</span></button>
+      </div>
+      <div class="result-line" id="create-driver-result"></div>
+    </div>
+
+    <div class="tool-card">
+      <h3>Create a driver login</h3>
+      <div class="field-row">
+        <div class="field">
+          <label for="login-driver-select">Driver</label>
+          <select id="login-driver-select"><option value="">— choose a driver —</option></select>
+        </div>
+        <div class="field">
+          <label for="new-login-username">Username</label>
+          <input type="text" id="new-login-username" placeholder="username" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="new-login-password">Password</label>
+          <input type="text" id="new-login-password" placeholder="password" autocomplete="off">
+        </div>
+        <button class="action action-compact" id="create-login-btn"><span>Create Login</span></button>
+      </div>
+      <div class="result-line" id="create-login-result"></div>
+    </div>
+  </section>
+
+  <!-- 03 · DRIVER + ALLOWANCE -->
+  <section id="driver-section" class="hidden">
+    <div class="eyebrow">03 · Driver</div>
+    <h2>Ratings</h2>
+    <div class="field hidden" id="driver-select-wrap" style="max-width:420px; margin-bottom:16px;">
+      <label for="driver-select">Driver</label>
+      <select id="driver-select"><option value="">— choose a driver —</option></select>
+    </div>
+
+    <!-- driver hero – only shows when a driver is selected -->
+    <div class="driver-hero hidden" id="driver-hero">
+      <div class="driver-hero-name" id="driver-hero-name">—</div>
+      <div class="driver-hero-flag" id="driver-hero-flag"></div>
+      <div class="driver-hero-nation-code" id="driver-hero-nation-code"></div>
+    </div>
+
+    <div class="surface">
+      <div class="rail"></div>
+      <div class="readouts">
+        <div class="readout"><div class="value" id="ro-ovr">—</div><div class="caption">Overall (calculated)</div></div>
+        <div class="readout"><div class="value" style="color:var(--ember-hot)" id="ro-pool">—</div><div class="caption">Points available</div></div>
+        <div class="readout"><div class="value" style="color:var(--brass)" id="ro-remaining">—</div><div class="caption">Remaining</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 · ATTRIBUTES -->
+  <section id="attr-section" class="hidden">
+    <div class="eyebrow">04 · Attributes</div>
+    <h2>Allocate upgrade points</h2>
+    <p class="muted" style="margin-bottom:16px;">
+      Points can only be added, never removed from a driver's current rating. The "−" button
+      only undoes a pending add before you submit it — it can't take a driver below their
+      existing value on the sheet.
+    </p>
+    <div style="display:flex; flex-direction:column; gap:16px;" id="attr-groups"></div>
+  </section>
+
+  <!-- 04b · AGGRESSION -->
+  <section id="aggr-section" class="hidden">
+    <div class="eyebrow">04b · Aggression</div>
+    <h2>Driving aggression</h2>
+    <p class="muted" style="margin-bottom:16px;">
+      This can be set once. After it's saved there's no way to change it here —
+      by design, not by accident.
+    </p>
+
+    <div id="aggr-locked-view" class="hidden surface">
+      <div class="rail"></div>
+      <div class="readouts">
+        <div class="readout"><div class="value" id="aggr-value">—</div><div class="caption">Aggression</div></div>
+        <div class="readout"><span class="tag tag-brass">Locked</span></div>
+      </div>
+    </div>
+
+    <div id="aggr-input-view" class="hidden">
+      <div class="field-row" style="align-items:center;">
+        <div class="field" style="flex:2; min-width:240px;">
+          <label for="aggr-slider">Aggression — <span id="aggr-slider-value">50</span>/100</label>
+          <input type="range" min="0" max="100" step="1" value="50" id="aggr-slider" style="width:100%;">
+        </div>
+        <button class="action action-compact" id="aggr-save-btn"><span>Set Aggression →</span></button>
+      </div>
+      <div class="result-line" id="aggr-result"></div>
+    </div>
+  </section>
+
+  <!-- 05 · SUBMIT -->
+  <section id="submit-section" class="hidden">
+    <div class="eyebrow">05 · Confirm</div>
+    <h2>Write to sheet</h2>
+    <div class="footer-row">
+      <div class="footer-row" style="gap:10px;">
+        <span class="tag" id="pending-tag"><span class="mark" style="background:var(--brass)"></span>0 pts pending</span>
+        <span class="tag tag-moss hidden" id="pool-ok-tag">Within allowance</span>
+      </div>
+      <button class="action action-lead" id="submit-btn" disabled><span>Submit Update →</span></button>
+    </div>
+    <div class="result-line" id="result-line" style="margin-top:14px;"></div>
+  </section>
+
+  <!-- 06 · ADMIN OVERRIDES (admin role only, once a driver is selected) -->
+  <section id="admin-override-section" class="hidden">
+    <div class="eyebrow">06 · Admin Overrides</div>
+    <h2>Direct adjustments</h2>
+    <p class="muted" style="margin-bottom:12px;">
+      These write immediately — no pending queue, no allowance cap. Skill
+      deltas can be negative. OVR adjustments persist as an offset, so they
+      survive future skill changes rather than being overwritten by them.
+    </p>
+
+    <div class="tool-card">
+      <h3>Adjust a skill</h3>
+      <div class="field-row">
+        <div class="field">
+          <label for="ov-skill-select">Skill</label>
+          <select id="ov-skill-select"></select>
+        </div>
+        <div class="field" style="max-width:120px;">
+          <label for="ov-skill-delta">Delta</label>
+          <input type="number" id="ov-skill-delta" value="1" step="1">
+        </div>
+        <button class="action action-compact" id="ov-skill-btn"><span>Apply</span></button>
+      </div>
+      <div class="result-line" id="ov-skill-result"></div>
+    </div>
+
+    <div class="tool-card">
+      <h3>Add or remove upgrade points</h3>
+      <div class="field-row">
+        <div class="field" style="max-width:120px;">
+          <label for="ov-points-delta">Delta</label>
+          <input type="number" id="ov-points-delta" value="1" step="1">
+        </div>
+        <button class="action action-compact" id="ov-points-btn"><span>Apply</span></button>
+      </div>
+      <div class="result-line" id="ov-points-result"></div>
+    </div>
+
+    <div class="tool-card">
+      <h3>Adjust OVR</h3>
+      <div class="field-row">
+        <div class="field" style="max-width:120px;">
+          <label for="ov-ovr-delta">Delta</label>
+          <input type="number" id="ov-ovr-delta" value="1" step="1">
+        </div>
+        <button class="action action-compact" id="ov-ovr-btn"><span>Apply Delta</span></button>
+      </div>
+      <div class="field-row" style="margin-top:10px;">
+        <div class="field" style="max-width:120px;">
+          <label for="ov-ovr-set">Set exact OVR</label>
+          <input type="number" id="ov-ovr-set" min="0" max="99" step="1" placeholder="0–99">
+        </div>
+        <button class="action action-compact action-quiet" id="ov-ovr-set-btn"><span>Set OVR</span></button>
+      </div>
+      <div class="result-line" id="ov-ovr-result"></div>
+    </div>
+  </section>
+
+  <!-- 07 · ACCOUNT SETTINGS -->
+  <section id="account-section" class="hidden">
+    <div class="eyebrow">07 · Account</div>
+    <h2>Change username &amp; password</h2>
+    <div class="tool-card">
+      <div class="field-row">
+        <div class="field">
+          <label for="acct-username">New username</label>
+          <input type="text" id="acct-username" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="acct-password">New password</label>
+          <input type="text" id="acct-password" autocomplete="off">
+        </div>
+        <button class="action action-quiet action-compact" id="acct-save-btn"><span>Update Login</span></button>
+      </div>
+      <div class="result-line" id="acct-result"></div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ============================================================
+   CONFIG
+   Point this at your BTG-Gateway Web App deployment URL.
+   ============================================================ */
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbynjzkleTl5YLyw6ty9FI2S7Jy5lgKie4cJDWZ6fm_2gMqofZHfN3NqKgVp7fW0frZI/exec';
+const ATTR_MAX = 99;
+
+/* ---------- nations (IOC codes) ---------- */
+const NATIONS = [
+  ['AF','AFG','Afghanistan'],['AL','ALB','Albania'],['DZ','ALG','Algeria'],['AD','AND','Andorra'],
+  ['AO','ANG','Angola'],['AG','ATG','Antigua and Barbuda'],['AR','ARG','Argentina'],['AM','ARM','Armenia'],
+  ['AU','AUS','Australia'],['AT','AUT','Austria'],['AZ','AZE','Azerbaijan'],['BS','BAH','Bahamas'],
+  ['BH','BRN','Bahrain'],['BD','BAN','Bangladesh'],['BB','BAR','Barbados'],['BY','BLR','Belarus'],
+  ['BE','BEL','Belgium'],['BZ','BIZ','Belize'],['BJ','BEN','Benin'],['BT','BHU','Bhutan'],
+  ['BO','BOL','Bolivia'],['BA','BIH','Bosnia and Herzegovina'],['BW','BOT','Botswana'],['BR','BRA','Brazil'],
+  ['BN','BRU','Brunei'],['BG','BUL','Bulgaria'],['BF','BUR','Burkina Faso'],['BI','BDI','Burundi'],
+  ['CV','CPV','Cabo Verde'],['KH','CAM','Cambodia'],['CM','CMR','Cameroon'],['CA','CAN','Canada'],
+  ['CF','CAF','Central African Republic'],['TD','CHA','Chad'],['CL','CHI','Chile'],['CN','CHN','China'],
+  ['CO','COL','Colombia'],['KM','COM','Comoros'],['CG','CGO','Congo'],['CD','COD','DR Congo'],
+  ['CR','CRC','Costa Rica'],['CI','CIV',"Côte d'Ivoire"],['HR','CRO','Croatia'],['CU','CUB','Cuba'],
+  ['CY','CYP','Cyprus'],['CZ','CZE','Czechia'],['DK','DEN','Denmark'],['DJ','DJI','Djibouti'],
+  ['DM','DMA','Dominica'],['DO','DOM','Dominican Republic'],['EC','ECU','Ecuador'],['EG','EGY','Egypt'],
+  ['SV','ESA','El Salvador'],['GQ','GEQ','Equatorial Guinea'],['ER','ERI','Eritrea'],['EE','EST','Estonia'],
+  ['SZ','SWZ','Eswatini'],['ET','ETH','Ethiopia'],['FJ','FIJ','Fiji'],['FI','FIN','Finland'],
+  ['FR','FRA','France'],['GA','GAB','Gabon'],['GM','GAM','Gambia'],['GE','GEO','Georgia'],
+  ['DE','GER','Germany'],['GH','GHA','Ghana'],['GR','GRE','Greece'],['GD','GRN','Grenada'],
+  ['GT','GUA','Guatemala'],['GN','GUI','Guinea'],['GW','GBS','Guinea-Bissau'],['GY','GUY','Guyana'],
+  ['HT','HAI','Haiti'],['HN','HON','Honduras'],['HK','HKG','Hong Kong'],['HU','HUN','Hungary'],
+  ['IS','ISL','Iceland'],['IN','IND','India'],['ID','INA','Indonesia'],['IR','IRI','Iran'],
+  ['IQ','IRQ','Iraq'],['IE','IRL','Ireland'],['IL','ISR','Israel'],['IT','ITA','Italy'],
+  ['JM','JAM','Jamaica'],['JP','JPN','Japan'],['JO','JOR','Jordan'],['KZ','KAZ','Kazakhstan'],
+  ['KE','KEN','Kenya'],['KI','KIR','Kiribati'],['KP','PRK','North Korea'],['KR','KOR','South Korea'],
+  ['XK','KOS','Kosovo'],['KW','KUW','Kuwait'],['KG','KGZ','Kyrgyzstan'],['LA','LAO','Laos'],
+  ['LV','LAT','Latvia'],['LB','LBN','Lebanon'],['LS','LES','Lesotho'],['LR','LBR','Liberia'],
+  ['LY','LBA','Libya'],['LI','LIE','Liechtenstein'],['LT','LTU','Lithuania'],['LU','LUX','Luxembourg'],
+  ['MO','MAC','Macao'],['MG','MAD','Madagascar'],['MW','MAW','Malawi'],['MY','MAS','Malaysia'],
+  ['MV','MDV','Maldives'],['ML','MLI','Mali'],['MT','MLT','Malta'],['MH','MHL','Marshall Islands'],
+  ['MR','MTN','Mauritania'],['MU','MRI','Mauritius'],['MX','MEX','Mexico'],['FM','FSM','Micronesia'],
+  ['MD','MDA','Moldova'],['MC','MON','Monaco'],['MN','MGL','Mongolia'],['ME','MNE','Montenegro'],
+  ['MA','MAR','Morocco'],['MZ','MOZ','Mozambique'],['MM','MYA','Myanmar'],['NA','NAM','Namibia'],
+  ['NR','NRU','Nauru'],['NP','NEP','Nepal'],['NL','NED','Netherlands'],['NZ','NZL','New Zealand'],
+  ['NI','NCA','Nicaragua'],['NE','NIG','Niger'],['NG','NGR','Nigeria'],['MK','MKD','North Macedonia'],
+  ['NO','NOR','Norway'],['OM','OMA','Oman'],['PK','PAK','Pakistan'],['PW','PLW','Palau'],
+  ['PS','PLE','Palestine'],['PA','PAN','Panama'],['PG','PNG','Papua New Guinea'],['PY','PAR','Paraguay'],
+  ['PE','PER','Peru'],['PH','PHI','Philippines'],['PL','POL','Poland'],['PT','POR','Portugal'],
+  ['PR','PUR','Puerto Rico'],['QA','QAT','Qatar'],['RO','ROU','Romania'],['RU','RUS','Russia'],
+  ['RW','RWA','Rwanda'],['KN','SKN','Saint Kitts and Nevis'],['LC','LCA','Saint Lucia'],
+  ['VC','VIN','Saint Vincent and the Grenadines'],['WS','SAM','Samoa'],['SM','SMR','San Marino'],
+  ['ST','STP','Sao Tome and Principe'],['SA','KSA','Saudi Arabia'],['SN','SEN','Senegal'],
+  ['RS','SRB','Serbia'],['SC','SEY','Seychelles'],['SL','SLE','Sierra Leone'],['SG','SIN','Singapore'],
+  ['SK','SVK','Slovakia'],['SI','SLO','Slovenia'],['SB','SOL','Solomon Islands'],['SO','SOM','Somalia'],
+  ['ZA','RSA','South Africa'],['SS','SSD','South Sudan'],['ES','ESP','Spain'],['LK','SRI','Sri Lanka'],
+  ['SD','SUD','Sudan'],['SR','SUR','Suriname'],['SE','SWE','Sweden'],['CH','SUI','Switzerland'],
+  ['SY','SYR','Syria'],['TW','TPE','Taiwan'],['TJ','TJK','Tajikistan'],['TZ','TAN','Tanzania'],
+  ['TH','THA','Thailand'],['TL','TLS','Timor-Leste'],['TG','TOG','Togo'],['TO','TGA','Tonga'],
+  ['TT','TRI','Trinidad and Tobago'],['TN','TUN','Tunisia'],['TR','TUR','Turkey'],['TM','TKM','Turkmenistan'],
+  ['TV','TUV','Tuvalu'],['UG','UGA','Uganda'],['UA','UKR','Ukraine'],['AE','UAE','United Arab Emirates'],
+  ['GB','GBR','United Kingdom'],['US','USA','United States'],['UY','URU','Uruguay'],['UZ','UZB','Uzbekistan'],
+  ['VU','VAN','Vanuatu'],['VA','VAT','Vatican City'],['VE','VEN','Venezuela'],['VN','VIE','Vietnam'],
+  ['YE','YEM','Yemen'],['ZM','ZAM','Zambia'],['ZW','ZIM','Zimbabwe']
+];
+const NATIONS_BY_A3 = {};
+NATIONS.forEach(n => { NATIONS_BY_A3[n[1]] = n; });
+
+/** Convert IOC code to emoji flag (e.g. "FIN" → "🇫🇮") */
+function iocToEmoji(ioc) {
+  const entry = NATIONS_BY_A3[ioc];
+  if (!entry) return '';
+  const a2 = entry[0];
+  return String.fromCodePoint(...a2.toUpperCase().split('').map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
+}
+
+/** Render flag + IOC code for a nation */
+function nationMarkup(ioc) {
+  const entry = NATIONS_BY_A3[ioc];
+  if (!entry) return ioc || '—';
+  const emoji = iocToEmoji(ioc);
+  return '<span style="font-size:1.2em; line-height:1;">' + emoji + ' ' + ioc + '</span>';
+}
+
+function populateNationDropdown() {
+  const input = document.getElementById('new-driver-nation');
+  const datalist = document.getElementById('nation-list');
+  datalist.innerHTML = '';
+  NATIONS.forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n[1];
+    opt.textContent = n[2] + ' (' + n[1] + ')';
+    datalist.appendChild(opt);
+  });
+  input.value = '';
+  document.getElementById('nation-preview').innerHTML = '';
+}
+
+document.getElementById('new-driver-nation').addEventListener('input', function() {
+  const val = this.value.trim().toUpperCase();
+  const preview = document.getElementById('nation-preview');
+  const entry = NATIONS_BY_A3[val];
+  if (entry) {
+    const emoji = iocToEmoji(val);
+    preview.innerHTML = '<span style="font-size:28px;">' + emoji + '</span> <span style="font-family:var(--data-face); font-size:12px; color:var(--copy-faint);">' + val + '</span>';
+  } else {
+    preview.innerHTML = '';
+  }
+});
+
+const ATTR_GROUPS = [
+  { label: 'Pace', keys: [
+      { key: 'cornering', name: 'Cornering' },
+      { key: 'braking', name: 'Braking' },
+      { key: 'reactions', name: 'Reactions' } ] },
+  { label: 'Consistency', keys: [
+      { key: 'accuracy', name: 'Accuracy' },
+      { key: 'control', name: 'Control' },
+      { key: 'smoothness', name: 'Smoothness' } ] },
+  { label: 'Racecraft', keys: [
+      { key: 'overtaking', name: 'Overtaking' },
+      { key: 'defending', name: 'Defending' } ] }
+];
+
+let CURRENT_USER = null;
+let DRIVERS = [];
+let SELECTED = null;
+let PENDING = {};
+
+async function callGateway(action, payload) {
+  const res = await fetch(WEB_APP_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(Object.assign({ action: action }, payload))
+  });
+  const raw = await res.text();
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    throw new Error('non_json_response (http ' + res.status + ') — see console for raw body');
+  }
+}
+
+function setStatus(state, label) {
+  const pill = document.getElementById('status-pill');
+  pill.className = 'status-pill ' + state;
+  document.getElementById('status-pill-label').textContent = label;
+}
+
+/* ---------- login ---------- */
+
+document.getElementById('unlock-btn').addEventListener('click', async () => {
+  const username = document.getElementById('gate-username').value.trim();
+  const password = document.getElementById('gate-password').value;
+  const err = document.getElementById('gate-error');
+  const btn = document.getElementById('unlock-btn');
+  err.style.display = 'none';
+  btn.disabled = true; btn.querySelector('span').textContent = 'Checking…';
+
+  try {
+    const data = await callGateway('login', { username, password });
+    if (!data.ok) {
+      err.textContent = data.error === 'unauthorized'
+        ? 'Incorrect username or password.'
+        : 'Backend error: ' + data.error;
+      err.style.display = 'block';
+    } else {
+      CURRENT_USER = { username: data.username, password: password, role: data.role };
+      onLoginSuccess(data);
+    }
+  } catch (e) {
+    err.textContent = 'Could not reach the gateway script: ' + e.message;
+    err.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.querySelector('span').textContent = 'Log in →';
+  }
+});
+
+function onLoginSuccess(data) {
+  document.getElementById('gate-section').classList.add('hidden');
+  document.getElementById('logout-btn').classList.remove('hidden');
+  document.getElementById('account-section').classList.remove('hidden');
+
+  if (data.role === 'admin') {
+    setStatus('admin', 'Admin — ' + data.username);
+    DRIVERS = data.drivers;
+    document.getElementById('admin-section').classList.remove('hidden');
+    document.getElementById('driver-select-wrap').classList.remove('hidden');
+    populateAdminDropdowns();
+  } else {
+    setStatus('driver', 'Driver — ' + data.username);
+    DRIVERS = [data.driver];
+    document.getElementById('admin-section').classList.add('hidden');
+    document.getElementById('driver-select-wrap').classList.add('hidden');
+    selectDriverByIndex(0);
+  }
+
+  document.getElementById('driver-section').classList.remove('hidden');
+}
+
+document.getElementById('logout-btn').addEventListener('click', () => {
+  CURRENT_USER = null; DRIVERS = []; SELECTED = null; PENDING = {};
+  document.getElementById('gate-username').value = '';
+  document.getElementById('gate-password').value = '';
+  document.getElementById('gate-section').classList.remove('hidden');
+  ['admin-section','driver-section','attr-section','aggr-section','submit-section',
+   'admin-override-section','account-section','driver-hero','logout-btn']
+    .forEach(id => document.getElementById(id).classList.add('hidden'));
+  setStatus('locked', 'Locked');
+});
+
+/* ---------- admin: driver dropdown + create driver + create login ---------- */
+
+function populateAdminDropdowns() {
+  const driverSel = document.getElementById('driver-select');
+  const loginSel = document.getElementById('login-driver-select');
+  driverSel.innerHTML = '<option value="">— choose a driver —</option>';
+  loginSel.innerHTML = '<option value="">— choose a driver —</option>';
+  DRIVERS.forEach((d, i) => {
+    const opt1 = document.createElement('option'); opt1.value = i; opt1.textContent = d.driver;
+    driverSel.appendChild(opt1);
+    const opt2 = document.createElement('option'); opt2.value = d.driver; opt2.textContent = d.driver;
+    loginSel.appendChild(opt2);
+  });
+  populateNationDropdown();
+}
+
+document.getElementById('driver-select').addEventListener('change', (e) => {
+  if (e.target.value === '') {
+    SELECTED = null;
+    document.getElementById('attr-section').classList.add('hidden');
+    document.getElementById('submit-section').classList.add('hidden');
+    document.getElementById('aggr-section').classList.add('hidden');
+    document.getElementById('admin-override-section').classList.add('hidden');
+    document.getElementById('driver-hero').classList.add('hidden');
+    return;
+  }
+  selectDriverByIndex(Number(e.target.value));
+});
+
+document.getElementById('create-driver-btn').addEventListener('click', async () => {
+  const name = document.getElementById('new-driver-name').value.trim();
+  const nation = document.getElementById('new-driver-nation').value.trim().toUpperCase();
+  const resultEl = document.getElementById('create-driver-result');
+  const btn = document.getElementById('create-driver-btn');
+  resultEl.style.display = 'none';
+  if (!name) { showResult(resultEl, false, 'Enter a driver name.'); return; }
+  if (!nation) { showResult(resultEl, false, 'Enter or select a nation.'); return; }
+
+  btn.disabled = true;
+  try {
+    const data = await callGateway('adminCreateDriver', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      driverName: name, nation: nation
+    });
+    if (data.ok) {
+      DRIVERS.push(data.driver);
+      populateAdminDropdowns();
+      showResult(resultEl, true, '✓ ' + name + ' created with every rating at 70.');
+      document.getElementById('new-driver-name').value = '';
+      document.getElementById('new-driver-nation').value = '';
+      document.getElementById('nation-preview').innerHTML = '';
+    } else {
+      showResult(resultEl, false, '✗ ' + data.error);
+    }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('create-login-btn').addEventListener('click', async () => {
+  const driverName = document.getElementById('login-driver-select').value;
+  const newUsername = document.getElementById('new-login-username').value.trim();
+  const newPassword = document.getElementById('new-login-password').value;
+  const resultEl = document.getElementById('create-login-result');
+  const btn = document.getElementById('create-login-btn');
+  resultEl.style.display = 'none';
+  if (!driverName || !newUsername || !newPassword) { showResult(resultEl, false, 'Fill in driver, username and password.'); return; }
+
+  btn.disabled = true;
+  try {
+    const data = await callGateway('adminCreateLogin', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      driverName: driverName, newUsername: newUsername, newPassword: newPassword
+    });
+    if (data.ok) {
+      showResult(resultEl, true, '✓ Login created for ' + driverName + ' (' + newUsername + ').');
+      document.getElementById('new-login-username').value = '';
+      document.getElementById('new-login-password').value = '';
+    } else {
+      showResult(resultEl, false, '✗ ' + data.error);
+    }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ---------- account settings ---------- */
+
+document.getElementById('acct-save-btn').addEventListener('click', async () => {
+  const newUsername = document.getElementById('acct-username').value.trim();
+  const newPassword = document.getElementById('acct-password').value;
+  const resultEl = document.getElementById('acct-result');
+  const btn = document.getElementById('acct-save-btn');
+  resultEl.style.display = 'none';
+  if (!newUsername || !newPassword) { showResult(resultEl, false, 'Fill in both fields.'); return; }
+
+  btn.disabled = true;
+  try {
+    const data = await callGateway('changeCredentials', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      newUsername: newUsername, newPassword: newPassword
+    });
+    if (data.ok) {
+      CURRENT_USER.username = data.username;
+      CURRENT_USER.password = newPassword;
+      setStatus(CURRENT_USER.role, (CURRENT_USER.role === 'admin' ? 'Admin — ' : 'Driver — ') + data.username);
+      showResult(resultEl, true, '✓ Login updated.');
+      document.getElementById('acct-username').value = '';
+      document.getElementById('acct-password').value = '';
+    } else {
+      showResult(resultEl, false, '✗ ' + data.error);
+    }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+function showResult(el, ok, text) {
+  el.style.display = 'block';
+  el.className = 'result-line ' + (ok ? 'ok' : 'err');
+  el.textContent = text;
+}
+
+/* ---------- driver + attributes ---------- */
+
+function selectDriverByIndex(idx) {
+  SELECTED = DRIVERS[idx];
+  PENDING = {};
+  ATTR_GROUPS.forEach(g => g.keys.forEach(a => PENDING[a.key] = 0));
+  if (document.getElementById('driver-select-wrap').classList.contains('hidden') === false) {
+    document.getElementById('driver-select').value = idx;
+  }
+  renderDriver();
+}
+
+function renderDriver() {
+  // Driver hero – show name, flag, nation code
+  document.getElementById('driver-hero-name').textContent = SELECTED.driver;
+  const flagEmoji = iocToEmoji(SELECTED.nation);
+  document.getElementById('driver-hero-flag').textContent = flagEmoji || '🏳️';
+  document.getElementById('driver-hero-nation-code').textContent = SELECTED.nation || '—';
+  document.getElementById('driver-hero').classList.remove('hidden');
+
+  // Stats
+  document.getElementById('ro-ovr').textContent = SELECTED.ovr;
+  document.getElementById('ro-pool').textContent = SELECTED.upgradePoints;
+  updateRemaining();
+
+  const container = document.getElementById('attr-groups');
+  container.innerHTML = '';
+  ATTR_GROUPS.forEach(group => {
+    const groupEl = document.createElement('div');
+    groupEl.className = 'group-surface';
+    const rail = document.createElement('div');
+    rail.className = 'rail';
+    groupEl.appendChild(rail);
+    const head = document.createElement('div');
+    head.className = 'group-head';
+    head.textContent = group.label;
+    groupEl.appendChild(head);
+
+    group.keys.forEach(attr => {
+      const row = document.createElement('div');
+      row.className = 'attr-row';
+      row.innerHTML = `
+        <div class="attr-name">${attr.name}</div>
+        <div style="display:flex; align-items:center;">
+          <div class="attr-readout">
+            <span class="attr-base">${SELECTED.attributes[attr.key]}</span>
+            <span class="attr-plus" id="plus-${attr.key}"></span>
+          </div>
+          <div class="stepper">
+            <button class="minus" data-key="${attr.key}" id="minus-${attr.key}">−</button>
+            <button class="plus" data-key="${attr.key}" id="add-${attr.key}">+</button>
+          </div>
+        </div>`;
+      groupEl.appendChild(row);
+    });
+    container.appendChild(groupEl);
+  });
+
+  ATTR_GROUPS.forEach(g => g.keys.forEach(a => {
+    document.getElementById('add-' + a.key).addEventListener('click', () => adjust(a.key, 1));
+    document.getElementById('minus-' + a.key).addEventListener('click', () => adjust(a.key, -1));
+  }));
+
+  refreshStepperState();
+  document.getElementById('attr-section').classList.remove('hidden');
+  document.getElementById('result-line').style.display = 'none';
+
+  renderAggression();
+  renderAdminOverrides();
+}
+
+/* ---------- aggression ---------- */
+
+function renderAggression() {
+  const section = document.getElementById('aggr-section');
+  const lockedView = document.getElementById('aggr-locked-view');
+  const inputView = document.getElementById('aggr-input-view');
+  section.classList.remove('hidden');
+  document.getElementById('aggr-result').style.display = 'none';
+
+  if (SELECTED.aggressionLocked) {
+    document.getElementById('aggr-value').textContent = SELECTED.aggression;
+    lockedView.classList.remove('hidden');
+    inputView.classList.add('hidden');
+  } else {
+    lockedView.classList.add('hidden');
+    inputView.classList.remove('hidden');
+    document.getElementById('aggr-slider').value = 50;
+    document.getElementById('aggr-slider-value').textContent = '50';
+  }
+}
+
+document.getElementById('aggr-slider').addEventListener('input', (e) => {
+  document.getElementById('aggr-slider-value').textContent = e.target.value;
+});
+
+document.getElementById('aggr-save-btn').addEventListener('click', async () => {
+  const value = Number(document.getElementById('aggr-slider').value);
+  const resultEl = document.getElementById('aggr-result');
+  const btn = document.getElementById('aggr-save-btn');
+  resultEl.style.display = 'none';
+  btn.disabled = true;
+
+  try {
+    const data = await callGateway('setAggression', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      driver: SELECTED.driver, value: value
+    });
+    if (data.ok) {
+      SELECTED.aggression = data.aggression;
+      SELECTED.aggressionLocked = true;
+      renderAggression();
+      showResult(resultEl, true, '✓ Aggression set to ' + data.aggression + '. This can\'t be changed again.');
+    } else {
+      showResult(resultEl, false, '✗ ' + data.error);
+    }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ---------- admin overrides ---------- */
+
+function renderAdminOverrides() {
+  const section = document.getElementById('admin-override-section');
+  if (!CURRENT_USER || CURRENT_USER.role !== 'admin') {
+    section.classList.add('hidden');
+    return;
+  }
+  section.classList.remove('hidden');
+
+  const select = document.getElementById('ov-skill-select');
+  select.innerHTML = '';
+  ATTR_GROUPS.forEach(g => g.keys.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.key; opt.textContent = a.name;
+    select.appendChild(opt);
+  }));
+
+  ['ov-skill-result','ov-points-result','ov-ovr-result'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+}
+
+document.getElementById('ov-skill-btn').addEventListener('click', async () => {
+  const attrKey = document.getElementById('ov-skill-select').value;
+  const delta = Number(document.getElementById('ov-skill-delta').value);
+  const resultEl = document.getElementById('ov-skill-result');
+  const btn = document.getElementById('ov-skill-btn');
+  resultEl.style.display = 'none';
+  if (!delta) { showResult(resultEl, false, 'Enter a non-zero delta.'); return; }
+
+  btn.disabled = true;
+  try {
+    const data = await callGateway('adminAdjustSkill', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      driver: SELECTED.driver, attrKey: attrKey, delta: delta
+    });
+    if (data.ok) {
+      applyAdminDriverUpdate(data.driver);
+      showResult(resultEl, true, '✓ ' + attrKey + ' now ' + data.driver.attributes[attrKey] + '.');
+    } else {
+      showResult(resultEl, false, '✗ ' + data.error);
+    }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('ov-points-btn').addEventListener('click', async () => {
+  const delta = Number(document.getElementById('ov-points-delta').value);
+  const resultEl = document.getElementById('ov-points-result');
+  const btn = document.getElementById('ov-points-btn');
+  resultEl.style.display = 'none';
+  if (!delta) { showResult(resultEl, false, 'Enter a non-zero delta.'); return; }
+
+  btn.disabled = true;
+  try {
+    const data = await callGateway('adminAdjustUpgradePoints', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      driver: SELECTED.driver, delta: delta
+    });
+    if (data.ok) {
+      applyAdminDriverUpdate(data.driver);
+      showResult(resultEl, true, '✓ Upgrade points now ' + data.driver.upgradePoints + '.');
+    } else {
+      showResult(resultEl, false, '✗ ' + data.error);
+    }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('ov-ovr-btn').addEventListener('click', async () => {
+  const delta = Number(document.getElementById('ov-ovr-delta').value);
+  const resultEl = document.getElementById('ov-ovr-result');
+  const btn = document.getElementById('ov-ovr-btn');
+  resultEl.style.display = 'none';
+  if (!delta) { showResult(resultEl, false, 'Enter a non-zero delta.'); return; }
+
+  btn.disabled = true;
+  try {
+    const data = await callGateway('adminAdjustOvr', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      driver: SELECTED.driver, delta: delta
+    });
+    if (data.ok) {
+      applyAdminDriverUpdate(data.driver);
+      showResult(resultEl, true, '✓ OVR now ' + data.driver.ovr + '.');
+    } else {
+      showResult(resultEl, false, '✗ ' + data.error);
+    }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('ov-ovr-set-btn').addEventListener('click', async () => {
+  const value = document.getElementById('ov-ovr-set').value;
+  const resultEl = document.getElementById('ov-ovr-result');
+  const btn = document.getElementById('ov-ovr-set-btn');
+  resultEl.style.display = 'none';
+  if (value === '') { showResult(resultEl, false, 'Enter a value from 0–99.'); return; }
+
+  btn.disabled = true;
+  try {
+    const data = await callGateway('adminSetOvr', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      driver: SELECTED.driver, value: Number(value)
+    });
+    if (data.ok) {
+      applyAdminDriverUpdate(data.driver);
+      document.getElementById('ov-ovr-set').value = '';
+      showResult(resultEl, true, '✓ OVR set to ' + data.driver.ovr + '.');
+    } else {
+      showResult(resultEl, false, '✗ ' + data.error);
+    }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+function applyAdminDriverUpdate(driverPayload) {
+  SELECTED = driverPayload;
+  PENDING = {};
+  ATTR_GROUPS.forEach(g => g.keys.forEach(a => PENDING[a.key] = 0));
+  const idx = DRIVERS.findIndex(d => d.driver === driverPayload.driver);
+  if (idx !== -1) DRIVERS[idx] = driverPayload;
+  renderDriver();
+}
+
+function totalPending() {
+  return Object.values(PENDING).reduce((a, b) => a + b, 0);
+}
+
+function adjust(key, dir) {
+  const remaining = SELECTED.upgradePoints - totalPending();
+  if (dir > 0) {
+    if (remaining <= 0) return;
+    if (SELECTED.attributes[key] + PENDING[key] >= ATTR_MAX) return;
+    PENDING[key] += 1;
+  } else {
+    if (PENDING[key] <= 0) return;
+    PENDING[key] -= 1;
+  }
+  refreshStepperState();
+}
+
+function refreshStepperState() {
+  const remaining = SELECTED.upgradePoints - totalPending();
+  ATTR_GROUPS.forEach(g => g.keys.forEach(a => {
+    const plusSpan = document.getElementById('plus-' + a.key);
+    plusSpan.textContent = PENDING[a.key] > 0 ? ('+' + PENDING[a.key]) : '';
+    const atMax = SELECTED.attributes[a.key] + PENDING[a.key] >= ATTR_MAX;
+    document.getElementById('add-' + a.key).disabled = remaining <= 0 || atMax;
+    document.getElementById('minus-' + a.key).disabled = PENDING[a.key] <= 0;
+  }));
+  updateRemaining(remaining);
+
+  const pending = totalPending();
+  document.getElementById('pending-tag').innerHTML =
+    '<span class="mark" style="background:var(--brass)"></span>' + pending + ' pts pending';
+  document.getElementById('pool-ok-tag').classList.toggle('hidden', pending === 0);
+  document.getElementById('submit-btn').disabled = pending === 0;
+  document.getElementById('submit-section').classList.toggle('hidden', pending === 0);
+}
+
+function updateRemaining(remainingOverride) {
+  const remaining = remainingOverride !== undefined ? remainingOverride : SELECTED.upgradePoints;
+  document.getElementById('ro-remaining').textContent = remaining;
+}
+
+document.getElementById('submit-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('submit-btn');
+  const resultLine = document.getElementById('result-line');
+  btn.disabled = true; btn.querySelector('span').textContent = 'Writing…';
+  resultLine.style.display = 'none';
+
+  try {
+    const data = await callGateway('applyUpgrade', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      driver: SELECTED.driver, deltas: PENDING
+    });
+    resultLine.style.display = 'block';
+    if (data.ok) {
+      resultLine.className = 'result-line ok';
+      resultLine.textContent = '✓ Sheet updated. ' + data.remaining + ' points remaining for ' + SELECTED.driver + '.';
+      if (data.driver) {
+        SELECTED = data.driver;
+        const idx = DRIVERS.findIndex(d => d.driver === SELECTED.driver);
+        if (idx !== -1) DRIVERS[idx] = SELECTED;
+      } else {
+        SELECTED.upgradePoints = data.remaining;
+        Object.keys(PENDING).forEach(k => { SELECTED.attributes[k] += PENDING[k]; });
+      }
+      Object.keys(PENDING).forEach(k => { PENDING[k] = 0; });
+      renderDriver();
+    } else {
+      resultLine.className = 'result-line err';
+      resultLine.textContent = '✗ Update rejected: ' + data.error;
+    }
+  } catch (e) {
+    resultLine.style.display = 'block';
+    resultLine.className = 'result-line err';
+    resultLine.textContent = '✗ Could not reach the gateway script.';
+  } finally {
+    btn.querySelector('span').textContent = 'Submit Update →';
+    refreshStepperState();
+  }
+});
+</script>
+</body>
+</html>
