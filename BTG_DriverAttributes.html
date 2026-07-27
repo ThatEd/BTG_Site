@@ -37,8 +37,15 @@ body{
   min-height:100vh;
 }
 .page{max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:32px;}
-.eyebrow{font-family:var(--data-face); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--ember-hot); margin-bottom:8px;}
 section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-transform:uppercase; letter-spacing:.02em; margin-bottom:14px; color:var(--copy);}
+.cluster{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+
+/* ---- Section head: reuses the masthead's skewed flag mark as a running motif ---- */
+.section-head{display:flex; align-items:center; gap:16px; padding-bottom:16px; margin-bottom:20px; border-bottom:1px solid var(--edge);}
+.section-head-mark{width:11px; height:38px; background:var(--ember); transform:skewX(-19deg); flex:none;}
+.section-head-body{min-width:0;}
+.section-head-num{font-family:var(--data-face); font-weight:600; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--ember-hot); margin-bottom:6px; display:block;}
+.section-head h2{font-family:var(--head-face); font-weight:700; font-size:29px; letter-spacing:.005em; text-transform:uppercase; color:var(--copy); margin:0; line-height:1.05;}
 
 /* ---- Masthead ---- */
 .masthead{display:flex; justify-content:space-between; align-items:flex-end; border-bottom:1px solid var(--edge); padding-bottom:22px;}
@@ -103,7 +110,9 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 /* ---- Attribute groups ---- */
 .group-surface{background:var(--card); border:1px solid var(--edge); position:relative; overflow:hidden;}
 .group-surface .rail{position:absolute; top:0; left:0; bottom:0; width:3px; background:var(--ember);}
-.group-head{font-family:var(--head-face); font-weight:700; font-size:13px; letter-spacing:.1em; text-transform:uppercase; color:var(--copy-faint); padding:12px 20px 6px 22px;}
+.group-head{display:flex; align-items:center; gap:10px; padding:16px 20px 12px 22px;}
+.group-head-mark{width:7px; height:16px; background:var(--ember); transform:skewX(-19deg); flex:none;}
+.group-head-text{font-family:var(--head-face); font-weight:700; font-size:17px; letter-spacing:.03em; text-transform:uppercase; color:var(--copy);}
 .attr-row{display:flex; justify-content:space-between; align-items:center; padding:11px 20px 11px 22px; border-top:1px solid var(--edge);}
 .attr-name{font-family:var(--head-face); font-weight:600; text-transform:uppercase; font-size:14px; letter-spacing:.01em;}
 .attr-readout{display:flex; align-items:baseline; gap:4px; font-family:var(--data-face);}
@@ -125,14 +134,72 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 .tag-brass{color:var(--brass); border-color:color-mix(in oklab, var(--brass) 40%, var(--edge));}
 .tag-moss{color:var(--moss); border-color:color-mix(in oklab, var(--moss) 40%, var(--edge));}
 .tag-ember{color:var(--ember-hot); border-color:color-mix(in oklab, var(--ember) 45%, var(--edge));}
+.tag .mark{width:6px; height:6px; border-radius:50%; background:currentColor; flex:none;}
 
 /* ---- Divider / card group for admin tools ---- */
 .tool-card{background:var(--card); border:1px solid var(--edge); padding:18px 20px;}
 .tool-card + .tool-card{margin-top:14px;}
-.tool-card h3{font-family:var(--head-face); font-weight:600; font-size:13.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--copy-soft); margin-bottom:12px;}
+.tool-card h3{display:flex; align-items:center; gap:9px; font-family:var(--head-face); font-weight:700; font-size:17px; text-transform:uppercase; letter-spacing:.02em; color:var(--copy); margin-bottom:14px;}
+.tool-card h3::before{content:''; width:6px; height:15px; background:var(--brass); transform:skewX(-19deg); flex:none;}
+
+/* ---- Aggression level ---- */
+.aggr-surface{padding:20px 22px 22px;}
+.aggr-level-row{display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:20px;}
+.aggr-level-value{font-family:var(--head-face); font-weight:700; font-size:32px; text-transform:uppercase; letter-spacing:.02em; line-height:1; color:var(--moss); transition:color .15s;}
+.aggr-level-number{font-family:var(--data-face); font-weight:600; font-size:20px; color:var(--copy-soft);}
+.aggr-level-number-suffix{font-size:13px; color:var(--copy-faint); font-weight:500;}
+
+.aggr-slider-wrap{position:relative; padding:4px 0 0;}
+.aggr-slider-wrap input[type="range"]{
+  -webkit-appearance:none; appearance:none; width:100%; height:8px;
+  background:transparent; border:none; outline:none; cursor:pointer; display:block;
+}
+.aggr-slider-wrap input[type="range"]::-webkit-slider-runnable-track{
+  height:8px; border:1px solid var(--edge-strong);
+  background:
+    linear-gradient(90deg, transparent 0%, transparent var(--fill,50%), var(--card-high) var(--fill,50%), var(--card-high) 100%),
+    linear-gradient(90deg, var(--moss) 0%, var(--brass) 50%, var(--ember-hot) 100%);
+}
+.aggr-slider-wrap input[type="range"]::-moz-range-track{
+  height:8px; border:1px solid var(--edge-strong);
+  background:
+    linear-gradient(90deg, transparent 0%, transparent var(--fill,50%), var(--card-high) var(--fill,50%), var(--card-high) 100%),
+    linear-gradient(90deg, var(--moss) 0%, var(--brass) 50%, var(--ember-hot) 100%);
+}
+.aggr-slider-wrap input[type="range"]::-moz-range-progress{height:8px; background:transparent;}
+.aggr-slider-wrap input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:22px; height:22px; margin-top:-7px; border-radius:50%;
+  background:radial-gradient(circle at 33% 28%, var(--ember-hot), var(--ember) 70%);
+  border:2px solid var(--ink); box-shadow:0 0 0 1px var(--edge-strong), 0 0 12px color-mix(in oklab, var(--ember-hot) 55%, transparent);
+  cursor:grab;
+}
+.aggr-slider-wrap input[type="range"]::-moz-range-thumb{
+  width:22px; height:22px; border-radius:50%; border:2px solid var(--ink);
+  background:radial-gradient(circle at 33% 28%, var(--ember-hot), var(--ember) 70%);
+  box-shadow:0 0 0 1px var(--edge-strong), 0 0 12px color-mix(in oklab, var(--ember-hot) 55%, transparent);
+  cursor:grab;
+}
+.aggr-slider-wrap input[type="range"]:active::-webkit-slider-thumb{cursor:grabbing;}
+.aggr-slider-wrap input[type="range"]:focus-visible{box-shadow:var(--focus-ring);}
+.aggr-slider-labels{display:flex; justify-content:space-between; margin-top:10px;}
+.aggr-slider-labels span{font-family:var(--data-face); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--copy-faint); transition:.15s;}
+.aggr-slider-labels span.current[data-level="low"]{color:var(--moss);}
+.aggr-slider-labels span.current[data-level="medium"]{color:var(--brass);}
+.aggr-slider-labels span.current[data-level="high"]{color:var(--ember-hot);}
+
+/* ---- Warning banner ---- */
+.warning-banner{display:flex; align-items:flex-start; gap:12px; margin-top:16px; padding:13px 16px;
+  background:color-mix(in oklab, var(--ember) 14%, var(--card)); border:1px solid color-mix(in oklab, var(--ember) 50%, var(--edge));
+  font-size:13px; color:var(--copy-soft); line-height:1.55;}
+.warning-banner strong{color:var(--ember-hot);}
+.warning-banner-mark{
+  flex:none; width:22px; height:22px; border-radius:50%; background:var(--ember-hot); color:var(--ink);
+  font-family:var(--head-face); font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center;
+}
 
 /* ---- utility ---- */
 .hidden{display:none !important;}
+.invisible{visibility:hidden;}
 .muted{color:var(--copy-soft); font-size:13px; line-height:1.6;}
 .footer-row{display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;}
 .result-line{font-family:var(--data-face); font-size:13px; padding:12px 14px; border:1px solid var(--edge); display:none;}
@@ -157,13 +224,15 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 
   <!-- 01 · ACCESS -->
   <section id="gate-section">
-    <div class="eyebrow">01 · Access</div>
-    <h2>Log in</h2>
+    <div class="section-head">
+      <div class="section-head-mark"></div>
+      <div class="section-head-body">
+        <span class="section-head-num">01 — Access</span>
+        <h2>Log in</h2>
+      </div>
+    </div>
     <p class="muted" style="max-width:520px; margin-bottom:16px;">
-      Both admin and driver accounts log in here with a username and
-      password. Nothing on this page can verify credentials itself —
-      every check happens on the backend, and this page only ever
-      finds out whether it was accepted.
+      Sign in to continue.
     </p>
     <div class="field-row" style="max-width:520px;">
       <div class="field">
@@ -172,7 +241,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
       </div>
       <div class="field">
         <label for="gate-password">Password</label>
-        <input type="password" id="gate-password" placeholder="••••••••" autocomplete="current-password">
+        <input type="password" id="gate-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') document.getElementById('unlock-btn').click();">
       </div>
       <button class="action action-lead" id="unlock-btn"><span>Log in →</span></button>
     </div>
@@ -181,12 +250,17 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 
   <!-- 02 · ADMIN TOOLS (admin role only) -->
   <section id="admin-section" class="hidden">
-    <div class="eyebrow">02 · Admin</div>
-    <h2>Admin tools</h2>
+    <div class="section-head">
+      <div class="section-head-mark"></div>
+      <div class="section-head-body">
+        <span class="section-head-num">02 — Admin</span>
+        <h2>Admin tools</h2>
+      </div>
+    </div>
 
     <div class="tool-card">
       <h3>Create a new driver</h3>
-      <p class="muted" style="margin-bottom:12px;">Every rating starts at 70, with 0 upgrade points until you set an allowance.</p>
+      <p class="muted" style="margin-bottom:12px;">New drivers start at 70 in every rating, with 0 upgrade points.</p>
       <div class="field-row">
         <div class="field">
           <label for="new-driver-name">Driver name</label>
@@ -226,8 +300,13 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 
   <!-- 03 · DRIVER + ALLOWANCE -->
   <section id="driver-section" class="hidden">
-    <div class="eyebrow">03 · Driver</div>
-    <h2>Ratings</h2>
+    <div class="section-head">
+      <div class="section-head-mark"></div>
+      <div class="section-head-body">
+        <span class="section-head-num">03 — Driver</span>
+        <h2>Ratings</h2>
+      </div>
+    </div>
     <div class="field hidden" id="driver-select-wrap" style="max-width:420px; margin-bottom:16px;">
       <label for="driver-select">Driver</label>
       <select id="driver-select"><option value="">— choose a driver —</option></select>
@@ -252,23 +331,30 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 
   <!-- 04 · ATTRIBUTES -->
   <section id="attr-section" class="hidden">
-    <div class="eyebrow">04 · Attributes</div>
-    <h2>Allocate upgrade points</h2>
+    <div class="section-head">
+      <div class="section-head-mark"></div>
+      <div class="section-head-body">
+        <span class="section-head-num">04 — Attributes</span>
+        <h2>Allocate upgrade points</h2>
+      </div>
+    </div>
     <p class="muted" style="margin-bottom:16px;">
-      Points can only be added, never removed from a driver's current rating. The "−" button
-      only undoes a pending add before you submit it — it can't take a driver below their
-      existing value on the sheet.
+      Points can only be added. The "−" clears a pending change before you submit.
     </p>
     <div style="display:flex; flex-direction:column; gap:16px;" id="attr-groups"></div>
   </section>
 
   <!-- 04b · AGGRESSION -->
   <section id="aggr-section" class="hidden">
-    <div class="eyebrow">04b · Aggression</div>
-    <h2>Driving aggression</h2>
+    <div class="section-head">
+      <div class="section-head-mark"></div>
+      <div class="section-head-body">
+        <span class="section-head-num">04B — Aggression</span>
+        <h2>Driving aggression</h2>
+      </div>
+    </div>
     <p class="muted" style="margin-bottom:16px;">
-      This can be set once. After it's saved there's no way to change it here —
-      by design, not by accident.
+      Choose a level and commit. This can only be set once.
     </p>
 
     <div id="aggr-locked-view" class="hidden surface">
@@ -280,12 +366,29 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     </div>
 
     <div id="aggr-input-view" class="hidden">
-      <div class="field-row" style="align-items:center;">
-        <div class="field" style="flex:2; min-width:240px;">
-          <label for="aggr-slider">Aggression — <span id="aggr-slider-value">50</span>/100</label>
-          <input type="range" min="0" max="100" step="1" value="50" id="aggr-slider" style="width:100%;">
+      <div class="surface aggr-surface">
+        <div class="rail"></div>
+        <div class="aggr-level-row">
+          <div class="aggr-level-value" id="aggr-level-value">Medium</div>
+          <div class="aggr-level-number"><span id="aggr-level-number">50</span><span class="aggr-level-number-suffix">/100</span></div>
         </div>
-        <button class="action action-compact" id="aggr-save-btn"><span>Set Aggression →</span></button>
+        <div class="aggr-slider-wrap">
+          <input type="range" min="0" max="100" step="1" value="50" id="aggr-slider" style="--fill:50%;">
+          <div class="aggr-slider-labels">
+            <span data-level="low">Low</span>
+            <span data-level="medium">Medium</span>
+            <span data-level="high">High</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="warning-banner">
+        <span class="warning-banner-mark">!</span>
+        <div><strong>This is permanent.</strong> Once committed, this driver's aggression can never be changed again — verify the level before you continue.</div>
+      </div>
+
+      <div class="cluster" style="justify-content:flex-end; margin-top:16px;">
+        <button class="action action-compact" id="aggr-save-btn"><span>Commit Aggression →</span></button>
       </div>
       <div class="result-line" id="aggr-result"></div>
     </div>
@@ -293,8 +396,13 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 
   <!-- 05 · SUBMIT -->
   <section id="submit-section" class="hidden">
-    <div class="eyebrow">05 · Confirm</div>
-    <h2>Write to sheet</h2>
+    <div class="section-head">
+      <div class="section-head-mark"></div>
+      <div class="section-head-body">
+        <span class="section-head-num">05 — Confirm</span>
+        <h2>Write to sheet</h2>
+      </div>
+    </div>
     <div class="footer-row">
       <div class="footer-row" style="gap:10px;">
         <span class="tag" id="pending-tag"><span class="mark" style="background:var(--brass)"></span>0 pts pending</span>
@@ -307,12 +415,16 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 
   <!-- 06 · ADMIN OVERRIDES (admin role only, once a driver is selected) -->
   <section id="admin-override-section" class="hidden">
-    <div class="eyebrow">06 · Admin Overrides</div>
-    <h2>Direct adjustments</h2>
+    <div class="section-head">
+      <div class="section-head-mark"></div>
+      <div class="section-head-body">
+        <span class="section-head-num">06 — Admin Overrides</span>
+        <h2>Direct adjustments</h2>
+      </div>
+    </div>
     <p class="muted" style="margin-bottom:12px;">
-      These write immediately — no pending queue, no allowance cap. Skill
-      deltas can be negative. OVR adjustments persist as an offset, so they
-      survive future skill changes rather than being overwritten by them.
+      Overrides write immediately with no allowance cap. OVR adjustments are stored
+      as an offset, so they survive future skill changes.
     </p>
 
     <div class="tool-card">
@@ -365,8 +477,13 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 
   <!-- 07 · ACCOUNT SETTINGS -->
   <section id="account-section" class="hidden">
-    <div class="eyebrow">07 · Account</div>
-    <h2>Change username &amp; password</h2>
+    <div class="section-head">
+      <div class="section-head-mark"></div>
+      <div class="section-head-body">
+        <span class="section-head-num">07 — Account</span>
+        <h2>Change username &amp; password</h2>
+      </div>
+    </div>
     <div class="tool-card">
       <div class="field-row">
         <div class="field">
@@ -757,7 +874,7 @@ function renderDriver() {
     groupEl.appendChild(rail);
     const head = document.createElement('div');
     head.className = 'group-head';
-    head.textContent = group.label;
+    head.innerHTML = '<span class="group-head-mark"></span><span class="group-head-text">' + group.label + '</span>';
     groupEl.appendChild(head);
 
     group.keys.forEach(attr => {
@@ -771,7 +888,7 @@ function renderDriver() {
             <span class="attr-plus" id="plus-${attr.key}"></span>
           </div>
           <div class="stepper">
-            <button class="minus" data-key="${attr.key}" id="minus-${attr.key}">−</button>
+            <button class="minus invisible" data-key="${attr.key}" id="minus-${attr.key}">−</button>
             <button class="plus" data-key="${attr.key}" id="add-${attr.key}">+</button>
           </div>
         </div>`;
@@ -795,6 +912,15 @@ function renderDriver() {
 
 /* ---------- aggression ---------- */
 
+const AGGR_LEVELS = ['Low', 'Medium', 'High'];
+const AGGR_COLORS = ['var(--moss)', 'var(--brass)', 'var(--ember-hot)'];
+
+function levelForValue(value) {
+  if (value < 34) return 0;
+  if (value < 67) return 1;
+  return 2;
+}
+
 function renderAggression() {
   const section = document.getElementById('aggr-section');
   const lockedView = document.getElementById('aggr-locked-view');
@@ -803,28 +929,48 @@ function renderAggression() {
   document.getElementById('aggr-result').style.display = 'none';
 
   if (SELECTED.aggressionLocked) {
-    document.getElementById('aggr-value').textContent = SELECTED.aggression;
+    const idx = levelForValue(SELECTED.aggression);
+    document.getElementById('aggr-value').textContent = AGGR_LEVELS[idx];
+    document.getElementById('aggr-value').style.color = AGGR_COLORS[idx];
     lockedView.classList.remove('hidden');
     inputView.classList.add('hidden');
   } else {
     lockedView.classList.add('hidden');
     inputView.classList.remove('hidden');
     document.getElementById('aggr-slider').value = 50;
-    document.getElementById('aggr-slider-value').textContent = '50';
+    updateAggrLevelDisplay(50);
   }
 }
 
+function updateAggrLevelDisplay(value) {
+  const idx = levelForValue(value);
+  const valueEl = document.getElementById('aggr-level-value');
+  valueEl.textContent = AGGR_LEVELS[idx];
+  valueEl.style.color = AGGR_COLORS[idx];
+  document.getElementById('aggr-level-number').textContent = value;
+
+  document.getElementById('aggr-slider').style.setProperty('--fill', value + '%');
+
+  document.querySelectorAll('.aggr-slider-labels span').forEach((el, i) => {
+    el.classList.toggle('current', i === idx);
+  });
+}
+
 document.getElementById('aggr-slider').addEventListener('input', (e) => {
-  document.getElementById('aggr-slider-value').textContent = e.target.value;
+  updateAggrLevelDisplay(Number(e.target.value));
 });
 
 document.getElementById('aggr-save-btn').addEventListener('click', async () => {
   const value = Number(document.getElementById('aggr-slider').value);
+  const levelLabel = AGGR_LEVELS[levelForValue(value)];
   const resultEl = document.getElementById('aggr-result');
   const btn = document.getElementById('aggr-save-btn');
   resultEl.style.display = 'none';
-  btn.disabled = true;
 
+  const confirmed = confirm('Set aggression to ' + levelLabel + ' for ' + SELECTED.driver + '? This cannot be changed again once committed.');
+  if (!confirmed) return;
+
+  btn.disabled = true;
   try {
     const data = await callGateway('setAggression', {
       username: CURRENT_USER.username, password: CURRENT_USER.password,
@@ -834,7 +980,7 @@ document.getElementById('aggr-save-btn').addEventListener('click', async () => {
       SELECTED.aggression = data.aggression;
       SELECTED.aggressionLocked = true;
       renderAggression();
-      showResult(resultEl, true, '✓ Aggression set to ' + data.aggression + '. This can\'t be changed again.');
+      showResult(resultEl, true, '✓ Aggression locked in as ' + AGGR_LEVELS[levelForValue(data.aggression)] + '. This can\'t be changed again.');
     } else {
       showResult(resultEl, false, '✗ ' + data.error);
     }
@@ -1008,6 +1154,7 @@ function refreshStepperState() {
     const atMax = SELECTED.attributes[a.key] + PENDING[a.key] >= ATTR_MAX;
     document.getElementById('add-' + a.key).disabled = remaining <= 0 || atMax;
     document.getElementById('minus-' + a.key).disabled = PENDING[a.key] <= 0;
+    document.getElementById('minus-' + a.key).classList.toggle('invisible', PENDING[a.key] <= 0);
   }));
   updateRemaining(remaining);
 
