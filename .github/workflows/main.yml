@@ -1,12 +1,5 @@
 name: Update Data Cache
 
-on:
-  push:
-    paths:
-      - 'Data/**'
-      - 'scripts/build-cache.js'
-  workflow_dispatch:
-
 jobs:
   build-cache:
     runs-on: ubuntu-latest
