@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BeTheGrid — News</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="news">
+
+<nav class="btg-nav" id="btg-nav"></nav>
+
+<div class="series-bar" id="series-bar"></div>
+
+<div class="page-section" id="content">
+  <div class="muted" style="padding:24px">Loading news…</div>
+</div>
+
+<script src="js/common.js"></script>
+<script src="js/api.js"></script>
+<script>
+(function() {
+  var news = [], activeFilter = 'all', seriesList = [];
+
+  BTG.loadAllDrivers('admin','').then(function(d) {
+    if (d) { BTG.drivers = d; }
+    else { BTG.useDemo(); }
+    finish();
+  }).catch(function() { BTG.useDemo(); finish(); });
+
+  function finish() {
+    news = BTG.news || BTG.DEMO.news || [];
+    var allSeries = (BTG.drivers || []).map(function(d){return d.series;}).filter(function(v,i,a){return v&&a.indexOf(v)===i;}).sort();
+    seriesList = ['all'].concat(allSeries);
+
+    var bar = document.getElementById('series-bar');
+    seriesList.forEach(function(s) {
+      var t = document.createElement('div');
+      t.className = 'series-tab' + (s === activeFilter ? ' active' : '');
+      t.textContent = s === 'all' ? 'All' : s;
+      t.onclick = function() { activeFilter = s; bar.querySelectorAll('.series-tab').forEach(function(x){x.classList.toggle('active',x.textContent===t.textContent);}); render(); };
+      bar.appendChild(t);
+    });
+    render();
+  }
+
+  function render() {
+    var items = activeFilter === 'all' ? news : news.filter(function(n){return n.series===activeFilter;});
+    var c = document.getElementById('content');
+    if (!items.length) { c.innerHTML = '<div class="muted" style="padding:24px">No news.</div>'; return; }
+
+    var hero = items[0];
+    var rest = activeFilter === 'all' ? items.slice(1) : items;
+    c.innerHTML = '<div class="news-hero">'
+      + '<span class="news-hero-tag">'+BTG.esc(hero.tag)+'</span>'
+      + '<h3>'+BTG.esc(hero.title)+'</h3>'
+      + '<div class="news-hero-meta">'+BTG.esc(hero.series||'')+' · '+BTG.esc(hero.time||'')+'</div>'
+      + '</div>'
+      + '<div class="news-list">'
+      + rest.map(function(n) {
+        return '<div class="news-item"><span class="ni-tag '+BTG.esc(n.tag)+'">'+BTG.esc(n.tag)+'</span>'
+          + '<div><div class="ni-title">'+BTG.esc(n.title)+'</div>'
+          + '<div class="ni-meta">'+BTG.esc(n.series||'')+' · '+BTG.esc(n.time||'')+'</div></div></div>';
+      }).join('')
+      + '</div>';
+  }
+})();
+</script>
+</body>
+</html>
