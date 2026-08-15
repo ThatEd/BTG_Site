@@ -25,8 +25,8 @@
 }
 #nw-import:hover { border-color: var(--team-accent); background: var(--card-raised); }
 
-.nw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
-@media (max-width: 960px) { .nw-grid { grid-template-columns: 1fr; } }
+/* Fields flow into a responsive grid so the writer fills the window width. */
+.nw-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
 
 .nw-form { display: flex; flex-direction: column; gap: 16px; }
 .nw-field { display: flex; flex-direction: column; gap: 6px; }
@@ -129,8 +129,8 @@
 .nw-actions button.primary:hover { background: var(--team-accent-hot); border-color: var(--team-accent-hot); }
 .nw-status { font-family: var(--data-face); font-size: 11px; color: var(--moss); min-height: 16px; }
 
-/* Preview panel */
-.nw-preview { position: sticky; top: 68px; }
+/* Preview panel (below the writer, full width) */
+.nw-preview { position: static; margin-top: 8px; }
 .nw-preview-label {
   font-family: var(--data-face); font-size: 10px; font-weight: 600;
   text-transform: uppercase; letter-spacing: .14em; color: var(--copy-faint);
@@ -169,9 +169,8 @@
     <button type="button" id="nw-import">⬆ Import JSON</button>
   </div>
 
-  <div class="nw-grid">
-    <div class="nw-form">
-
+  <div class="nw-form">
+    <div class="nw-fields">
       <label class="nw-field">
         <span class="nw-label">Kicker</span>
         <input id="f-kicker" type="text" placeholder="Season Preview" spellcheck="false">
@@ -206,6 +205,7 @@
         <span class="nw-label">Caption</span>
         <input id="f-caption" type="text" placeholder="A short caption under the image.">
       </label>
+    </div>
 
       <div class="nw-field">
         <span class="nw-label">Article colors</span>
@@ -259,6 +259,25 @@
                style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;">
       </div>
 
+      <details class="nw-hint" open>
+        <summary>Formatting shortcuts — type or paste these and they format automatically</summary>
+        <div class="nw-hint-grid">
+          <span><code># text</code></span><span><b>Heading 1</b></span>
+          <span><code>## text</code></span><span><b>Heading 2</b></span>
+          <span><code>### text</code></span><span><b>Heading 3</b></span>
+          <span><code>***text***</code></span><span><b>Bold + italic</b></span>
+          <span><code>**text**</code></span><span><b>Bold</b></span>
+          <span><code>*text*</code></span><span><b>Italic</b></span>
+          <span><code>`text`</code></span><span><b>Code</b></span>
+          <span><code>- item</code> / <code>1. item</code></span><span><b>Bullet / numbered list</b></span>
+          <span><code>&gt; text</code></span><span><b>Quote</b></span>
+          <span><code>---</code></span><span><b>Divider</b></span>
+          <span><code>[label](url)</code></span><span><b>Link</b></span>
+          <span><code>![alt](photo.jpeg)</code></span><span><b>Image</b></span>
+          <span><code>! text</code></span><span><b>Plain line (removes formatting)</b></span>
+        </div>
+      </details>
+
       <div class="nw-actions">
         <button type="button" id="nw-download" class="primary">⬇ Download JSON</button>
         <button type="button" id="nw-copy">Copy JSON</button>
@@ -268,29 +287,10 @@
 
     </div>
 
-    <details class="nw-hint" open>
-      <summary>Formatting shortcuts — type or paste these and they format automatically</summary>
-      <div class="nw-hint-grid">
-        <span><code># text</code></span><span><b>Heading 1</b></span>
-        <span><code>## text</code></span><span><b>Heading 2</b></span>
-        <span><code>### text</code></span><span><b>Heading 3</b></span>
-        <span><code>***text***</code></span><span><b>Bold + italic</b></span>
-        <span><code>**text**</code></span><span><b>Bold</b></span>
-        <span><code>*text*</code></span><span><b>Italic</b></span>
-        <span><code>`text`</code></span><span><b>Code</b></span>
-        <span><code>- item</code> / <code>1. item</code></span><span><b>Bullet / numbered list</b></span>
-        <span><code>&gt; text</code></span><span><b>Quote</b></span>
-        <span><code>---</code></span><span><b>Divider</b></span>
-        <span><code>[label](url)</code></span><span><b>Link</b></span>
-        <span><code>![alt](photo.jpeg)</code></span><span><b>Image</b></span>
-        <span><code>! text</code></span><span><b>Plain line (removes formatting)</b></span>
-      </div>
-    </details>
     <div class="nw-preview">
       <div class="nw-preview-label">Live preview</div>
       <article class="article" id="nw-preview"></article>
     </div>
-  </div>
 </div>
 
 <script src="js/common.js"></script>
