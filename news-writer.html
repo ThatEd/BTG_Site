@@ -111,7 +111,18 @@
   flex: none;
 }
 .nw-editor h1, .nw-editor h2, .nw-editor h3, .nw-editor h4, .nw-editor h5, .nw-editor h6 {
+  position: relative;
+  padding-left: 14px;
   color: var(--copy);
+  margin: 0.5em 0 0.2em;
+}
+/* Editor headings mirror the reader's skewed color bar, and pick up the
+   per-heading --art-h set by the color swatch so changes show immediately. */
+.nw-editor h1::before, .nw-editor h2::before, .nw-editor h3::before,
+.nw-editor h4::before, .nw-editor h5::before, .nw-editor h6::before {
+  content: ""; position: absolute; left: 0; top: 5px; bottom: 5px; width: 4px;
+  background: var(--art-h, var(--art-accent, var(--team-accent)));
+  transform: skewX(-19deg); border-radius: 1px;
 }
 
 /* Action buttons */
@@ -427,6 +438,53 @@
     onEditorChange();
   });
 
+  /* Enter inside a heading breaks out to a normal paragraph instead of
+     splitting into two consecutive headings (a "double header"). */
+  function headingToParagraph(el) {
+    var p = document.createElement('p');
+    p.innerHTML = el.innerHTML;
+    el.parentNode.replaceChild(p, el);
+    return p;
+  }
+  editor.addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    var range = sel.getRangeAt(0);
+    var node = range.startContainer;
+    var h = node.nodeType === 3 ? node.parentNode : node;
+    while (h && h !== editor && !/^H[1-6]$/.test(h.tagName)) h = h.parentNode;
+    if (!h || h === editor) return;
+    e.preventDefault();
+    document.execCommand('insertParagraph'); // browser splits the heading
+    var next = h.nextElementSibling;
+    var prev = h.previousElementSibling;
+    var p = null;
+    if (next && /^(H[1-6]|DIV)$/.test(next.tagName) && (h.textContent || '').trim() !== '') {
+      /* Middle or end of the heading: the trailing block becomes a paragraph. */
+      p = headingToParagraph(next);
+    } else if (prev && /^H[1-6]$/.test(prev.tagName) && (prev.textContent || '').trim() === '') {
+      /* Caret was at the very start: the empty heading left before it becomes
+         a blank paragraph; the rest stays a heading. */
+      prev.innerHTML = '<br>';
+      p = headingToParagraph(prev);
+    } else if ((h.textContent || '').trim() === '' && next && /^H[1-6]$/.test(next.tagName)) {
+      /* Fallback: the original heading itself is the empty one left before. */
+      h.innerHTML = '<br>';
+      p = headingToParagraph(h);
+    }
+    if (p) {
+      var r = document.createRange();
+      r.selectNodeContents(p);
+      r.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(r);
+    }
+    onEditorChange();
+    syncHeadingSwatches();
+    syncQuoteColors(editor, accentColorFor);
+  });
+
   /* A line starting with "!" turns plain in the editor too — the "!" is removed
      and any formatting on that line is stripped (mirrors the paste behavior). */
   function applyBangLines() {
@@ -456,8 +514,8 @@
         color wheel for THAT header. The picked color is stored as an inline
         --art-h on the heading, so it travels with the HTML into the JSON and
         renders in the reader. ── */
-  var wheel = $('nw-wheel');
   var wheelTarget = null;
+  var nwPopup = null;
 
   function headingDefaultBar(tag) {
     var id = { H1: 'c-h1', H2: 'c-h2', H3: 'c-h3' }[tag] || 'c-accent';
@@ -478,26 +536,97 @@
       s.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        openWheel(h);
+        openHeadingPicker(h);
       });
       h.appendChild(s);
     });
   }
 
-  function openWheel(h) {
-    wheelTarget = h;
-    var cur = (h.style.getPropertyValue('--art-h') || '').trim();
-    wheel.value = /^#[0-9a-f]{6}$/i.test(cur) ? cur : headingDefaultBar(h.tagName);
-    if (wheel.showPicker) { try { wheel.showPicker(); } catch(e) { wheel.click(); } }
-    else wheel.click();
-  }
-  wheel.addEventListener('input', function() {
-    if (!wheelTarget) return;
-    wheelTarget.style.setProperty('--art-h', wheel.value);
+  /* Per-heading colors use a small custom popup (reliable in every browser),
+     instead of trying to open the native picker on a hidden off-screen input.
+     The chosen color is stored as an inline --art-h on the heading so it
+     travels with the HTML into the JSON and renders in the reader. */
+  var nwPalette = ['#b91d2e','#d99a3d','#2b5aa0','#1e7f5c','#7a2fa6','#c04a1f','#e03c31','#00a19b','#ff8700','#1634cb','#453f3e','#111111'];
+  function applyHeadingColor(hex) {
+    if (!wheelTarget || !/^#[0-9a-f]{6}$/i.test(hex)) return;
+    wheelTarget.style.setProperty('--art-h', hex.toLowerCase());
     syncQuoteColors(editor, accentColorFor);
     onEditorChange();
+  }
+  function closeHeadingPicker() {
+    if (nwPopup) nwPopup.style.display = 'none';
+    wheelTarget = null;
+  }
+  function buildHeadingPicker() {
+    var p = document.createElement('div');
+    p.style.cssText = 'position:fixed;z-index:99999;display:none;width:220px;background:#23252b;border:1px solid #3a3f46;border-radius:8px;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.55);font-family:var(--data-face),sans-serif;';
+    var grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:10px;';
+    nwPalette.forEach(function(c) {
+      var sw = document.createElement('button');
+      sw.type = 'button';
+      sw.style.cssText = 'width:100%;height:26px;padding:0;border:1px solid rgba(255,255,255,.22);border-radius:4px;background:' + c + ';cursor:pointer;';
+      sw.addEventListener('click', function(e) { e.preventDefault(); applyHeadingColor(c); closeHeadingPicker(); });
+      grid.appendChild(sw);
+    });
+    p.appendChild(grid);
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;';
+    var custom = document.createElement('input');
+    custom.type = 'color';
+    custom.style.cssText = 'width:40px;height:28px;padding:0;border:1px solid #3a3f46;background:#2f3339;cursor:pointer;flex:none;';
+    var hex = document.createElement('input');
+    hex.type = 'text';
+    hex.maxLength = 7;
+    hex.placeholder = '#rrggbb';
+    hex.style.cssText = 'flex:1;min-width:0;background:#2f3339;color:#eef1f7;border:1px solid #3a3f46;border-left:3px solid #b91d2e;padding:4px 6px;font-family:ui-monospace,Consolas,monospace;font-size:12px;';
+    p._custom = custom;
+    p._hex = hex;
+    custom.addEventListener('input', function() {
+      hex.value = custom.value;
+      hex.style.borderColor = custom.value;
+      applyHeadingColor(custom.value);
+    });
+    hex.addEventListener('input', function() {
+      var v = hex.value.trim();
+      if (/^#[0-9a-f]{6}$/i.test(v)) { custom.value = v; hex.style.borderColor = v; applyHeadingColor(v); }
+    });
+    hex.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); applyHeadingColor(hex.value.trim()); closeHeadingPicker(); }
+      else if (e.key === 'Escape') { e.preventDefault(); closeHeadingPicker(); }
+    });
+    row.appendChild(custom);
+    row.appendChild(hex);
+    p.appendChild(row);
+    document.body.appendChild(p);
+    return p;
+  }
+  function openHeadingPicker(h) {
+    wheelTarget = h;
+    if (!nwPopup) nwPopup = buildHeadingPicker();
+    var cur = (h.style.getPropertyValue('--art-h') || '').trim();
+    var start = /^#[0-9a-f]{6}$/i.test(cur) ? cur : headingDefaultBar(h.tagName);
+    nwPopup._custom.value = start;
+    nwPopup._hex.value = start;
+    nwPopup._hex.style.borderColor = start;
+    var swatch = h.querySelector('.nw-hswatch');
+    var r = swatch ? swatch.getBoundingClientRect() : { left: 40, bottom: 40 };
+    nwPopup.style.display = 'block';
+    nwPopup.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 236)) + 'px';
+    nwPopup.style.top = (r.bottom + 6) + 'px';
+    if (nwPopup.getBoundingClientRect().bottom > window.innerHeight - 8) {
+      nwPopup.style.top = Math.max(8, r.top - nwPopup.offsetHeight - 6) + 'px';
+    }
+    nwPopup._hex.focus();
+    nwPopup._hex.select();
+  }
+  /* Close the picker when clicking elsewhere. */
+  document.addEventListener('mousedown', function(e) {
+    if (!nwPopup || nwPopup.style.display === 'none') return;
+    if (nwPopup.contains(e.target)) return;
+    if (e.target.classList && e.target.classList.contains('nw-hswatch')) return;
+    closeHeadingPicker();
   });
-  wheel.addEventListener('change', function() { wheelTarget = null; });
 
   /* A quote follows the accent color of the last heading before it. */
   function accentColorFor(h) {
