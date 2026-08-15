@@ -4,59 +4,32 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Be The Grid — Driver Console</title>
+<link rel="stylesheet" href="style.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{
-  --ink:#0c0b0c;
-  --ink-deep:#121011;
-  --card:#191717;
-  --card-raised:#211e1e;
-  --card-high:#2a2626;
-  --edge:#332e2d;
-  --edge-strong:#453f3e;
-  --copy:#f5f1ee;
-  --copy-soft:#b9b0ac;
-  --copy-faint:#847b77;
-  --ember:#b91d2e;
-  --ember-hot:#e8433f;
-  --ember-on:#fff2f0;
-  --brass:#d99a3d;
-  --moss:#4f9d6e;
-  --focus-ring:0 0 0 2px var(--ink), 0 0 0 4px var(--ember-hot);
-  --head-face:'Rajdhani', system-ui, sans-serif;
-  --body-face:'Manrope', system-ui, sans-serif;
-  --data-face:'IBM Plex Mono', monospace;
-}
-*{box-sizing:border-box; margin:0; padding:0;}
-body{
-  background:
-    radial-gradient(120% 90% at 12% -15%, color-mix(in oklab, var(--ember) 10%, transparent), transparent 55%),
-    linear-gradient(180deg, var(--ink-deep), var(--ink));
-  color:var(--copy); font-family:var(--body-face); font-size:15px; padding:44px 40px 90px;
-  min-height:100vh;
-}
+/* ── Driver Console specific (shared tokens in style.css) ── */
 .page{max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:32px;}
 section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-transform:uppercase; letter-spacing:.02em; margin-bottom:14px; color:var(--copy);}
 .cluster{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
 
 /* ---- Section head: reuses the masthead's skewed flag mark as a running motif ---- */
 .section-head{display:flex; align-items:center; gap:16px; padding-bottom:16px; margin-bottom:20px; border-bottom:1px solid var(--edge);}
-.section-head-mark{width:11px; height:38px; background:var(--ember); transform:skewX(-19deg); flex:none;}
+.section-head-mark{width:11px; height:38px; background:var(--team-accent); transform:skewX(-19deg); flex:none;}
 .section-head-body{min-width:0;}
-.section-head-num{font-family:var(--data-face); font-weight:600; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--ember-hot); margin-bottom:6px; display:block;}
+.section-head-num{font-family:var(--data-face); font-weight:600; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--team-accent-hot); margin-bottom:6px; display:block;}
 .section-head h2{font-family:var(--head-face); font-weight:700; font-size:29px; letter-spacing:.005em; text-transform:uppercase; color:var(--copy); margin:0; line-height:1.05;}
 
 /* ---- Masthead ---- */
 .masthead{display:flex; justify-content:space-between; align-items:flex-end; border-bottom:1px solid var(--edge); padding-bottom:22px;}
 .identity{display:flex; align-items:center; gap:14px;}
-.identity .flag{width:14px; height:30px; background:var(--ember); transform:skewX(-19deg);}
+.identity .flag{width:14px; height:30px; background:var(--team-accent); transform:skewX(-19deg);}
 .identity .name{font-family:var(--head-face); font-weight:700; font-size:24px; letter-spacing:.01em; text-transform:uppercase;}
 .identity .role{font-family:var(--data-face); font-size:11px; color:var(--copy-faint); padding-left:14px; border-left:1px solid var(--edge);}
 .masthead-right{display:flex; align-items:center; gap:12px;}
 .status-pill{display:inline-flex; align-items:center; gap:6px; font-family:var(--data-face); font-size:11px; letter-spacing:.08em; text-transform:uppercase; padding:5px 10px; background:var(--card-high); color:var(--copy-soft); border:1px solid var(--edge);}
 .status-pill .mark{width:6px; height:6px; border-radius:50%; background:currentColor;}
-.status-pill.locked{color:var(--ember-hot); border-color:color-mix(in oklab, var(--ember) 45%, var(--edge));}
+.status-pill.locked{color:var(--team-accent-hot); border-color:var(--team-edge);}
 .status-pill.driver{color:var(--moss); border-color:color-mix(in oklab, var(--moss) 40%, var(--edge));}
 .status-pill.admin{color:var(--brass); border-color:color-mix(in oklab, var(--brass) 40%, var(--edge));}
 .logout-link{font-family:var(--data-face); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--copy-faint); background:none; border:none; cursor:pointer; text-decoration:underline; text-underline-offset:3px;}
@@ -72,7 +45,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 }
 .action > span{display:inline-block; transform:skewX(16deg);}
 .action:hover{background:var(--edge-strong);}
-.action-lead{background:linear-gradient(180deg, var(--ember-hot), var(--ember)); color:var(--ember-on);}
+.action-lead{background:linear-gradient(180deg, var(--team-accent-hot), var(--team-accent)); color:var(--team-accent-on);}
 .action-lead:hover{filter:brightness(1.1);}
 .action-quiet{background:transparent; box-shadow:inset 0 0 0 1px var(--edge-strong);}
 .action-compact{padding:9px 17px; font-size:12.5px;}
@@ -87,16 +60,18 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
   font-family:var(--data-face); font-size:14px; padding:11px 14px; width:100%;
 }
 .field select{appearance:none; -webkit-appearance:none; cursor:pointer;
-  background-image:linear-gradient(45deg, transparent 50%, var(--copy-faint) 50%), linear-gradient(135deg, var(--copy-faint) 50%, transparent 50%);
+  background:#3a3a3a; color:#ffffff; border-color:#4d4d4d;
+  background-image:linear-gradient(45deg, transparent 50%, #aaa 50%), linear-gradient(135deg, #aaa 50%, transparent 50%);
   background-position:calc(100% - 18px) center, calc(100% - 13px) center; background-size:5px 5px; background-repeat:no-repeat;}
+.field select option{background:#3a3a3a; color:#ffffff;}
 .field input:focus-visible, .field select:focus-visible{outline:none; box-shadow:var(--focus-ring);}
 .field-row{display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;}
 .field-row .field{flex:1; min-width:150px;}
-.error-line{font-family:var(--data-face); font-size:12px; color:var(--ember-hot); display:none;}
+.error-line{font-family:var(--data-face); font-size:12px; color:var(--team-accent-hot); display:none;}
 
 /* ---- Surface ---- */
 .surface{background:var(--card); border:1px solid var(--edge); padding:18px 20px; position:relative;}
-.surface .rail{position:absolute; top:0; left:0; bottom:0; width:3px; background:var(--ember);}
+.surface .rail{position:absolute; top:0; left:0; bottom:0; width:3px; background:var(--team-accent);}
 .readouts{display:flex; gap:26px; flex-wrap:wrap; align-items:baseline;}
 .readout .value{font-family:var(--data-face); font-weight:600; font-size:26px; line-height:1;}
 .readout .caption{font-family:var(--data-face); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--copy-faint); margin-top:5px;}
@@ -104,14 +79,25 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 /* ---- Driver hero (big name + flag) ---- */
 .driver-hero{display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-bottom:18px;}
 .driver-hero-name{font-family:var(--head-face); font-weight:700; text-transform:uppercase; letter-spacing:.01em; font-size:clamp(30px,5vw,52px); line-height:1.02; color:var(--copy);}
-.driver-hero-flag{font-size:clamp(32px,4vw,48px); line-height:1;}
+.driver-hero-ovr{font-family:var(--data-face); font-weight:600; font-size:clamp(20px,3.5vw,34px); color:var(--team-accent-hot); white-space:nowrap;}
+.driver-hero-flag{line-height:0; flex:none;}
+.driver-hero-flag img{width:48px; height:36px; border:1px solid var(--edge); image-rendering:auto;}
 .driver-hero-nation-code{font-family:var(--data-face); font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--copy-soft);}
+.nation-flag-preview{line-height:0; flex:none;}
+.nation-flag-preview img{width:32px; height:24px; border:1px solid var(--edge-strong);}
+
+/* Team / affiliation display */
+.driver-meta-row{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:10px; margin-bottom:6px;}
+.driver-meta-tag{display:inline-flex; align-items:center; gap:7px; font-family:var(--data-face); font-size:11px; letter-spacing:.06em; padding:5px 11px; border:1px solid var(--edge); white-space:nowrap;}
+.driver-meta-tag.team-tag{color:var(--copy); border-color:var(--team-edge); background:var(--team-surface);}
+.driver-meta-tag.affil-tag{color:var(--copy-soft);}
+.team-color-swatch{width:10px; height:10px; border-radius:2px; background:rgb(var(--team-r,185),var(--team-g,29),var(--team-b,46)); flex:none;}
 
 /* ---- Attribute groups ---- */
 .group-surface{background:var(--card); border:1px solid var(--edge); position:relative; overflow:hidden;}
-.group-surface .rail{position:absolute; top:0; left:0; bottom:0; width:3px; background:var(--ember);}
+.group-surface .rail{position:absolute; top:0; left:0; bottom:0; width:3px; background:var(--team-accent);}
 .group-head{display:flex; align-items:center; gap:10px; padding:16px 20px 12px 22px;}
-.group-head-mark{width:7px; height:16px; background:var(--ember); transform:skewX(-19deg); flex:none;}
+.group-head-mark{width:7px; height:16px; background:var(--team-accent); transform:skewX(-19deg); flex:none;}
 .group-head-text{font-family:var(--head-face); font-weight:700; font-size:17px; letter-spacing:.03em; text-transform:uppercase; color:var(--copy);}
 .attr-row{display:flex; justify-content:space-between; align-items:center; padding:11px 20px 11px 22px; border-top:1px solid var(--edge);}
 .attr-name{font-family:var(--head-face); font-weight:600; text-transform:uppercase; font-size:14px; letter-spacing:.01em;}
@@ -125,7 +111,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 }
 .stepper button:hover:not(:disabled){background:var(--edge-strong);}
 .stepper button:disabled{opacity:.3; cursor:not-allowed;}
-.stepper button.plus{color:var(--ember-hot);}
+.stepper button.plus{color:var(--team-accent-hot);}
 
 /* ---- Tags ---- */
 .tag{display:inline-flex; align-items:center; gap:6px; font-family:var(--data-face); font-size:11px;
@@ -133,14 +119,14 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
   border:1px solid var(--edge); white-space:nowrap;}
 .tag-brass{color:var(--brass); border-color:color-mix(in oklab, var(--brass) 40%, var(--edge));}
 .tag-moss{color:var(--moss); border-color:color-mix(in oklab, var(--moss) 40%, var(--edge));}
-.tag-ember{color:var(--ember-hot); border-color:color-mix(in oklab, var(--ember) 45%, var(--edge));}
+.tag-ember{color:var(--team-accent-hot); border-color:var(--team-edge);}
 .tag .mark{width:6px; height:6px; border-radius:50%; background:currentColor; flex:none;}
 
 /* ---- Divider / card group for admin tools ---- */
 .tool-card{background:var(--card); border:1px solid var(--edge); padding:18px 20px;}
 .tool-card + .tool-card{margin-top:14px;}
 .tool-card h3{display:flex; align-items:center; gap:9px; font-family:var(--head-face); font-weight:700; font-size:17px; text-transform:uppercase; letter-spacing:.02em; color:var(--copy); margin-bottom:14px;}
-.tool-card h3::before{content:''; width:6px; height:15px; background:var(--brass); transform:skewX(-19deg); flex:none;}
+.tool-card h3::before{content:''; width:6px; height:15px; background:var(--team-accent); transform:skewX(-19deg); flex:none;}
 
 /* ---- Aggression level ---- */
 .aggr-surface{padding:20px 22px 22px;}
@@ -189,11 +175,11 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 
 /* ---- Warning banner ---- */
 .warning-banner{display:flex; align-items:flex-start; gap:12px; margin-top:16px; padding:13px 16px;
-  background:color-mix(in oklab, var(--ember) 14%, var(--card)); border:1px solid color-mix(in oklab, var(--ember) 50%, var(--edge));
+  background:var(--team-surface); border:1px solid var(--team-edge);
   font-size:13px; color:var(--copy-soft); line-height:1.55;}
-.warning-banner strong{color:var(--ember-hot);}
+.warning-banner strong{color:var(--team-accent-hot);}
 .warning-banner-mark{
-  flex:none; width:22px; height:22px; border-radius:50%; background:var(--ember-hot); color:var(--ink);
+  flex:none; width:22px; height:22px; border-radius:50%; background:var(--team-accent-hot); color:var(--ink);
   font-family:var(--head-face); font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center;
 }
 
@@ -204,16 +190,20 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 .footer-row{display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;}
 .result-line{font-family:var(--data-face); font-size:13px; padding:12px 14px; border:1px solid var(--edge); display:none;}
 .result-line.ok{color:var(--moss); border-color:color-mix(in oklab, var(--moss) 40%, var(--edge));}
-.result-line.err{color:var(--ember-hot); border-color:color-mix(in oklab, var(--ember) 45%, var(--edge));}
+.result-line.err{color:var(--team-accent-hot); border-color:var(--team-edge);}
 </style>
 </head>
-<body>
+<body data-page="dashboard">
+
+<!-- ════════════════ NAV ════════════════ -->
+<nav class="btg-nav" id="btg-nav"></nav>
+
 <div class="page">
 
   <div class="masthead">
     <div class="identity">
       <div class="flag"></div>
-      <div class="name">Be The Grid</div>
+      <div class="name">Driver Console</div>
       <div class="role">Driver Console</div>
     </div>
     <div class="masthead-right">
@@ -315,16 +305,21 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     <!-- driver hero – only shows when a driver is selected -->
     <div class="driver-hero hidden" id="driver-hero">
       <div class="driver-hero-name" id="driver-hero-name">—</div>
+      <div class="driver-hero-ovr" id="driver-hero-ovr"></div>
       <div class="driver-hero-flag" id="driver-hero-flag"></div>
       <div class="driver-hero-nation-code" id="driver-hero-nation-code"></div>
+    </div>
+    <div class="driver-meta-row hidden" id="driver-meta-row">
+      <span class="driver-meta-tag team-tag hidden" id="driver-team-tag"><span class="team-color-swatch"></span><span id="driver-team-name"></span></span>
+      <span class="driver-meta-tag affil-tag hidden" id="driver-affil-tag">Affiliation: <span id="driver-affil-name"></span></span>
     </div>
 
     <div class="surface">
       <div class="rail"></div>
       <div class="readouts">
-        <div class="readout"><div class="value" id="ro-ovr">—</div><div class="caption">Overall (calculated)</div></div>
-        <div class="readout"><div class="value" style="color:var(--ember-hot)" id="ro-pool">—</div><div class="caption">Points available</div></div>
-        <div class="readout"><div class="value" style="color:var(--brass)" id="ro-remaining">—</div><div class="caption">Remaining</div></div>
+        <div class="readout"><div class="value" id="ro-ovr">—</div><div class="caption">Current OVR</div></div>
+        <div class="readout"><div class="value" style="color:var(--team-accent-hot)" id="ro-live">—</div><div class="caption">Live OVR</div></div>
+        <div class="readout"><div class="value" style="color:var(--brass)" id="ro-target">—</div><div class="caption">Target OVR</div></div>
       </div>
     </div>
   </section>
@@ -339,7 +334,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
       </div>
     </div>
     <p class="muted" style="margin-bottom:16px;">
-      Points can only be added. The "−" clears a pending change before you submit.
+      Add points to skills. Live OVR updates as you go — cannot exceed Target OVR.
     </p>
     <div style="display:flex; flex-direction:column; gap:16px;" id="attr-groups"></div>
   </section>
@@ -405,8 +400,8 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     </div>
     <div class="footer-row">
       <div class="footer-row" style="gap:10px;">
-        <span class="tag" id="pending-tag"><span class="mark" style="background:var(--brass)"></span>0 pts pending</span>
-        <span class="tag tag-moss hidden" id="pool-ok-tag">Within allowance</span>
+        <span class="tag" id="pending-tag"><span class="mark" style="background:var(--brass)"></span>No changes</span>
+        <span class="tag tag-moss hidden" id="pool-ok-tag">Within target</span>
       </div>
       <button class="action action-lead" id="submit-btn" disabled><span>Submit Update →</span></button>
     </div>
@@ -423,8 +418,9 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
       </div>
     </div>
     <p class="muted" style="margin-bottom:12px;">
-      Overrides write immediately with no allowance cap. OVR adjustments are stored
-      as an offset, so they survive future skill changes.
+      Overrides write immediately with no allowance cap. "Set OVR" proportionally
+      scales ALL 9 skills (including Adaptability) so their average equals the target.
+      Adjust OVR delta still works as a persistent offset.
     </p>
 
     <div class="tool-card">
@@ -444,13 +440,51 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     </div>
 
     <div class="tool-card">
-      <h3>Add or remove upgrade points</h3>
+      <h3>Set exact skill value</h3>
+      <p class="muted" style="margin-bottom:10px;">Set any skill (including backend-only Adaptability) to an exact value. Writes immediately.</p>
+      <div class="field-row">
+        <div class="field">
+          <label for="ov-set-skill-select">Skill</label>
+          <select id="ov-set-skill-select"></select>
+        </div>
+        <div class="field" style="max-width:120px;">
+          <label for="ov-set-skill-value">Value</label>
+          <input type="number" id="ov-set-skill-value" min="0" max="99" step="1" placeholder="0–99">
+        </div>
+        <button class="action action-compact action-quiet" id="ov-set-skill-btn"><span>Set</span></button>
+      </div>
+      <div class="result-line" id="ov-set-skill-result"></div>
+    </div>
+
+    <div class="tool-card">
+      <h3>Set team & affiliation</h3>
+      <p class="muted" style="margin-bottom:10px;">Assign a team and/or affiliation. Picking a team auto-fills its color.</p>
+      <div class="field-row">
+        <div class="field">
+          <label for="ov-team-select">Team</label>
+          <select id="ov-team-select"><option value="">— no change —</option></select>
+        </div>
+        <div class="field">
+          <label for="ov-affiliation">Affiliation</label>
+          <input type="text" id="ov-affiliation" placeholder="e.g. Ferrari Academy">
+        </div>
+        <div class="field" style="max-width:180px;">
+          <label for="ov-team-color">Team Color (R,G,B)</label>
+          <input type="text" id="ov-team-color" placeholder="e.g. 220,40,50">
+        </div>
+        <button class="action action-compact action-quiet" id="ov-team-btn"><span>Apply</span></button>
+      </div>
+      <div class="result-line" id="ov-team-result"></div>
+    </div>
+
+    <div class="tool-card">
+      <h3>Set Target OVR</h3>
       <div class="field-row">
         <div class="field" style="max-width:120px;">
-          <label for="ov-points-delta">Delta</label>
-          <input type="number" id="ov-points-delta" value="1" step="1">
+          <label for="ov-points-delta">Target</label>
+          <input type="number" id="ov-points-delta" step="1" placeholder="0–99">
         </div>
-        <button class="action action-compact" id="ov-points-btn"><span>Apply</span></button>
+        <button class="action action-compact" id="ov-points-btn"><span>Set</span></button>
       </div>
       <div class="result-line" id="ov-points-result"></div>
     </div>
@@ -467,7 +501,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
       <div class="field-row" style="margin-top:10px;">
         <div class="field" style="max-width:120px;">
           <label for="ov-ovr-set">Set exact OVR</label>
-          <input type="number" id="ov-ovr-set" min="0" max="99" step="1" placeholder="0–99">
+          <input type="number" id="ov-ovr-set" step="1" placeholder="0–99">
         </div>
         <button class="action action-compact action-quiet" id="ov-ovr-set-btn"><span>Set OVR</span></button>
       </div>
@@ -502,6 +536,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 
 </div>
 
+<script src="js/common.js"></script>
 <script>
 /* ============================================================
    CONFIG
@@ -567,21 +602,45 @@ const NATIONS = [
 const NATIONS_BY_A3 = {};
 NATIONS.forEach(n => { NATIONS_BY_A3[n[1]] = n; });
 
-/** Convert IOC code to emoji flag (e.g. "FIN" → "🇫🇮") */
-function iocToEmoji(ioc) {
+/** Convert IOC code to local SVG flag HTML (Flags/{a2}.svg) */
+function iocFlagImg(ioc, width, height) {
   const entry = NATIONS_BY_A3[ioc];
   if (!entry) return '';
-  const a2 = entry[0];
-  return String.fromCodePoint(...a2.toUpperCase().split('').map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
+  const a2 = entry[0].toLowerCase();
+  const w = width || 48;
+  const h = height || 36;
+  return '<img src="Flags/' + a2 + '.svg"'
+    + ' width="' + w + '" height="' + h + '" alt="' + entry[2] + '"'
+    + ' onerror="this.style.visibility=\'hidden\';"'
+    + ' style="object-fit:cover;border-radius:1px;">';
 }
 
-/** Render flag + IOC code for a nation */
-function nationMarkup(ioc) {
-  const entry = NATIONS_BY_A3[ioc];
-  if (!entry) return ioc || '—';
-  const emoji = iocToEmoji(ioc);
-  return '<span style="font-size:1.2em; line-height:1;">' + emoji + ' ' + ioc + '</span>';
-}
+/** Available teams with their brand colors (RGB). Used by the admin team picker. */
+const TEAM_LIST = [
+  { name:'Red Bull Racing',       color:'6,38,140' },
+  { name:'McLaren',               color:'255,128,0' },
+  { name:'Ferrari',               color:'220,40,50' },
+  { name:'Mercedes',              color:'0,210,190' },
+  { name:'Aston Martin',          color:'34,108,87' },
+  { name:'Alpine',                color:'0,147,204' },
+  { name:'Haas',                  color:'182,186,189' },
+  { name:'Racing Bulls',          color:'102,146,232' },
+  { name:'Williams',              color:'0,173,239' },
+  { name:'Kick Sauber',           color:'46,230,75' },
+  { name:'Cadillac',              color:'0,71,131' },
+  { name:'ART Grand Prix',        color:'220,0,50' },
+  { name:'PREMA Racing',          color:'231,2,4' },
+  { name:'Rodin Motorsport',      color:'0,160,80' },
+  { name:'DAMS',                  color:'253,184,19' },
+  { name:'Hitech',                color:'232,0,45' },
+  { name:'Campos Racing',         color:'0,60,120' },
+  { name:'MP Motorsport',         color:'230,0,126' },
+  { name:'Trident',               color:'0,80,170' },
+  { name:'AIX Racing',            color:'0,168,138' },
+  { name:'Van Amersfoort Racing', color:'255,100,0' },
+  { name:'PHM Racing',            color:'150,0,200' },
+  { name:'Jenzer Motorsport',     color:'255,0,100' },
+];
 
 function populateNationDropdown() {
   const input = document.getElementById('new-driver-nation');
@@ -602,8 +661,7 @@ document.getElementById('new-driver-nation').addEventListener('input', function(
   const preview = document.getElementById('nation-preview');
   const entry = NATIONS_BY_A3[val];
   if (entry) {
-    const emoji = iocToEmoji(val);
-    preview.innerHTML = '<span style="font-size:28px;">' + emoji + '</span> <span style="font-family:var(--data-face); font-size:12px; color:var(--copy-faint);">' + val + '</span>';
+    preview.innerHTML = '<span class="nation-flag-preview">' + iocFlagImg(val, 32, 24) + '</span> <span style="font-family:var(--data-face); font-size:12px; color:var(--copy-faint);">' + val + '</span>';
   } else {
     preview.innerHTML = '';
   }
@@ -622,6 +680,73 @@ const ATTR_GROUPS = [
       { key: 'overtaking', name: 'Overtaking' },
       { key: 'defending', name: 'Defending' } ] }
 ];
+
+// All 9 skills for admin set-skill dropdown (includes backend-only adaptability)
+const ALL_SKILLS = [
+  { key: 'cornering', name: 'Cornering' },
+  { key: 'braking', name: 'Braking' },
+  { key: 'reactions', name: 'Reactions' },
+  { key: 'accuracy', name: 'Accuracy' },
+  { key: 'control', name: 'Control' },
+  { key: 'smoothness', name: 'Smoothness' },
+  { key: 'overtaking', name: 'Overtaking' },
+  { key: 'defending', name: 'Defending' },
+  { key: 'adaptability', name: 'Adaptability (backend)' }
+];
+
+// Skill weights matching the backend OVR calculation (sum = 1.0)
+const SKILL_WEIGHTS = {
+  cornering: 0.20, braking: 0.18, accuracy: 0.15, control: 0.14,
+  reactions: 0.11, overtaking: 0.08, defending: 0.07, smoothness: 0.05
+};
+
+/** Compute the live OVR based on current base OVR + pending deltas × weights. */
+function computeLiveOvr() {
+  if (!SELECTED) return 0;
+  var delta = 0;
+  ATTR_GROUPS.forEach(function(g) {
+    g.keys.forEach(function(a) {
+      delta += (PENDING[a.key] || 0) * (SKILL_WEIGHTS[a.key] || 0);
+    });
+  });
+  return SELECTED.ovr + delta;
+}
+
+/**
+ * Parse an RGB string like "220,40,50" and set CSS custom properties
+ * with offsets for accent, surface, edge, and glow variants.
+ * Falls back to default ember tones when teamColor is absent or invalid.
+ */
+function setTeamColors(teamColor) {
+  const root = document.documentElement;
+  var r = 185, g = 29, b = 46; // default ember
+
+  if (teamColor) {
+    var parts = teamColor.split(',').map(function(s) { return parseInt(s, 10); });
+    if (parts.length === 3 && parts.every(function(v) { return !isNaN(v) && v >= 0 && v <= 255; })) {
+      r = parts[0]; g = parts[1]; b = parts[2];
+    }
+  }
+
+  root.style.setProperty('--team-r', r);
+  root.style.setProperty('--team-g', g);
+  root.style.setProperty('--team-b', b);
+
+  // Accent: the raw color, slightly brightened
+  var brightR = Math.min(255, Math.round(r * 1.15));
+  var brightG = Math.min(255, Math.round(g * 1.15));
+  var brightB = Math.min(255, Math.round(b * 1.15));
+  root.style.setProperty('--team-accent', 'rgb(' + r + ',' + g + ',' + b + ')');
+  root.style.setProperty('--team-accent-hot', 'rgb(' + brightR + ',' + brightG + ',' + brightB + ')');
+  root.style.setProperty('--team-accent-on', '#fff');
+
+  // Surface: very dim background (~8% opacity equivalent blended over --card)
+  root.style.setProperty('--team-surface', 'rgba(' + r + ',' + g + ',' + b + ',0.08)');
+  // Edge: dim border (~30% opacity)
+  root.style.setProperty('--team-edge', 'rgba(' + r + ',' + g + ',' + b + ',0.30)');
+  // Glow: for radial gradient backgrounds (~18% opacity)
+  root.style.setProperty('--team-glow', 'rgba(' + r + ',' + g + ',' + b + ',0.18)');
+}
 
 let CURRENT_USER = null;
 let DRIVERS = [];
@@ -705,8 +830,9 @@ document.getElementById('logout-btn').addEventListener('click', () => {
   document.getElementById('gate-password').value = '';
   document.getElementById('gate-section').classList.remove('hidden');
   ['admin-section','driver-section','attr-section','aggr-section','submit-section',
-   'admin-override-section','account-section','driver-hero','logout-btn']
+   'admin-override-section','account-section','driver-hero','driver-meta-row','logout-btn']
     .forEach(id => document.getElementById(id).classList.add('hidden'));
+  setTeamColors(null); // reset to default ember tones
   setStatus('locked', 'Locked');
 });
 
@@ -734,6 +860,8 @@ document.getElementById('driver-select').addEventListener('change', (e) => {
     document.getElementById('aggr-section').classList.add('hidden');
     document.getElementById('admin-override-section').classList.add('hidden');
     document.getElementById('driver-hero').classList.add('hidden');
+    document.getElementById('driver-meta-row').classList.add('hidden');
+    setTeamColors(null);
     return;
   }
   selectDriverByIndex(Number(e.target.value));
@@ -852,17 +980,43 @@ function selectDriverByIndex(idx) {
 }
 
 function renderDriver() {
-  // Driver hero – show name, flag, nation code
+  // Driver hero – show name + OVR, flag image, nation code
   document.getElementById('driver-hero-name').textContent = SELECTED.driver;
-  const flagEmoji = iocToEmoji(SELECTED.nation);
-  document.getElementById('driver-hero-flag').textContent = flagEmoji || '🏳️';
+  document.getElementById('driver-hero-ovr').textContent = SELECTED.ovr.toFixed(1);
+  var flagHtml = iocFlagImg(SELECTED.nation, 48, 36);
+  document.getElementById('driver-hero-flag').innerHTML = flagHtml || '🏳️';
   document.getElementById('driver-hero-nation-code').textContent = SELECTED.nation || '—';
   document.getElementById('driver-hero').classList.remove('hidden');
 
-  // Stats
-  document.getElementById('ro-ovr').textContent = SELECTED.ovr;
-  document.getElementById('ro-pool').textContent = SELECTED.upgradePoints;
-  updateRemaining();
+  // Team / Affiliation display
+  setTeamColors(SELECTED.teamColor || null);
+  var metaRow = document.getElementById('driver-meta-row');
+  var teamTag = document.getElementById('driver-team-tag');
+  var affilTag = document.getElementById('driver-affil-tag');
+  var hasTeam = SELECTED.team && SELECTED.team.trim();
+  var hasAffil = SELECTED.affiliation && SELECTED.affiliation.trim();
+  if (hasTeam || hasAffil) {
+    metaRow.classList.remove('hidden');
+    if (hasTeam) {
+      teamTag.classList.remove('hidden');
+      document.getElementById('driver-team-name').textContent = SELECTED.team.trim();
+    } else {
+      teamTag.classList.add('hidden');
+    }
+    if (hasAffil) {
+      affilTag.classList.remove('hidden');
+      document.getElementById('driver-affil-name').textContent = SELECTED.affiliation.trim();
+    } else {
+      affilTag.classList.add('hidden');
+    }
+  } else {
+    metaRow.classList.add('hidden');
+  }
+
+  // Stats readouts
+  document.getElementById('ro-ovr').textContent = SELECTED.ovr.toFixed(1);
+  document.getElementById('ro-target').textContent = (SELECTED.targetOvr || 0).toFixed(1);
+  updateLiveOvr();
 
   const container = document.getElementById('attr-groups');
   container.innerHTML = '';
@@ -881,7 +1035,7 @@ function renderDriver() {
       const row = document.createElement('div');
       row.className = 'attr-row';
       row.innerHTML = `
-        <div class="attr-name">${attr.name}</div>
+        <div class="attr-name">${attr.name} <span style="font-weight:400;font-size:11px;color:var(--copy-faint);">${Math.round((SKILL_WEIGHTS[attr.key]||0)*100)}%</span></div>
         <div style="display:flex; align-items:center;">
           <div class="attr-readout">
             <span class="attr-base">${SELECTED.attributes[attr.key]}</span>
@@ -1001,6 +1155,7 @@ function renderAdminOverrides() {
   }
   section.classList.remove('hidden');
 
+  // Populate "Adjust a skill" dropdown (8 public skills only)
   const select = document.getElementById('ov-skill-select');
   select.innerHTML = '';
   ATTR_GROUPS.forEach(g => g.keys.forEach(a => {
@@ -1009,7 +1164,35 @@ function renderAdminOverrides() {
     select.appendChild(opt);
   }));
 
-  ['ov-skill-result','ov-points-result','ov-ovr-result'].forEach(id => {
+  // Populate "Set exact skill" dropdown (all 9 skills including adaptability)
+  const setSelect = document.getElementById('ov-set-skill-select');
+  setSelect.innerHTML = '';
+  ALL_SKILLS.forEach(function(s) {
+    var opt = document.createElement('option');
+    opt.value = s.key; opt.textContent = s.name;
+    setSelect.appendChild(opt);
+  });
+
+  // Populate team dropdown
+  var teamSel = document.getElementById('ov-team-select');
+  teamSel.innerHTML = '<option value="">— no change —</option>';
+  TEAM_LIST.forEach(function(t) {
+    var opt = document.createElement('option');
+    opt.value = t.name;
+    opt.textContent = t.name;
+    opt.dataset.color = t.color;
+    teamSel.appendChild(opt);
+  });
+  // Pre-select current team if set
+  if (SELECTED.team) {
+    for (var i = 0; i < teamSel.options.length; i++) {
+      if (teamSel.options[i].value === SELECTED.team) { teamSel.selectedIndex = i; break; }
+    }
+  }
+  document.getElementById('ov-affiliation').value = SELECTED.affiliation || '';
+  document.getElementById('ov-team-color').value = SELECTED.teamColor || '';
+
+  ['ov-skill-result','ov-points-result','ov-ovr-result','ov-set-skill-result','ov-team-result'].forEach(id => {
     document.getElementById(id).style.display = 'none';
   });
 }
@@ -1042,21 +1225,24 @@ document.getElementById('ov-skill-btn').addEventListener('click', async () => {
 });
 
 document.getElementById('ov-points-btn').addEventListener('click', async () => {
-  const delta = Number(document.getElementById('ov-points-delta').value);
+  const value = document.getElementById('ov-points-delta').value;
   const resultEl = document.getElementById('ov-points-result');
   const btn = document.getElementById('ov-points-btn');
   resultEl.style.display = 'none';
-  if (!delta) { showResult(resultEl, false, 'Enter a non-zero delta.'); return; }
+  if (value === '') { showResult(resultEl, false, 'Enter a target OVR from 0–99.'); return; }
+  const num = Number(value);
+  if (isNaN(num) || num < 0 || num > 99) { showResult(resultEl, false, 'Enter a target OVR from 0–99.'); return; }
 
   btn.disabled = true;
   try {
-    const data = await callGateway('adminAdjustUpgradePoints', {
+    const data = await callGateway('adminSetTargetOvr', {
       username: CURRENT_USER.username, password: CURRENT_USER.password,
-      driver: SELECTED.driver, delta: delta
+      driver: SELECTED.driver, value: num
     });
     if (data.ok) {
       applyAdminDriverUpdate(data.driver);
-      showResult(resultEl, true, '✓ Upgrade points now ' + data.driver.upgradePoints + '.');
+      document.getElementById('ov-points-delta').value = '';
+      showResult(resultEl, true, '✓ Target OVR set to ' + (data.driver.targetOvr || 0).toFixed(1) + '.');
     } else {
       showResult(resultEl, false, '✗ ' + data.error);
     }
@@ -1109,7 +1295,73 @@ document.getElementById('ov-ovr-set-btn').addEventListener('click', async () => 
     if (data.ok) {
       applyAdminDriverUpdate(data.driver);
       document.getElementById('ov-ovr-set').value = '';
-      showResult(resultEl, true, '✓ OVR set to ' + data.driver.ovr + '.');
+      showResult(resultEl, true, '✓ OVR set to ' + data.driver.ovr + ' (skills scaled proportionally).');
+    } else {
+      showResult(resultEl, false, '✗ ' + data.error);
+    }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('ov-set-skill-btn').addEventListener('click', async () => {
+  const attrKey = document.getElementById('ov-set-skill-select').value;
+  const value = document.getElementById('ov-set-skill-value').value;
+  const resultEl = document.getElementById('ov-set-skill-result');
+  const btn = document.getElementById('ov-set-skill-btn');
+  resultEl.style.display = 'none';
+  if (value === '') { showResult(resultEl, false, 'Enter a value from 0–99.'); return; }
+
+  btn.disabled = true;
+  try {
+    const data = await callGateway('adminSetSkill', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      driver: SELECTED.driver, attrKey: attrKey, value: Number(value)
+    });
+    if (data.ok) {
+      applyAdminDriverUpdate(data.driver);
+      document.getElementById('ov-set-skill-value').value = '';
+      showResult(resultEl, true, '✓ ' + attrKey + ' set to ' + Math.round(Number(value)) + '. OVR now ' + data.driver.ovr + '.');
+    } else {
+      showResult(resultEl, false, '✗ ' + data.error);
+    }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// Auto-fill team color when a team is selected
+document.getElementById('ov-team-select').addEventListener('change', function() {
+  var sel = this.options[this.selectedIndex];
+  if (sel && sel.dataset.color) {
+    document.getElementById('ov-team-color').value = sel.dataset.color;
+  }
+});
+
+document.getElementById('ov-team-btn').addEventListener('click', async () => {
+  var teamSel = document.getElementById('ov-team-select');
+  var team = teamSel.value || undefined;
+  var affiliation = document.getElementById('ov-affiliation').value.trim() || undefined;
+  var teamColor = document.getElementById('ov-team-color').value.trim() || undefined;
+  var resultEl = document.getElementById('ov-team-result');
+  var btn = document.getElementById('ov-team-btn');
+  resultEl.style.display = 'none';
+
+  if (!team && !affiliation && !teamColor) { showResult(resultEl, false, 'Nothing to change.'); return; }
+
+  btn.disabled = true;
+  try {
+    var data = await callGateway('adminSetTeamInfo', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      driver: SELECTED.driver, team: team, affiliation: affiliation, teamColor: teamColor
+    });
+    if (data.ok) {
+      applyAdminDriverUpdate(data.driver);
+      showResult(resultEl, true, '✓ Team info updated.');
     } else {
       showResult(resultEl, false, '✗ ' + data.error);
     }
@@ -1134,10 +1386,14 @@ function totalPending() {
 }
 
 function adjust(key, dir) {
-  const remaining = SELECTED.upgradePoints - totalPending();
+  var live = computeLiveOvr();
+  var target = SELECTED.targetOvr || 0;
   if (dir > 0) {
-    if (remaining <= 0) return;
+    if (live >= target) return;
     if (SELECTED.attributes[key] + PENDING[key] >= ATTR_MAX) return;
+    // Check that this increment won't push live OVR past target
+    var delta = (SKILL_WEIGHTS[key] || 0);
+    if (live + delta > target + 0.05) return; // small tolerance for floating point
     PENDING[key] += 1;
   } else {
     if (PENDING[key] <= 0) return;
@@ -1147,28 +1403,36 @@ function adjust(key, dir) {
 }
 
 function refreshStepperState() {
-  const remaining = SELECTED.upgradePoints - totalPending();
+  var live = computeLiveOvr();
+  var target = SELECTED.targetOvr || 0;
+  var pending = totalPending();
+
   ATTR_GROUPS.forEach(g => g.keys.forEach(a => {
-    const plusSpan = document.getElementById('plus-' + a.key);
+    var plusSpan = document.getElementById('plus-' + a.key);
     plusSpan.textContent = PENDING[a.key] > 0 ? ('+' + PENDING[a.key]) : '';
-    const atMax = SELECTED.attributes[a.key] + PENDING[a.key] >= ATTR_MAX;
-    document.getElementById('add-' + a.key).disabled = remaining <= 0 || atMax;
+    var atMax = SELECTED.attributes[a.key] + PENDING[a.key] >= ATTR_MAX;
+    var wouldExceed = live >= target;
+    document.getElementById('add-' + a.key).disabled = wouldExceed || atMax;
     document.getElementById('minus-' + a.key).disabled = PENDING[a.key] <= 0;
     document.getElementById('minus-' + a.key).classList.toggle('invisible', PENDING[a.key] <= 0);
   }));
-  updateRemaining(remaining);
 
-  const pending = totalPending();
+  updateLiveOvr(live);
+
   document.getElementById('pending-tag').innerHTML =
-    '<span class="mark" style="background:var(--brass)"></span>' + pending + ' pts pending';
-  document.getElementById('pool-ok-tag').classList.toggle('hidden', pending === 0);
-  document.getElementById('submit-btn').disabled = pending === 0;
+    '<span class="mark" style="background:var(--brass)"></span>' + (pending > 0 ? '+' + pending + ' pts' : 'No changes');
+  var withinTarget = live <= target + 0.05;
+  document.getElementById('pool-ok-tag').classList.toggle('hidden', pending === 0 || !withinTarget);
+  document.getElementById('submit-btn').disabled = pending === 0 || !withinTarget;
   document.getElementById('submit-section').classList.toggle('hidden', pending === 0);
 }
 
-function updateRemaining(remainingOverride) {
-  const remaining = remainingOverride !== undefined ? remainingOverride : SELECTED.upgradePoints;
-  document.getElementById('ro-remaining').textContent = remaining;
+function updateLiveOvr(liveOverride) {
+  var live = liveOverride !== undefined ? liveOverride : computeLiveOvr();
+  var el = document.getElementById('ro-live');
+  el.textContent = live.toFixed(1);
+  var target = SELECTED.targetOvr || 0;
+  el.style.color = live > target + 0.05 ? 'var(--team-accent-hot)' : 'var(--moss)';
 }
 
 document.getElementById('submit-btn').addEventListener('click', async () => {
@@ -1185,14 +1449,11 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
     resultLine.style.display = 'block';
     if (data.ok) {
       resultLine.className = 'result-line ok';
-      resultLine.textContent = '✓ Sheet updated. ' + data.remaining + ' points remaining for ' + SELECTED.driver + '.';
+      resultLine.textContent = '✓ Sheet updated. ' + SELECTED.driver + ' now at OVR ' + data.driver.ovr.toFixed(1) + '.';
       if (data.driver) {
         SELECTED = data.driver;
         const idx = DRIVERS.findIndex(d => d.driver === SELECTED.driver);
         if (idx !== -1) DRIVERS[idx] = SELECTED;
-      } else {
-        SELECTED.upgradePoints = data.remaining;
-        Object.keys(PENDING).forEach(k => { SELECTED.attributes[k] += PENDING[k]; });
       }
       Object.keys(PENDING).forEach(k => { PENDING[k] = 0; });
       renderDriver();
