@@ -1,0 +1,31 @@
+name: Update Data Cache
+
+on:
+  push:
+    paths:
+      - 'Data/**'
+      - 'scripts/build-cache.js'
+  workflow_dispatch:
+
+jobs:
+  build-cache:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build data-cache.json from Data folder
+        run: node scripts/build-cache.js
+
+      - name: Commit updated cache
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data-cache.json
+          git diff --cached --quiet || git commit -m "chore: auto-update data-cache.json"
+          git push
