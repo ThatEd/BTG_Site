@@ -11,60 +11,349 @@
 
 <nav class="btg-nav" id="btg-nav"></nav>
 
-<div class="series-bar" id="series-bar"></div>
-
-<div class="page-section" id="content">
-  <div class="muted" style="padding:24px">Loading news…</div>
+<div class="news-shell">
+  <div class="news-ticker" id="news-ticker" aria-label="news ticker"></div>
+  <div class="news-toolbar">
+    <div class="series-bar" id="series-bar"></div>
+    <button class="tags-toggle" id="tags-toggle" type="button">Tags ▸</button>
+  </div>
+  <div class="page-section" id="content" style="padding:0;">
+    <div class="muted" style="padding:24px">Loading news…</div>
+  </div>
 </div>
+
+<div class="tags-overlay" id="tags-overlay"></div>
+<aside class="tags-drawer" id="tags-drawer" aria-label="Tags">
+  <div class="tags-drawer-head">Tags <button class="tags-close" id="tags-close" type="button" aria-label="Close">✕</button></div>
+  <div class="tags-drawer-body" id="tags-drawer-body"></div>
+</aside>
 
 <script src="js/common.js"></script>
 <script src="js/api.js"></script>
 <script>
 (function() {
-  var news = [], activeFilter = 'all', seriesList = [];
+  var articles = [], activeSeries = 'all', activeTag = 'all', seriesList = ['all'], tagsList = [];
 
-  BTG.loadAllDrivers('admin','').then(function(d) {
-    if (d) { BTG.drivers = d; }
-    else { BTG.useDemo(); }
-    finish();
-  }).catch(function() { BTG.useDemo(); finish(); });
+  load();
 
-  function finish() {
-    news = BTG.news || BTG.DEMO.news || [];
-    var allSeries = (BTG.drivers || []).map(function(d){return d.series;}).filter(function(v,i,a){return v&&a.indexOf(v)===i;}).sort();
-    seriesList = ['all'].concat(allSeries);
+  function load() {
+    loadIndex()
+      .then(function(list) {
+        articles = (list || []).filter(Boolean).sort(function(a, b) {
+          return parseDateFromMeta(b.meta) - parseDateFromMeta(a.meta);
+        });
+        return loadSeries();
+      })
+      .then(function(series) {
+        seriesList = ['all'].concat(series || []);
+        buildFilters();
+        buildTagsDrawer();
+        renderTicker();
+        renderFront();
+      })
+      .catch(function() {
+        var c = document.getElementById('content');
+        c.innerHTML = '<div class="muted" style="padding:24px">No news available.</div>';
+      });
+  }
 
+  // The top bar splits by SERIES, matched to the series in Data/ (via the cache).
+  function loadSeries() {
+    return fetch('data-cache.json')
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .catch(function() { return null; })
+      .then(function(c) {
+        var s = c && c.series ? Object.keys(c.series) : [];
+        if (s.length) return s.sort();
+        // Fallback: series-like tags from the articles themselves.
+        var seen = {};
+        articles.forEach(function(a) {
+          ((a.tags || []).concat([a.section])).forEach(function(t) {
+            if (t && /^(F1|F2|F3|GT|GT3|GT4|GT Class One|XGT|LMP|WEC|NASCAR|Indy)/i.test(t)) seen[t] = true;
+          });
+        });
+        return Object.keys(seen).sort();
+      });
+  }
+
+  function loadIndex() {
+    // F1CC-style news/index.json = array of keys; fall back to manifest.json.
+    return fetch('news/index.json')
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .catch(function() { return null; })
+      .then(function(keys) {
+        var files = Array.isArray(keys) ? keys : null;
+        if (!files) {
+          return fetch('news/manifest.json')
+            .then(function(r) { return r.ok ? r.json() : { articles: [] }; })
+            .catch(function() { return { articles: [] }; })
+            .then(function(m) { return (m && m.articles) || []; });
+        }
+        return files;
+      })
+      .then(function(files) {
+        return Promise.all(files.map(function(f) {
+          return fetch('news/' + String(f).replace(/\.json$/i, '') + '.json')
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .catch(function() { return null; });
+        }));
+      });
+  }
+
+  function parseDateFromMeta(meta) {
+    var m = (meta || '').match(/Published:\s*(\d+)\s+(\w+)\s+(\d{4})/);
+    if (!m) return new Date(0);
+    return new Date(m[2] + ' ' + m[1] + ', ' + m[3]);
+  }
+
+  function extractSnippet(html) {
+    if (!html) return '';
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    var text = (tmp.textContent || '').trim();
+    return text.length > 160 ? text.substring(0, 157) + '…' : text;
+  }
+
+  /* Top bar splits by SERIES only (series come from the Data folder). */
+  function buildFilters() {
     var bar = document.getElementById('series-bar');
+    bar.innerHTML = '';
     seriesList.forEach(function(s) {
       var t = document.createElement('div');
-      t.className = 'series-tab' + (s === activeFilter ? ' active' : '');
+      t.className = 'series-tab' + (s === activeSeries ? ' active' : '');
       t.textContent = s === 'all' ? 'All' : s;
-      t.onclick = function() { activeFilter = s; bar.querySelectorAll('.series-tab').forEach(function(x){x.classList.toggle('active',x.textContent===t.textContent);}); render(); };
+      t.onclick = function() {
+        activeSeries = s;
+        bar.querySelectorAll('.series-tab').forEach(function(x){ x.classList.toggle('active', x === t); });
+        renderFront();
+      };
       bar.appendChild(t);
     });
-    render();
   }
 
-  function render() {
-    var items = activeFilter === 'all' ? news : news.filter(function(n){return n.series===activeFilter;});
+  function articleSeries(a) {
+    var tags = (a.tags || []).concat([a.section]).filter(Boolean);
+    for (var i = 1; i < seriesList.length; i++) {
+      if (tags.indexOf(seriesList[i]) !== -1) return seriesList[i];
+    }
+    return null;
+  }
+
+  function filtered() {
+    return articles.filter(function(a) {
+      if (activeSeries !== 'all' && articleSeries(a) !== activeSeries) return false;
+      if (activeTag !== 'all' && (a.tags || []).indexOf(activeTag) === -1) return false;
+      return true;
+    });
+  }
+
+  /* ── Tags drawer (right pull-out): lists all tags + counts, click to filter ── */
+  function buildTagsDrawer() {
+    var counts = {};
+    articles.forEach(function(a) { (a.tags || []).forEach(function(t) { if (t) counts[t] = (counts[t] || 0) + 1; }); });
+    tagsList = Object.keys(counts).sort(function(a, b) { return (counts[b] - counts[a]) || a.localeCompare(b); });
+    var body = document.getElementById('tags-drawer-body');
+    if (!body) return;
+    body.innerHTML =
+      '<button class="tag-item' + (activeTag === 'all' ? ' active' : '') + '" data-tag="all">All tags <span class="tag-count">' + articles.length + '</span></button>'
+      + tagsList.map(function(t) {
+        return '<button class="tag-item' + (activeTag === t ? ' active' : '') + '" data-tag="' + attr(t) + '">' + esc(t) + ' <span class="tag-count">' + counts[t] + '</span></button>';
+      }).join('');
+    body.querySelectorAll('.tag-item').forEach(function(b) {
+      b.onclick = function() {
+        activeTag = b.getAttribute('data-tag');
+        closeTags();
+        buildTagsDrawer();
+        renderFront();
+      };
+    });
+  }
+  function openTags() { document.getElementById('tags-drawer').classList.add('open'); document.getElementById('tags-overlay').classList.add('open'); }
+  function closeTags() { document.getElementById('tags-drawer').classList.remove('open'); document.getElementById('tags-overlay').classList.remove('open'); }
+  document.getElementById('tags-toggle').addEventListener('click', openTags);
+  document.getElementById('tags-close').addEventListener('click', closeTags);
+  document.getElementById('tags-overlay').addEventListener('click', closeTags);
+
+  /* ── Forever-scrolling ticker of the last 20 kickers (clickable) ── */
+  function renderTicker() {
+    var el = document.getElementById('news-ticker');
+    if (!el) return;
+    var recent = articles.slice(0, 20);
+    if (!recent.length) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    function item(a, i) {
+      var label = a.kicker || a.section || 'News';
+      return '<span class="news-ticker-item" data-idx="' + i + '" role="button" tabindex="0"><span class="tk-label">' + esc(label) + '</span>' + esc(a.title) + '</span>';
+    }
+    var html = recent.map(function(a, i) { return item(a, i); }).join('');
+    // Duplicated so the -50% translate loops seamlessly.
+    el.innerHTML = '<div class="news-ticker-track">' + html + html + '</div>';
+    el.querySelectorAll('.news-ticker-item').forEach(function(it) {
+      it.onclick = function() {
+        var a = articles[Number(it.getAttribute('data-idx'))];
+        if (a) openArticle(a);
+      };
+    });
+  }
+
+  /* ── Front page (F1CC-style: feature + headline stack + teasers + sidebar) ── */
+  function renderFront() {
+    var items = filtered();
     var c = document.getElementById('content');
-    if (!items.length) { c.innerHTML = '<div class="muted" style="padding:24px">No news.</div>'; return; }
+    if (!items.length) { c.innerHTML = '<div class="muted" style="padding:24px">No news in this section.</div>'; return; }
 
-    var hero = items[0];
-    var rest = activeFilter === 'all' ? items.slice(1) : items;
-    c.innerHTML = '<div class="news-hero">'
-      + '<span class="news-hero-tag">'+BTG.esc(hero.tag)+'</span>'
-      + '<h3>'+BTG.esc(hero.title)+'</h3>'
-      + '<div class="news-hero-meta">'+BTG.esc(hero.series||'')+' · '+BTG.esc(hero.time||'')+'</div>'
+    var lead = items[0], heads = items.slice(1, 3), teasers = items.slice(3);
+    var html = '<div class="news-front">'
+      + '<div class="news-hero-row">'
+      +   featureCard(lead, 0)
+      +   '<div class="nf-headlines">' + heads.map(function(a, i) { return headlineCard(a, i + 1); }).join('') + '</div>'
       + '</div>'
-      + '<div class="news-list">'
-      + rest.map(function(n) {
-        return '<div class="news-item"><span class="ni-tag '+BTG.esc(n.tag)+'">'+BTG.esc(n.tag)+'</span>'
-          + '<div><div class="ni-title">'+BTG.esc(n.title)+'</div>'
-          + '<div class="ni-meta">'+BTG.esc(n.series||'')+' · '+BTG.esc(n.time||'')+'</div></div></div>';
-      }).join('')
+      + '<div class="news-main">'
+      +   '<div class="nf-teasers">' + teasers.map(function(a, i) { return teaserCard(a, i + 3); }).join('') + '</div>'
+      +   sidebar(items)
+      + '</div>'
       + '</div>';
+    c.innerHTML = html;
+    c.querySelectorAll('[data-idx]').forEach(function(el) {
+      el.onclick = function() {
+        var a = items[Number(el.getAttribute('data-idx'))];
+        if (a) openArticle(a);
+      };
+    });
   }
+
+  function featureCard(a, idx) {
+    var img = newsImage(a.image);
+    return '<div class="nf-feature" data-idx="' + idx + '" role="button" tabindex="0">'
+      + (img ? '<img src="' + attr(img) + '" alt="' + attr(a.title || '') + '" loading="lazy" onerror="this.classList.add(\'img-missing\')">' : '')
+      + '<div class="nf-body">'
+      +   (a.kicker ? '<div class="nf-kicker"><span class="nk-bar"></span>' + esc(a.kicker) + '</div>' : '')
+      +   '<h2>' + esc(a.title) + '</h2>'
+      +   (a.meta ? '<div class="nf-meta">' + esc(a.meta) + '</div>' : '')
+      +   '<p class="nf-snippet">' + esc(extractSnippet(a.body)) + '</p>'
+      + '</div></div>';
+  }
+
+  function headlineCard(a, idx) {
+    var img = newsImage(a.image);
+    return '<div class="nf-headline" data-idx="' + idx + '" role="button" tabindex="0">'
+      + '<div class="nf-hrow">'
+      +   '<div class="nf-hbody">'
+      +     (a.kicker ? '<div class="nf-kicker">' + esc(a.kicker) + '</div>' : '')
+      +     '<h3>' + esc(a.title) + '</h3>'
+      +     (a.meta ? '<div class="nf-meta">' + esc(a.meta) + '</div>' : '')
+      +     '<p class="nf-snippet">' + esc(extractSnippet(a.body)) + '</p>'
+      +   '</div>'
+      +   (img ? '<img class="nf-thumb" src="' + attr(img) + '" alt="" loading="lazy" onerror="this.classList.add(\'img-missing\')">' : '')
+      + '</div></div>';
+  }
+
+  function teaserCard(a, idx) {
+    var img = newsImage(a.image);
+    return '<div class="nf-teaser" data-idx="' + idx + '" role="button" tabindex="0">'
+      + (img ? '<img src="' + attr(img) + '" alt="' + attr(a.title || '') + '" loading="lazy" onerror="this.classList.add(\'img-missing\')">' : '')
+      + '<div class="nf-tbody">'
+      +   '<div class="nf-tags">' + (a.tags || []).slice(0, 3).map(function(t){ return '<span class="nf-pill">' + esc(t) + '</span>'; }).join('') + '</div>'
+      +   '<h3>' + esc(a.title) + '</h3>'
+      +   (a.meta ? '<div class="nf-meta">' + esc(a.meta) + '</div>' : '')
+      +   '<p class="nf-snippet">' + esc(extractSnippet(a.body)) + '</p>'
+      + '</div></div>';
+  }
+
+  function sidebar(items) {
+    var recent = items.slice(0, 8);
+    return '<aside class="nf-sidebar">'
+      + '<div class="nf-side-head">Latest Updates</div>'
+      + '<ul class="nf-side-list">'
+      +   recent.map(function(a, i) { return '<li data-idx="' + i + '" role="button" tabindex="0">' + esc(a.title) + '</li>'; }).join('')
+      + '</ul>'
+      + '</aside>';
+  }
+
+  /* Article reader — full article with kicker, title, image, body. */
+  function openArticle(a) {
+    var img = newsImage(a.image);
+    var c = document.getElementById('content');
+    c.innerHTML =
+      '<div class="news-toolbar"><button class="news-back" id="news-back">← All News</button></div>'
+      + '<article class="article">'
+      +   (a.kicker ? '<div class="article-kicker">' + esc(a.kicker) + '</div>' : '')
+      +   '<h1 class="article-title">' + esc(a.title) + '</h1>'
+      +   (a.section ? '<div class="article-section">' + esc(a.section) + '</div>' : '')
+      +   (a.meta ? '<div class="article-meta">' + esc(a.meta) + '</div>' : '')
+      +   (img ? '<figure class="article-figure"><img class="article-img" src="' + attr(img) + '" alt="' + attr(a.title || '') + '" loading="lazy"><figcaption>' + esc(a.caption || '') + '</figcaption></figure>' : '')
+      +   '<div class="article-body">' + (a.body || '') + '</div>'
+      +   ((a.tags && a.tags.length) ? '<div class="article-tags">' + a.tags.map(function(t){ return '<span class="article-tag">' + esc(t) + '</span>'; }).join('') + '</div>' : '')
+      + '</article>';
+    var articleEl = c.querySelector('.article');
+    applyColors(articleEl, a.colors);
+    fixBodyImages(articleEl.querySelector('.article-body'));
+    syncQuoteColors(articleEl.querySelector('.article-body'), function(h) { return accentColorFor(h, articleEl); });
+    var back = document.getElementById('news-back');
+    if (back) back.onclick = function() { renderFront(); window.scrollTo(0, 0); };
+    window.scrollTo(0, 0);
+  }
+
+  /* Resolve an article image path. Relative paths point into news/images/,
+     so a bare "photo.jpeg" or "images/photo.jpeg" becomes "news/images/photo.jpeg". */
+  function newsImage(p) {
+    if (!p) return null;
+    if (/^(https?:|data:|\/)/i.test(p)) return p;
+    p = String(p).replace(/^\.?\//, '');
+    if (p.indexOf('news/') === 0) return p;
+    if (p.indexOf('images/') === 0) return 'news/' + p;
+    return 'news/images/' + p;
+  }
+
+  /* Rewrite inline body <img> srcs (images/x or bare names → news/images/x). */
+  function fixBodyImages(root) {
+    if (!root) return;
+    root.querySelectorAll('img').forEach(function(img) {
+      var src = img.getAttribute('src');
+      if (!src || /^(https?:|data:|\/)/i.test(src)) return;
+      src = src.replace(/^\.?\//, '');
+      if (src.indexOf('news/') === 0) return;
+      img.setAttribute('src', src.indexOf('images/') === 0 ? 'news/' + src : 'news/images/' + src);
+    });
+  }
+
+  /* Apply per-article colors (if any) to the article element. */
+  function applyColors(el, colors) {
+    if (!el || !colors) return;
+    var set = function(k, v) { if (v) el.style.setProperty(k, v); };
+    set('--art-accent', colors.accent);
+    set('--art-accent-hot', colors.accentHot || colors.accent);
+    set('--art-h1', colors.h1);
+    set('--art-h2', colors.h2);
+    set('--art-h3', colors.h3);
+    set('--art-section', colors.section);
+    set('--art-text', colors.text);
+    set('--art-soft', colors.body || colors.text);
+    set('--art-faint', colors.muted);
+  }
+
+  /* A quote follows the accent color of the last heading before it. */
+  function accentColorFor(h, article) {
+    var inline = (h.style.getPropertyValue('--art-h') || '').trim();
+    if (/^#[0-9a-f]{6}$/i.test(inline)) return inline;
+    var map = { H1: '--art-h1', H2: '--art-h2', H3: '--art-h3' };
+    var v = (getComputedStyle(article).getPropertyValue(map[h.tagName] || '--art-accent') || '').trim();
+    return v || '#b91d2e';
+  }
+  function syncQuoteColors(container, resolve) {
+    if (!container) return;
+    var current = null;
+    Array.prototype.forEach.call(container.children, function(b) {
+      if (/^H[1-6]$/.test(b.tagName)) { current = resolve(b); }
+      else if (b.tagName === 'BLOCKQUOTE') {
+        if (current) b.style.setProperty('--art-q', current);
+        else b.style.removeProperty('--art-q');
+      }
+    });
+  }
+
+  function esc(s) { return BTG.esc(s); }
+  function attr(s) { return BTG.esc(s).replace(/"/g, '&quot;'); }
 })();
 </script>
 </body>

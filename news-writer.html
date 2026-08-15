@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BeTheGrid — News Writer</title>
+<link rel="icon" type="image/x-icon" href="logos/BTG.ico">
+<link rel="stylesheet" href="style.css">
+<style>
+/* ── News Writer (standalone authoring tool — intentionally not in the nav) ── */
+.nw-wrap { max-width: 1240px; margin: 0 auto; padding: 24px 24px 80px; }
+.nw-head { display: flex; align-items: center; gap: 16px; padding-bottom: 18px; margin-bottom: 22px; border-bottom: 1px solid var(--edge); }
+.nw-head-mark { width: 11px; height: 40px; background: var(--team-accent); transform: skewX(-19deg); flex: none; }
+.nw-head-num { font-family: var(--data-face); font-weight: 600; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--team-accent-hot); margin-bottom: 6px; display: block; }
+.nw-head h1 { font-size: 26px; letter-spacing: .03em; }
+.nw-head-sub { font-size: 13px; color: var(--copy-faint); margin-top: 6px; }
+.nw-head-sub code { font-family: var(--data-face); color: var(--brass); }
+#nw-import {
+  margin-left: auto;
+  font-family: var(--data-face); font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .12em;
+  padding: 10px 14px; cursor: pointer; flex: none;
+  border: 1px solid var(--edge); background: var(--card); color: var(--copy);
+  transition: border-color .15s, background .15s;
+}
+#nw-import:hover { border-color: var(--team-accent); background: var(--card-raised); }
+
+.nw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+@media (max-width: 960px) { .nw-grid { grid-template-columns: 1fr; } }
+
+.nw-form { display: flex; flex-direction: column; gap: 16px; }
+.nw-field { display: flex; flex-direction: column; gap: 6px; }
+.nw-label {
+  font-family: var(--data-face); font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .14em; color: var(--copy-faint);
+}
+.nw-field input {
+  background: var(--card); color: var(--copy);
+  border: 1px solid var(--edge); border-left: 3px solid var(--edge-strong);
+  padding: 10px 12px; font-family: var(--body-face); font-size: 14px;
+  transition: border-color .15s, background .15s;
+}
+.nw-field input:focus { outline: none; border-left-color: var(--team-accent); background: var(--card-raised); }
+
+/* Article color pickers */
+.nw-colors { display: flex; flex-wrap: wrap; gap: 14px; }
+.nw-color {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
+  font-family: var(--data-face); font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .12em; color: var(--copy-faint);
+  cursor: pointer;
+}
+.nw-color input[type="color"] {
+  width: 52px; height: 30px; padding: 0; border: 1px solid var(--edge);
+  background: var(--card); cursor: pointer;
+}
+.nw-color input[type="color"]::-webkit-color-swatch-wrapper { padding: 3px; }
+.nw-color input[type="color"]::-webkit-color-swatch { border: none; border-radius: 2px; }
+
+/* ── WYSIWYG editor (like Wysi: select text → format) ── */
+.nw-editorbar {
+  display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+  background: var(--card-raised); border: 1px solid var(--edge); border-bottom: none;
+  padding: 6px;
+}
+.nw-editorbar select {
+  background: var(--card); color: var(--copy);
+  border: 1px solid var(--edge); padding: 6px 8px;
+  font-family: var(--data-face); font-size: 11px;
+}
+.nw-editorbar button {
+  font-family: var(--data-face); font-size: 11px; font-weight: 600;
+  color: var(--copy-soft); background: var(--card);
+  border: 1px solid var(--edge); padding: 6px 9px; cursor: pointer;
+  min-width: 30px; transition: color .12s, border-color .12s, background .12s;
+}
+.nw-editorbar button:hover { color: var(--copy); border-color: var(--team-accent); }
+.nw-editorbar button.on { background: var(--team-accent); border-color: var(--team-accent); color: var(--team-accent-on); }
+.nw-editorbar .nw-sep { width: 1px; height: 22px; background: var(--edge-strong); margin: 0 4px; flex: none; }
+
+.nw-editor {
+  background: var(--card); color: var(--copy-soft);
+  border: 1px solid var(--edge); border-left: 3px solid var(--edge-strong);
+  min-height: 340px; padding: 18px 20px;
+  font-family: var(--body-face); font-size: 15px; line-height: 1.7;
+  outline: none; transition: border-color .15s;
+}
+.nw-editor:focus { border-left-color: var(--team-accent); }
+.nw-editor:empty::before { content: attr(data-placeholder); color: var(--copy-faint); pointer-events: none; }
+.nw-editor blockquote {
+  margin: 0 0 16px; padding: 12px 16px;
+  border-left: 3px solid var(--art-q, var(--team-accent));
+  background: color-mix(in srgb, var(--art-q, var(--team-accent)) 8%, transparent);
+  color: var(--copy);
+}
+.nw-editor table { width: 100%; border-collapse: collapse; margin: 0 0 16px; font-family: var(--data-face); font-size: 12px; }
+.nw-editor th, .nw-editor td { border: 1px solid var(--edge); padding: 7px 10px; }
+.nw-editor th { background: var(--card-raised); color: var(--copy); }
+.nw-editor hr { border: none; border-top: 1px solid var(--edge-strong); margin: 24px 0; }
+.nw-editor img { max-width: 100%; height: auto; display: block; margin: 0 0 16px; border: 1px solid var(--edge); }
+
+/* Per-heading color swatch — a small colored square after each header */
+.nw-hswatch {
+  display: inline-block;
+  width: 12px; height: 12px;
+  margin-left: 8px;
+  border: 1px solid rgba(255,255,255,.4);
+  border-radius: 2px;
+  vertical-align: middle;
+  cursor: pointer;
+  flex: none;
+}
+.nw-editor h1, .nw-editor h2, .nw-editor h3, .nw-editor h4, .nw-editor h5, .nw-editor h6 {
+  color: var(--copy);
+}
+
+/* Action buttons */
+.nw-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.nw-actions button {
+  font-family: var(--data-face); font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .12em;
+  padding: 11px 16px; cursor: pointer;
+  border: 1px solid var(--edge);
+  background: var(--card); color: var(--copy);
+  transition: border-color .15s, background .15s;
+}
+.nw-actions button:hover { border-color: var(--team-accent); background: var(--card-raised); }
+.nw-actions button.primary { background: var(--team-accent); border-color: var(--team-accent); color: var(--team-accent-on); }
+.nw-actions button.primary:hover { background: var(--team-accent-hot); border-color: var(--team-accent-hot); }
+.nw-status { font-family: var(--data-face); font-size: 11px; color: var(--moss); min-height: 16px; }
+
+/* Preview panel */
+.nw-preview { position: sticky; top: 68px; }
+.nw-preview-label {
+  font-family: var(--data-face); font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .14em; color: var(--copy-faint);
+  margin-bottom: 10px;
+}
+.nw-preview .article { max-width: 100%; margin: 0; padding: 22px; background: var(--card); border: 1px solid var(--edge); }
+.nw-preview .article-img[src=""], .nw-preview .article-img.img-missing { display: none; }
+
+/* Shortcuts legend above the live preview */
+.nw-hint {
+  background: var(--card-raised); border: 1px solid var(--edge); border-left: 3px solid var(--team-accent);
+  padding: 10px 14px; margin-bottom: 12px;
+  font-family: var(--data-face); font-size: 10.5px; color: var(--copy-faint); line-height: 1.7;
+}
+.nw-hint summary {
+  cursor: pointer; color: var(--copy-soft); font-weight: 600;
+  text-transform: uppercase; letter-spacing: .08em; font-size: 10px;
+}
+.nw-hint-grid { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; margin-top: 8px; }
+.nw-hint code { color: var(--brass); }
+.nw-hint b { color: var(--copy-soft); font-weight: 600; }
+</style>
+</head>
+<body data-page="news-writer">
+
+<nav class="btg-nav" id="btg-nav"></nav>
+
+<div class="nw-wrap">
+  <div class="nw-head">
+    <div class="nw-head-mark"></div>
+    <div>
+      <span class="nw-head-num">Content tool</span>
+      <h1>News Article Writer</h1>
+      <p class="nw-head-sub">Write your article, select text and format it with the buttons — no HTML needed. Save as a JSON file for the <code>news/</code> folder. This page isn’t linked from the top bar; open <code>news-writer.html</code> directly.</p>
+    </div>
+    <button type="button" id="nw-import">⬆ Import JSON</button>
+  </div>
+
+  <div class="nw-grid">
+    <div class="nw-form">
+
+      <label class="nw-field">
+        <span class="nw-label">Kicker</span>
+        <input id="f-kicker" type="text" placeholder="Season Preview" spellcheck="false">
+      </label>
+
+      <label class="nw-field">
+        <span class="nw-label">Section</span>
+        <input id="f-section" type="text" placeholder="2026 Season" spellcheck="false">
+      </label>
+
+      <label class="nw-field">
+        <span class="nw-label">Tags (comma separated)</span>
+        <input id="f-tags" type="text" placeholder="F1, Season Preview, 2026 Season" spellcheck="false">
+      </label>
+
+      <label class="nw-field">
+        <span class="nw-label">Title</span>
+        <input id="f-title" type="text" placeholder="F1CC 2026: Every Team, Every Driver — The Complete Season Guide">
+      </label>
+
+      <label class="nw-field">
+        <span class="nw-label">Meta (byline / published line)</span>
+        <input id="f-meta" type="text" placeholder="Published: 9 February 2026 | By Marcus “Stats” Chen | F1CC News">
+      </label>
+
+      <label class="nw-field">
+        <span class="nw-label">Main image (just the file name — e.g. photo.jpeg)</span>
+        <input id="f-image" type="text" placeholder="photo.jpeg" spellcheck="false">
+      </label>
+
+      <label class="nw-field">
+        <span class="nw-label">Caption</span>
+        <input id="f-caption" type="text" placeholder="A short caption under the image.">
+      </label>
+
+      <div class="nw-field">
+        <span class="nw-label">Article colors</span>
+        <div class="nw-colors">
+          <label class="nw-color"><span>Accent</span><input type="color" id="c-accent" value="#b91d2e"></label>
+          <label class="nw-color"><span>H1</span><input type="color" id="c-h1" value="#b91d2e"></label>
+          <label class="nw-color"><span>H2</span><input type="color" id="c-h2" value="#b91d2e"></label>
+          <label class="nw-color"><span>H3</span><input type="color" id="c-h3" value="#453f3e"></label>
+          <label class="nw-color"><span>Section</span><input type="color" id="c-section" value="#d99a3d"></label>
+          <label class="nw-color"><span>Body</span><input type="color" id="c-text" value="#f5f1ee"></label>
+          <label class="nw-color"><span>Muted</span><input type="color" id="c-muted" value="#847b77"></label>
+        </div>
+      </div>
+
+      <div class="nw-field">
+        <span class="nw-label">Article body — select text, then click a button to format it</span>
+        <div class="nw-editorbar">
+          <select id="f-format" title="Block format">
+            <option value="p">Paragraph</option>
+            <option value="h1">Heading 1</option>
+            <option value="h2">Heading 2</option>
+            <option value="h3">Heading 3</option>
+          </select>
+          <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
+          <button type="button" data-cmd="italic" title="Italic"><i>I</i></button>
+          <button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
+          <button type="button" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
+          <span class="nw-sep"></span>
+          <button type="button" data-cmd="insertUnorderedList" title="Bulleted list">• List</button>
+          <button type="button" data-cmd="insertOrderedList" title="Numbered list">1. List</button>
+          <button type="button" data-cmd="indent" title="Indent">Indent</button>
+          <button type="button" data-cmd="outdent" title="Outdent">Outdent</button>
+          <span class="nw-sep"></span>
+          <button type="button" data-cmd="formatBlock" data-val="blockquote" title="Quote">❝ Quote</button>
+          <button type="button" data-cmd="justifyLeft" title="Align left">L</button>
+          <button type="button" data-cmd="justifyCenter" title="Center">C</button>
+          <button type="button" data-cmd="justifyRight" title="Align right">R</button>
+          <button type="button" data-cmd="justifyFull" title="Justify">J</button>
+          <span class="nw-sep"></span>
+          <button type="button" data-cmd="link" title="Insert link">Link</button>
+          <button type="button" data-cmd="unlink" title="Remove link">Unlink</button>
+          <button type="button" data-cmd="image" title="Insert an image">Image</button>
+          <button type="button" data-cmd="table" title="Insert a table">Table</button>
+          <button type="button" data-cmd="hr" title="Horizontal rule">Rule</button>
+          <span class="nw-sep"></span>
+          <button type="button" data-cmd="removeFormat" title="Clear formatting">Clear</button>
+        </div>
+        <div class="nw-editor" id="nw-editor" contenteditable="true"
+             data-placeholder="Write your article here. Select text, then click a button above to format it — no HTML needed."></div>
+        <input type="color" id="nw-wheel" aria-hidden="true"
+               style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;">
+      </div>
+
+      <div class="nw-actions">
+        <button type="button" id="nw-download" class="primary">⬇ Download JSON</button>
+        <button type="button" id="nw-copy">Copy JSON</button>
+      </div>
+      <div class="nw-status" id="nw-status"></div>
+      <input type="file" id="nw-file" accept=".json,application/json" style="display:none;">
+
+    </div>
+
+    <details class="nw-hint" open>
+      <summary>Formatting shortcuts — type or paste these and they format automatically</summary>
+      <div class="nw-hint-grid">
+        <span><code># text</code></span><span><b>Heading 1</b></span>
+        <span><code>## text</code></span><span><b>Heading 2</b></span>
+        <span><code>### text</code></span><span><b>Heading 3</b></span>
+        <span><code>***text***</code></span><span><b>Bold + italic</b></span>
+        <span><code>**text**</code></span><span><b>Bold</b></span>
+        <span><code>*text*</code></span><span><b>Italic</b></span>
+        <span><code>`text`</code></span><span><b>Code</b></span>
+        <span><code>- item</code> / <code>1. item</code></span><span><b>Bullet / numbered list</b></span>
+        <span><code>&gt; text</code></span><span><b>Quote</b></span>
+        <span><code>---</code></span><span><b>Divider</b></span>
+        <span><code>[label](url)</code></span><span><b>Link</b></span>
+        <span><code>![alt](photo.jpeg)</code></span><span><b>Image</b></span>
+        <span><code>! text</code></span><span><b>Plain line (removes formatting)</b></span>
+      </div>
+    </details>
+    <div class="nw-preview">
+      <div class="nw-preview-label">Live preview</div>
+      <article class="article" id="nw-preview"></article>
+    </div>
+  </div>
+</div>
+
+<script src="js/common.js"></script>
+<script>
+(function() {
+  var $ = function(id) { return document.getElementById(id); };
+  var editor = $('nw-editor');
+  var savedRange = null;
+
+  /* ── Collect the article object from the form ── */
+  function readColors() {
+    return {
+      accent: $('c-accent').value || '#b91d2e',
+      h1: $('c-h1').value || '#b91d2e',
+      h2: $('c-h2').value || '#b91d2e',
+      h3: $('c-h3').value || '#453f3e',
+      section: $('c-section').value || '#d99a3d',
+      text: $('c-text').value || '#f5f1ee',
+      muted: $('c-muted').value || '#847b77'
+    };
+  }
+  function getBodyHtml() {
+    var clone = editor.cloneNode(true);
+    clone.querySelectorAll('.nw-hswatch').forEach(function(s) { s.parentNode.removeChild(s); });
+    return clone.innerHTML;
+  }
+  function collect() {
+    return {
+      kicker: $('f-kicker').value.trim(),
+      section: $('f-section').value.trim(),
+      tags: $('f-tags').value.split(',').map(function(s){ return s.trim(); }).filter(Boolean),
+      title: $('f-title').value.trim(),
+      meta: $('f-meta').value.trim(),
+      image: $('f-image').value.trim(),
+      caption: $('f-caption').value.trim(),
+      colors: readColors(),
+      body: getBodyHtml()
+    };
+  }
+
+  /* Apply per-article colors to an element via CSS custom properties. */
+  function applyColors(el) {
+    if (!el) return;
+    var c = readColors();
+    el.style.setProperty('--art-accent', c.accent);
+    el.style.setProperty('--art-accent-hot', c.accent);
+    el.style.setProperty('--art-h1', c.h1);
+    el.style.setProperty('--art-h2', c.h2);
+    el.style.setProperty('--art-h3', c.h3);
+    el.style.setProperty('--art-section', c.section);
+    el.style.setProperty('--art-text', c.text);
+    el.style.setProperty('--art-soft', c.text);
+    el.style.setProperty('--art-faint', c.muted);
+  }
+
+  /* ── Resolve an image path the same way the news reader does ── */
+  function newsImage(p) {
+    if (!p) return '';
+    if (/^(https?:|data:|\/)/i.test(p)) return p;
+    p = String(p).replace(/^\.?\//, '');
+    if (p.indexOf('news/') === 0) return p;
+    if (p.indexOf('images/') === 0) return 'news/' + p;
+    return 'news/images/' + p; // bare file name → news/images/
+  }
+
+  /* Rewrite inline body <img> srcs (images/x or bare names → news/images/x). */
+  function fixBodyImages(root) {
+    if (!root) return;
+    root.querySelectorAll('img').forEach(function(img) {
+      var src = img.getAttribute('src');
+      if (!src || /^(https?:|data:|\/)/i.test(src)) return;
+      src = src.replace(/^\.?\//, '');
+      if (src.indexOf('news/') === 0) return;
+      img.setAttribute('src', src.indexOf('images/') === 0 ? 'news/' + src : 'news/images/' + src);
+    });
+  }
+
+  function attr(s) { return BTG.esc(s).replace(/"/g, '&quot;'); }
+
+  /* ── Live preview ── */
+  function preview() {
+    var a = collect();
+    var img = newsImage(a.image);
+    var el = $('nw-preview');
+    el.innerHTML =
+        (a.kicker ? '<div class="article-kicker">' + BTG.esc(a.kicker) + '</div>' : '')
+      + '<h1 class="article-title">' + BTG.esc(a.title || 'Article Title') + '</h1>'
+      + (a.section ? '<div class="article-section">' + BTG.esc(a.section) + '</div>' : '')
+      + (a.meta ? '<div class="article-meta">' + BTG.esc(a.meta) + '</div>' : '')
+      + (img ? '<figure class="article-figure"><img class="article-img" src="' + attr(img) + '" alt="' + attr(a.title || '') + '" onerror="this.classList.add(\'img-missing\')"><figcaption>' + BTG.esc(a.caption || '') + '</figcaption></figure>' : '')
+      + '<div class="article-body">' + (a.body || '<p style="color:var(--copy-faint)">Body preview…</p>') + '</div>'
+      + ((a.tags && a.tags.length) ? '<div class="article-tags">' + a.tags.map(function(t){ return '<span class="article-tag">' + BTG.esc(t) + '</span>'; }).join('') + '</div>' : '');
+    applyColors(el);
+    fixBodyImages(el.querySelector('.article-body'));
+    syncQuoteColors(el.querySelector('.article-body'), function(h) { return accentColorFor(h); });
+  }
+
+  /* ── Selection handling (keeps the highlight when you click a button) ── */
+  function saveRange() {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    var r = sel.getRangeAt(0);
+    if (editor.contains(r.commonAncestorContainer)) savedRange = r.cloneRange();
+  }
+  editor.addEventListener('mouseup', saveRange);
+  editor.addEventListener('keyup', saveRange);
+  editor.addEventListener('focus', saveRange);
+
+  function exec(cmd, val) {
+    editor.focus();
+    if (savedRange) {
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(savedRange);
+    }
+    document.execCommand(cmd, false, val);
+    editor.focus();
+    onEditorChange();
+    syncHeadingSwatches();
+    syncQuoteColors(editor, accentColorFor);
+  }
+
+  function onEditorChange() {
+    clearTimeout(onEditorChange._t);
+    onEditorChange._t = setTimeout(preview, 120);
+  }
+  editor.addEventListener('input', function() {
+    clearTimeout(applyBangLines._t);
+    applyBangLines._t = setTimeout(applyBangLines, 200);
+    clearTimeout(syncHeadingSwatches._t);
+    syncHeadingSwatches._t = setTimeout(syncHeadingSwatches, 300);
+    clearTimeout(syncQuoteColors._t);
+    syncQuoteColors._t = setTimeout(function() { syncQuoteColors(editor, accentColorFor); }, 300);
+    onEditorChange();
+  });
+
+  /* A line starting with "!" turns plain in the editor too — the "!" is removed
+     and any formatting on that line is stripped (mirrors the paste behavior). */
+  function applyBangLines() {
+    Array.prototype.slice.call(editor.children).forEach(function(b) {
+      var tag = b.tagName;
+      if (!/^(P|H[1-6]|BLOCKQUOTE|DIV)$/.test(tag)) return;
+      var txt = b.textContent || '';
+      if (txt.charAt(0) !== '!') return;
+      var sel = window.getSelection();
+      var inside = sel && sel.rangeCount && b.contains(sel.getRangeAt(0).commonAncestorContainer);
+      var plain = stripMarkdown(txt.slice(1).trim());
+      var p = document.createElement('p');
+      p.textContent = plain;
+      editor.replaceChild(p, b);
+      if (inside) {
+        var r = document.createRange();
+        r.selectNodeContents(p);
+        r.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(r);
+      }
+    });
+    onEditorChange();
+  }
+
+  /* ── Per-heading colors: a small colored square after each header opens the
+        color wheel for THAT header. The picked color is stored as an inline
+        --art-h on the heading, so it travels with the HTML into the JSON and
+        renders in the reader. ── */
+  var wheel = $('nw-wheel');
+  var wheelTarget = null;
+
+  function headingDefaultBar(tag) {
+    var id = { H1: 'c-h1', H2: 'c-h2', H3: 'c-h3' }[tag] || 'c-accent';
+    var el = document.getElementById(id);
+    return (el && el.value) || '#b91d2e';
+  }
+
+  function syncHeadingSwatches() {
+    editor.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(function(h) {
+      var last = h.lastElementChild;
+      if (last && last.classList.contains('nw-hswatch')) return;
+      var s = document.createElement('span');
+      s.className = 'nw-hswatch';
+      s.contentEditable = 'false';
+      s.title = 'Set this heading\u2019s color';
+      s.style.background = 'var(--art-h, ' + headingDefaultBar(h.tagName) + ')';
+      s.addEventListener('mousedown', function(e) { e.preventDefault(); });
+      s.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openWheel(h);
+      });
+      h.appendChild(s);
+    });
+  }
+
+  function openWheel(h) {
+    wheelTarget = h;
+    var cur = (h.style.getPropertyValue('--art-h') || '').trim();
+    wheel.value = /^#[0-9a-f]{6}$/i.test(cur) ? cur : headingDefaultBar(h.tagName);
+    if (wheel.showPicker) { try { wheel.showPicker(); } catch(e) { wheel.click(); } }
+    else wheel.click();
+  }
+  wheel.addEventListener('input', function() {
+    if (!wheelTarget) return;
+    wheelTarget.style.setProperty('--art-h', wheel.value);
+    syncQuoteColors(editor, accentColorFor);
+    onEditorChange();
+  });
+  wheel.addEventListener('change', function() { wheelTarget = null; });
+
+  /* A quote follows the accent color of the last heading before it. */
+  function accentColorFor(h) {
+    var inline = (h.style.getPropertyValue('--art-h') || '').trim();
+    if (/^#[0-9a-f]{6}$/i.test(inline)) return inline;
+    var id = { H1: 'c-h1', H2: 'c-h2', H3: 'c-h3' }[h.tagName] || 'c-accent';
+    var el = document.getElementById(id);
+    return (el && el.value) || '#b91d2e';
+  }
+  function syncQuoteColors(container, resolve) {
+    if (!container) return;
+    var current = null;
+    Array.prototype.forEach.call(container.children, function(b) {
+      if (/^H[1-6]$/.test(b.tagName)) { current = resolve(b); }
+      else if (b.tagName === 'BLOCKQUOTE') {
+        if (current) b.style.setProperty('--art-q', current);
+        else b.style.removeProperty('--art-q');
+      }
+    });
+  }
+
+  syncHeadingSwatches();
+
+  /* ── Markdown-style shortcuts when pasting text ── */
+  function escHtml(t) {
+    return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function escAttr2(s) { return escHtml(s).replace(/"/g, '&quot;'); }
+
+  function inline(t) {
+    return t
+      .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function(m, alt, u) {
+        var src = /^(https?:|data:|\/)/i.test(u) || u.indexOf('/') !== -1 ? u : 'images/' + u;
+        return '<img src="' + escAttr2(src) + '" alt="' + escAttr2(alt) + '">';
+      })
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, function(m, label, u) {
+        return '<a href="' + escAttr2(u) + '">' + label + '</a>';
+      });
+  }
+
+  function stripMarkdown(t) {
+    return t
+      .replace(/\*\*\*(.+?)\*\*\*/g, '$1')
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1$2')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '$1')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
+  }
+
+  function convertMarkdown(text) {
+    var lines = String(text).replace(/\r\n?/g, '\n').split('\n');
+    var html = '', listType = null, items = [];
+    function flush() {
+      if (!items.length) return;
+      var tag = listType === 'ol' ? 'ol' : 'ul';
+      html += '<' + tag + '>' + items.map(function(li){ return '<li>' + li + '</li>'; }).join('') + '</' + tag + '>';
+      items = []; listType = null;
+    }
+    lines.forEach(function(raw) {
+      var line = raw.trim();
+      if (!line) { flush(); return; }
+      if (line.charAt(0) === '!') { flush(); html += '<p>' + escHtml(stripMarkdown(line.slice(1).trim())) + '</p>'; return; }
+      if (/^---+$/.test(line)) { flush(); html += '<hr>'; return; }
+      var h = line.match(/^(#{1,6})\s+(.*)$/);
+      if (h) { flush(); html += '<h' + h[1].length + '>' + inline(h[2]) + '</h' + h[1].length + '>'; return; }
+      if (/^>\s?/.test(line)) { flush(); html += '<blockquote>' + inline(line.replace(/^>\s?/, '')) + '</blockquote>'; return; }
+      var ul = line.match(/^[-*]\s+(.*)$/);
+      if (ul) { if (listType !== 'ul') { flush(); listType = 'ul'; } items.push(inline(ul[1])); return; }
+      var ol = line.match(/^\d+[.)]\s+(.*)$/);
+      if (ol) { if (listType !== 'ol') { flush(); listType = 'ol'; } items.push(inline(ol[1])); return; }
+      flush(); html += '<p>' + inline(line) + '</p>';
+    });
+    flush();
+    return html;
+  }
+
+  editor.addEventListener('paste', function(e) {
+    e.preventDefault();
+    var text = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
+    var md = convertMarkdown(text);
+    if (md) { exec('insertHTML', md); syncHeadingSwatches(); syncQuoteColors(editor, accentColorFor); }
+    else onEditorChange();
+  });
+
+  /* ── Toolbar buttons: mousedown keeps the selection, click runs the command ── */
+  document.querySelectorAll('.nw-editorbar button[data-cmd]').forEach(function(btn) {
+    btn.addEventListener('mousedown', function(e) { e.preventDefault(); });
+    btn.addEventListener('click', function() {
+      var cmd = btn.getAttribute('data-cmd');
+      var val = btn.getAttribute('data-val');
+      if (cmd === 'link') {
+        var url = prompt('Link URL:', 'https://');
+        if (url) exec('createLink', url);
+      } else if (cmd === 'image') {
+        var name = prompt('Image name (just the file name — e.g. photo.jpeg):', '');
+        if (name) {
+          var alt = prompt('Alternative text:', '') || '';
+          name = String(name).trim();
+          var src = (/^(https?:|data:|\/)/i.test(name) || name.indexOf('/') !== -1) ? name : 'images/' + name;
+          exec('insertHTML', '<img src="' + src.replace(/"/g, '&quot;') + '" alt="' + alt.replace(/"/g, '&quot;') + '">');
+        }
+      } else if (cmd === 'table') {
+        exec('insertHTML', '<table><thead><tr><th>Header</th><th>Header</th></tr></thead><tbody><tr><td>Value</td><td>Value</td></tr><tr><td>Value</td><td>Value</td></tr></tbody></table>');
+      } else if (cmd === 'hr') {
+        exec('insertHTML', '<hr>');
+      } else {
+        exec(cmd, val);
+      }
+    });
+  });
+
+  /* ── Block format dropdown ── */
+  $('f-format').addEventListener('change', function() {
+    var v = this.value;
+    if (v) exec('formatBlock', '<' + v + '>');
+    this.value = 'p';
+  });
+
+  /* ── Show active state on format buttons as the selection moves ── */
+  var STATE_CMDS = {
+    bold: 'bold', italic: 'italic', underline: 'underline',
+    strikeThrough: 'strikeThrough',
+    insertUnorderedList: 'insertUnorderedList', insertOrderedList: 'insertOrderedList',
+    justifyLeft: 'justifyLeft', justifyCenter: 'justifyCenter', justifyRight: 'justifyRight', justifyFull: 'justifyFull'
+  };
+  function updateToolbarState() {
+    for (var cmd in STATE_CMDS) {
+      var btn = document.querySelector('.nw-editorbar button[data-cmd="' + cmd + '"]');
+      if (!btn) continue;
+      var on = false;
+      try { on = document.queryCommandState(STATE_CMDS[cmd]); } catch(e) {}
+      btn.classList.toggle('on', !!on);
+    }
+  }
+  document.addEventListener('selectionchange', function() { saveRange(); updateToolbarState(); });
+
+  /* Debounced preview on the plain fields */
+  var t;
+  document.querySelectorAll('.nw-form input').forEach(function(el) {
+    el.addEventListener('input', function() {
+      clearTimeout(t);
+      t = setTimeout(preview, 120);
+    });
+  });
+  preview();
+
+  /* ── Status toast ── */
+  function status(msg) {
+    var el = $('nw-status');
+    el.textContent = msg;
+    clearTimeout(status._t);
+    status._t = setTimeout(function(){ el.textContent = ''; }, 2600);
+  }
+
+  /* ── Import an article JSON file back into the editor ── */
+  function setField(id, v) {
+    var el = document.getElementById(id);
+    el.value = (v == null ? '' : String(v));
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  function setColor(id, v) {
+    var el = document.getElementById(id);
+    if (el && /^#[0-9a-f]{6}$/i.test(String(v))) { el.value = String(v); el.dispatchEvent(new Event('input', { bubbles: true })); }
+  }
+  function applyImported(a) {
+    setField('f-kicker', a.kicker);
+    setField('f-section', a.section);
+    setField('f-tags', Array.isArray(a.tags) ? a.tags.join(', ') : (a.tags || ''));
+    setField('f-title', a.title);
+    setField('f-meta', a.meta);
+    setField('f-image', a.image);
+    setField('f-caption', a.caption);
+    var c = a.colors || {};
+    setColor('c-accent', c.accent);
+    setColor('c-h1', c.h1);
+    setColor('c-h2', c.h2);
+    setColor('c-h3', c.h3);
+    setColor('c-section', c.section);
+    setColor('c-text', c.text);
+    setColor('c-muted', c.muted);
+    editor.innerHTML = a.body || '';
+    syncHeadingSwatches();
+    syncQuoteColors(editor, accentColorFor);
+    onEditorChange();
+  }
+
+  $('nw-import').addEventListener('click', function() {
+    $('nw-file').click();
+  });
+  $('nw-file').addEventListener('change', function() {
+    var file = this.files && this.files[0];
+    this.value = '';
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function() {
+      try {
+        applyImported(JSON.parse(reader.result));
+        status('✓ Imported ' + file.name);
+      } catch(e) {
+        status('⚠ Could not read that file — is it a valid article JSON?');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  /* ── Download as JSON onto the device ── */
+  $('nw-download').addEventListener('click', function() {
+    var data = collect();
+    if (!data.title) { status('⚠ Give the article a title before saving.'); return; }
+    var slug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'article';
+    var json = JSON.stringify(data, null, 2);
+    var blob = new Blob([json], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = slug + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    status('✓ Saved ' + slug + '.json — move it into news/ and add it to news/manifest.json');
+  });
+
+  /* ── Copy JSON to clipboard ── */
+  $('nw-copy').addEventListener('click', function() {
+    var data = collect();
+    var json = JSON.stringify(data, null, 2);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(json).then(function(){ status('✓ JSON copied to clipboard'); });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = json;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); status('✓ JSON copied to clipboard'); } catch(e) { status('Copy failed — select the text manually.'); }
+      document.body.removeChild(ta);
+    }
+  });
+})();
+</script>
+</body>
+</html>
