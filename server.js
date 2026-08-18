@@ -18,6 +18,7 @@ const MIME = {
   '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.csv': 'text/csv; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
@@ -63,6 +64,13 @@ const server = http.createServer((req, res) => {
     const series = url.searchParams.get('series');
     if (!series) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end('{"error":"missing series"}'); return; }
     const dir = path.join(ROOT, 'Data', series);
+    // A series may exist only in the roster (e.g. F2 has no folder yet) — in
+    // that case there are simply no files to list.
+    if (!fs.existsSync(dir)) {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end('[]');
+      return;
+    }
     const out = [];
     (function walk(d) {
       fs.readdirSync(d, { withFileTypes: true }).forEach((e) => {

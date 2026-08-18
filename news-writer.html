@@ -456,6 +456,10 @@
     while (h && h !== editor && !/^H[1-6]$/.test(h.tagName)) h = h.parentNode;
     if (!h || h === editor) return;
     e.preventDefault();
+    /* The color swatches are contenteditable=false and confuse the browser's
+       block split, leaking into the new paragraph. Strip them first, then
+       re-add after, so the heading cleanly ends in a normal paragraph. */
+    Array.prototype.forEach.call(editor.querySelectorAll('.nw-hswatch'), function(s) { s.parentNode.removeChild(s); });
     document.execCommand('insertParagraph'); // browser splits the heading
     var next = h.nextElementSibling;
     var prev = h.previousElementSibling;
@@ -525,20 +529,27 @@
 
   function syncHeadingSwatches() {
     editor.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(function(h) {
-      var last = h.lastElementChild;
-      if (last && last.classList.contains('nw-hswatch')) return;
-      var s = document.createElement('span');
-      s.className = 'nw-hswatch';
-      s.contentEditable = 'false';
-      s.title = 'Set this heading\u2019s color';
-      s.style.background = 'var(--art-h, ' + headingDefaultBar(h.tagName) + ')';
-      s.addEventListener('mousedown', function(e) { e.preventDefault(); });
-      s.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        openHeadingPicker(h);
+      /* Headings are single-line: drop stray <br> placeholders so the color
+         swatch sits inline with the text instead of wrapping underneath. */
+      Array.prototype.slice.call(h.querySelectorAll('br')).forEach(function(br) {
+        br.parentNode.removeChild(br);
       });
-      h.appendChild(s);
+      var s = h.querySelector('.nw-hswatch');
+      if (!s) {
+        s = document.createElement('span');
+        s.className = 'nw-hswatch';
+        s.contentEditable = 'false';
+        s.title = 'Set this heading\u2019s color';
+        s.style.background = 'var(--art-h, ' + headingDefaultBar(h.tagName) + ')';
+        s.addEventListener('mousedown', function(e) { e.preventDefault(); });
+        s.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          openHeadingPicker(h);
+        });
+      }
+      /* Keep the swatch as the last child, right after the heading text. */
+      if (h.lastChild !== s) h.appendChild(s);
     });
   }
 

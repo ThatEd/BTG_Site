@@ -643,6 +643,19 @@ const TEAM_LIST = [
   { name:'Jenzer Motorsport',     color:'255,0,100' },
 ];
 
+/** "#RRGGBB" or "#RGB" → "r,g,b" for the team-color input; null if not hex. */
+function hexToRgb(hex) {
+  if (!hex) return null;
+  const h = String(hex).trim().replace(/^#/, '');
+  if (/^[0-9a-f]{6}$/i.test(h)) {
+    return parseInt(h.slice(0,2),16) + ',' + parseInt(h.slice(2,4),16) + ',' + parseInt(h.slice(4,6),16);
+  }
+  if (/^[0-9a-f]{3}$/i.test(h)) {
+    return parseInt(h[0]+h[0],16) + ',' + parseInt(h[1]+h[1],16) + ',' + parseInt(h[2]+h[2],16);
+  }
+  return null;
+}
+
 function populateNationDropdown() {
   const input = document.getElementById('new-driver-nation');
   const datalist = document.getElementById('nation-list');
@@ -714,13 +727,15 @@ function computeLiveOvr() {
 }
 
 /**
- * Parse an RGB string like "220,40,50" and set CSS custom properties
- * with offsets for accent, surface, edge, and glow variants.
+ * Parse RGB strings like "220,40,50" and set CSS custom properties with
+ * offsets for accent, surface, edge, glow, and a two-tone background
+ * gradient (primary teamColor + secondary teamColor2).
  * Falls back to default ember tones when teamColor is absent or invalid.
  */
-function setTeamColors(teamColor) {
+function setTeamColors(teamColor, teamColor2) {
   const root = document.documentElement;
-  var r = 185, g = 29, b = 46; // default ember
+  var r = 185, g = 29, b = 46;   // default ember (primary)
+  var r2 = 101, g2 = 13, b2 = 23; // default ember secondary
 
   if (teamColor) {
     var parts = teamColor.split(',').map(function(s) { return parseInt(s, 10); });
@@ -728,12 +743,25 @@ function setTeamColors(teamColor) {
       r = parts[0]; g = parts[1]; b = parts[2];
     }
   }
+  if (teamColor2) {
+    var parts2 = teamColor2.split(',').map(function(s) { return parseInt(s, 10); });
+    if (parts2.length === 3 && parts2.every(function(v) { return !isNaN(v) && v >= 0 && v <= 255; })) {
+      r2 = parts2[0]; g2 = parts2[1]; b2 = parts2[2];
+    }
+  } else {
+    // No secondary set: derive a darker companion from the primary so the
+    // two-tone gradient still has depth.
+    r2 = Math.round(r * 0.55); g2 = Math.round(g * 0.45); b2 = Math.round(b * 0.5);
+  }
 
   root.style.setProperty('--team-r', r);
   root.style.setProperty('--team-g', g);
   root.style.setProperty('--team-b', b);
+  root.style.setProperty('--team-r2', r2);
+  root.style.setProperty('--team-g2', g2);
+  root.style.setProperty('--team-b2', b2);
 
-  // Accent: the raw color, slightly brightened
+  // Accent: the raw primary color, slightly brightened
   var brightR = Math.min(255, Math.round(r * 1.15));
   var brightG = Math.min(255, Math.round(g * 1.15));
   var brightB = Math.min(255, Math.round(b * 1.15));
@@ -745,12 +773,14 @@ function setTeamColors(teamColor) {
   root.style.setProperty('--team-surface', 'rgba(' + r + ',' + g + ',' + b + ',0.08)');
   // Edge: dim border (~30% opacity)
   root.style.setProperty('--team-edge', 'rgba(' + r + ',' + g + ',' + b + ',0.30)');
-  // Glow: for radial gradient backgrounds (~18% opacity)
+  // Glows: two-tone radial gradient backgrounds (~18% opacity)
   root.style.setProperty('--team-glow', 'rgba(' + r + ',' + g + ',' + b + ',0.18)');
+  root.style.setProperty('--team-glow2', 'rgba(' + r2 + ',' + g2 + ',' + b2 + ',0.18)');
 }
 
 let CURRENT_USER = null;
 let DRIVERS = [];
+let TEAMS = [];
 let SELECTED = null;
 let PENDING = {};
 
@@ -811,6 +841,7 @@ function onLoginSuccess(data) {
   if (data.role === 'admin') {
     setStatus('admin', 'Admin — ' + data.username);
     DRIVERS = data.drivers;
+    TEAMS = data.teams || [];
     document.getElementById('admin-section').classList.remove('hidden');
     document.getElementById('driver-select-wrap').classList.remove('hidden');
     populateAdminDropdowns();
@@ -826,7 +857,7 @@ function onLoginSuccess(data) {
 }
 
 document.getElementById('logout-btn').addEventListener('click', () => {
-  CURRENT_USER = null; DRIVERS = []; SELECTED = null; PENDING = {};
+  CURRENT_USER = null; DRIVERS = []; TEAMS = []; SELECTED = null; PENDING = {};
   document.getElementById('gate-username').value = '';
   document.getElementById('gate-password').value = '';
   document.getElementById('gate-section').classList.remove('hidden');
@@ -847,8 +878,11 @@ function populateAdminDropdowns() {
   DRIVERS.forEach((d, i) => {
     const opt1 = document.createElement('option'); opt1.value = i; opt1.textContent = d.driver;
     driverSel.appendChild(opt1);
-    const opt2 = document.createElement('option'); opt2.value = d.driver; opt2.textContent = d.driver;
-    loginSel.appendChild(opt2);
+    // Create-login only lists drivers that don't already have an account.
+    if (!d.hasAccount) {
+      const opt2 = document.createElement('option'); opt2.value = d.driver; opt2.textContent = d.driver;
+      loginSel.appendChild(opt2);
+    }
   });
   populateNationDropdown();
 }
@@ -919,6 +953,9 @@ document.getElementById('create-login-btn').addEventListener('click', async () =
       showResult(resultEl, true, '✓ Login created for ' + driverName + ' (' + newUsername + ').');
       document.getElementById('new-login-username').value = '';
       document.getElementById('new-login-password').value = '';
+      // The driver now has an account — remove them from the create-login list.
+      DRIVERS.forEach(d => { if (d.driver === driverName) d.hasAccount = true; });
+      populateAdminDropdowns();
     } else {
       showResult(resultEl, false, '✗ ' + data.error);
     }
@@ -990,7 +1027,7 @@ function renderDriver() {
   document.getElementById('driver-hero').classList.remove('hidden');
 
   // Team / Affiliation display
-  setTeamColors(SELECTED.teamColor || null);
+  setTeamColors(SELECTED.teamColor || null, SELECTED.teamColor2 || null);
   var metaRow = document.getElementById('driver-meta-row');
   var teamTag = document.getElementById('driver-team-tag');
   var affilTag = document.getElementById('driver-affil-tag');
@@ -1174,14 +1211,16 @@ function renderAdminOverrides() {
     setSelect.appendChild(opt);
   });
 
-  // Populate team dropdown
+  // Populate team dropdown — from the Teams tab when available (source of
+  // truth), falling back to the built-in list.
   var teamSel = document.getElementById('ov-team-select');
   teamSel.innerHTML = '<option value="">— no change —</option>';
-  TEAM_LIST.forEach(function(t) {
+  var teams = (TEAMS && TEAMS.length) ? TEAMS : TEAM_LIST;
+  teams.forEach(function(t) {
     var opt = document.createElement('option');
-    opt.value = t.name;
-    opt.textContent = t.name;
-    opt.dataset.color = t.color;
+    opt.value = t.team || t.name;
+    opt.textContent = t.teamName || t.name;
+    opt.dataset.color = hexToRgb(t.color1) || t.color || '';
     teamSel.appendChild(opt);
   });
   // Pre-select current team if set

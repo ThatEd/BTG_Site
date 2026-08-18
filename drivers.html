@@ -326,7 +326,7 @@ body::before {
     if (seriesList.indexOf(activeSeries) === -1) activeSeries = seriesList[0] || 'F1';
     seasons = BTG.Data.getSeasons(activeSeries);
     if (seasons.indexOf(activeSeason) === -1) activeSeason = seasons[0] || 2026;
-    drivers = BTG.Data.buildDriverList(activeSeries, activeSeason);
+    drivers = BTG.Data.buildDriverList(activeSeries, activeSeason, { includeAll: true });
     build();
   }
 
@@ -347,7 +347,7 @@ body::before {
         seasons = BTG.Data.getSeasons(s);
         activeSeason = seasons[0] || 2026;
         rebuildSeasonSelect();
-        drivers = BTG.Data.buildDriverList(s, activeSeason);
+        drivers = BTG.Data.buildDriverList(s, activeSeason, { includeAll: true });
         selectedDriverId = null;
         renderSidebar();
         document.getElementById('detail-panel').className = 'dp-empty';
@@ -368,7 +368,7 @@ body::before {
     sel.value = activeSeason;
     sel.onchange = function() {
       activeSeason = Number(this.value);
-      drivers = BTG.Data.buildDriverList(activeSeries, activeSeason);
+      drivers = BTG.Data.buildDriverList(activeSeries, activeSeason, { includeAll: true });
       selectedDriverId = null;
       renderSidebar();
       document.getElementById('detail-panel').className = 'dp-empty';
@@ -378,7 +378,11 @@ body::before {
 
   function getSeriesDrivers() {
     return (BTG.groupBySeries(drivers)[activeSeries] || [])
-      .sort(function(a,b) { return (b.ovr||0)-(a.ovr||0); });
+      .sort(function(a,b) {
+        var ta = a.teamOrder != null ? a.teamOrder : 99, tb = b.teamOrder != null ? b.teamOrder : 99;
+        if (ta !== tb) return ta - tb;
+        return (b.ovr||0)-(a.ovr||0) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+      });
   }
 
   function renderSidebar() {
@@ -405,12 +409,13 @@ body::before {
         + BTG.teamLogoImg(teamName, activeSeries, 12)
         + BTG.esc(teamName)
         + '</div>';
+      var color2 = team ? (team.colorSecondary || '') : '';
       byTeam[teamName].forEach(function(d) {
         var num = d.standings ? d.standings.pos : '—';
-        html += '<button class="dp-picker__chip' + (d.id===selectedDriverId?' dp-picker__chip--active':'') + '" data-id="'+BTG.esc(d.id)+'" data-color="'+color+'">'
+        html += '<button class="dp-picker__chip' + (d.id===selectedDriverId?' dp-picker__chip--active':'') + '" data-id="'+BTG.esc(d.id)+'" data-color="'+color+'" data-color2="'+color2+'">'
           + '<span class="dp-picker__num">'+num+'</span>'
           + BTG.flagImg(d.nation, 14, 11)
-          + '<span class="dp-picker__name">'+BTG.esc(d.name)+'</span>'
+          + '<span class="dp-picker__name">'+BTG.esc(d.fullName || d.name)+'</span>'
           + '</button>';
       });
       html += '</div>';
@@ -426,7 +431,7 @@ body::before {
         html += '<button class="dp-picker__chip' + (d.id===selectedDriverId?' dp-picker__chip--active':'') + '" data-id="'+BTG.esc(d.id)+'" data-color="185,29,46">'
           + '<span class="dp-picker__num">'+num+'</span>'
           + BTG.flagImg(d.nation, 14, 11)
-          + '<span class="dp-picker__name">'+BTG.esc(d.name)+'</span>'
+          + '<span class="dp-picker__name">'+BTG.esc(d.fullName || d.name)+'</span>'
           + '</button>';
       });
       html += '</div>';
@@ -438,7 +443,7 @@ body::before {
         html += '<button class="dp-picker__chip' + (d.id===selectedDriverId?' dp-picker__chip--active':'') + '" data-id="'+BTG.esc(d.id)+'" data-color="185,29,46">'
           + '<span class="dp-picker__num">'+num+'</span>'
           + BTG.flagImg(d.nation, 14, 11)
-          + '<span class="dp-picker__name">'+BTG.esc(d.name)+'</span>'
+          + '<span class="dp-picker__name">'+BTG.esc(d.fullName || d.name)+'</span>'
           + '</button>';
       });
       html += '</div>';
@@ -451,7 +456,8 @@ body::before {
         el.classList.add('dp-picker__chip--active');
         selectedDriverId = el.dataset.id;
         var color = el.dataset.color;
-        if (color) BTG.setTeamColors(color);
+        var color2 = el.dataset.color2 || '';
+        if (color) BTG.setTeamColors(color, color2);
         renderDetail(selectedDriverId);
       };
     });
@@ -472,7 +478,7 @@ body::before {
     var ss = d.seasonStats || {};
     // Overall grade derived from real season performance (standings + results)
     var overallGrade = gradeOf(computeOverallScore(d, ss));
-    var nameParts = d.name.split(' ');
+    var nameParts = (d.fullName || d.name).split(' ');
 
     var html = '<div class="dp-main">';
 

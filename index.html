@@ -62,7 +62,9 @@
     if (seriesList.indexOf(activeSeries) === -1) activeSeries = seriesList[0] || 'F1';
     seasons = BTG.Data.getSeasons(activeSeries);
     if (seasons.indexOf(activeSeason) === -1) activeSeason = seasons[0] || 2026;
-    drivers = BTG.Data.buildDriverList(activeSeries, activeSeason);
+    // includeAll → show the full grid in team order even before race results
+    // exist (drivers without a finish show — until the season produces them).
+    drivers = BTG.Data.buildDriverList(activeSeries, activeSeason, { includeAll: true });
     build();
   }
 
@@ -83,7 +85,7 @@
         seasons = BTG.Data.getSeasons(s);
         activeSeason = seasons[0] || 2026;
         rebuildSeasonSelect();
-        drivers = BTG.Data.buildDriverList(s, activeSeason);
+        drivers = BTG.Data.buildDriverList(s, activeSeason, { includeAll: true });
         bar.querySelectorAll('.series-tab').forEach(function(x){x.classList.toggle('active',x.getAttribute('data-series')===s);});
         render();
       };
@@ -100,13 +102,19 @@
     sel.value = activeSeason;
     sel.onchange = function() {
       activeSeason = Number(this.value);
-      drivers = BTG.Data.buildDriverList(activeSeries, activeSeason);
+      drivers = BTG.Data.buildDriverList(activeSeries, activeSeason, { includeAll: true });
       render();
     };
   }
 
   function render() {
-    var list = drivers.slice().sort(function(a,b){ return (a.standings&&a.standings.pos!=='—'?a.standings.pos:999) - (b.standings&&b.standings.pos!=='—'?b.standings.pos:999); });
+    // Standings are shown in team order by default (last season's team
+    // standings), then by driver position within the team.
+    var list = drivers.slice().sort(function(a,b){
+      var ta = a.teamOrder != null ? a.teamOrder : 99, tb = b.teamOrder != null ? b.teamOrder : 99;
+      if (ta !== tb) return ta - tb;
+      return (a.standings&&a.standings.pos!=='—'?a.standings.pos:999) - (b.standings&&b.standings.pos!=='—'?b.standings.pos:999);
+    });
     var c = document.getElementById('content');
     if (!list.length) { c.innerHTML = '<div class="muted" style="padding:24px">No standings for ' + BTG.esc(activeSeries) + '.</div>'; return; }
     // Separate columns per entry field (Team and/or Car), derived from the data only.
@@ -135,7 +143,10 @@
   function showModal(id) {
     var d = (document.getElementById('content')._drivers||drivers).find(function(x){return x.id===id;});
     if (!d) return;
-    if (d.teamColor) BTG.setTeamColors(d.teamColor);
+    if (d.teamColor) {
+      var _t = BTG.teamByName(d.team);
+      BTG.setTeamColors(d.teamColor, _t && _t.colorSecondary);
+    }
     document.getElementById('modal-name').textContent = d.name;
     document.getElementById('modal-team').textContent = (d.team||'Privateer')+' · '+(d.series||activeSeries);
     document.getElementById('modal-overall').textContent = (d.careerRecord&&d.careerRecord.avgFinish!=='—') ? d.careerRecord.avgFinish : '—';

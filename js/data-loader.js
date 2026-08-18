@@ -45,6 +45,40 @@ BTG.Data.getSeriesFiles = function(seriesId) {
   return (BTG.Data._files && BTG.Data._files[seriesId]) || [];
 };
 
+/* ── Roster helper ───────────────────────────────────────────────────────── */
+
+/** Ensure the roster helper (js/roster.js) is loaded; inject it if needed. */
+function ensureRoster() {
+  return new Promise(function(resolve) {
+    if (window.BTG && BTG.Roster) return resolve(BTG.Roster);
+    var s = document.createElement('script');
+    s.src = 'js/roster.js';
+    s.onload = function() { resolve((window.BTG && BTG.Roster) ? BTG.Roster : null); };
+    s.onerror = function() { resolve(null); };
+    document.head.appendChild(s);
+  });
+}
+
+/** Newest season year seen in a store (defaults to 2026). */
+function latestYear(store) {
+  var y = 2026;
+  Object.keys((store && store.series) || {}).forEach(function(sid) {
+    Object.keys((store.series[sid] && store.series[sid].years) || {}).forEach(function(k) {
+      var v = Number(k); if (v > y) y = v;
+    });
+  });
+  return y;
+}
+
+/** Nation fallback from the roster helper (matched by first name + surname). */
+function rosterNation(name) {
+  if (BTG.Roster && BTG.Roster.driverByName) {
+    var d = BTG.Roster.driverByName(name);
+    return (d && d.nation) ? d.nation : '';
+  }
+  return '';
+}
+
 /* ── Init (cache-first) ──────────────────────────────────────────────────── */
 
 /**
@@ -53,8 +87,22 @@ BTG.Data.getSeriesFiles = function(seriesId) {
  * auto-discovered data is applied only after it fully completes (via onUpdate).
  */
 BTG.Data.init = async function() {
+  // 0. Roster helper — one shared source for drivers/teams base data.
+  var roster = await ensureRoster();
+
   // 1. Fast path — the pre-built cache (single fetch, no auto-discovery).
   await loadCache();
+
+  // 1b. Roster fills gaps (nations, teams, series) so pages work even before
+  //     any race results exist — flags included. Never overwrites race data.
+  //     Must await load() so the CSV sources are resolved before applying.
+  if (roster) {
+    try {
+      await roster.load();
+      roster.applyToStore(BTG.Data, latestYear(BTG.Data));
+    }
+    catch(e) { console.warn('BTG roster apply failed.', e); }
+  }
 
   // 2. Auto-discovery — rebuild everything from the Data folder, in the
   //    background. Results are applied atomically only when complete.
@@ -109,17 +157,29 @@ async function autoDiscover() {
   var seriesSet = {};
   (folders || []).forEach(function(f) { seriesSet[f] = true; });
   Object.keys(manifest).forEach(function(k) { seriesSet[k] = true; });
+  // Data-source folders that are not racing series.
+  ['Drivers and teams', 'Drivers', 'Teams'].forEach(function(f) { delete seriesSet[f]; });
+  // Include series known to the roster — on static hosting (no /api/series)
+  // this is what makes race data dropped into those folders discoverable.
+  if (BTG.Roster) {
+    try {
+      (BTG.Roster.state.series || []).forEach(function(s) { seriesSet[s] = true; });
+    } catch(e) {}
+  }
   var seriesKeys = Object.keys(seriesSet).sort();
 
   for (var si = 0; si < seriesKeys.length; si++) {
     var seriesId = seriesKeys[si];
 
-    // 1. Discover all files in the series folder (auto-matches new exports)
-    var files = [];
+    // 1. Discover all files in the series folder (auto-matches new exports).
+    //    On static hosting there is no /api/series-files, so fall back to the
+    //    committed cache's file list when it is available.
+    var files = null;
     try {
       var fRes = await fetch('/api/series-files?series=' + encodeURIComponent(seriesId));
-      files = await fRes.json();
+      if (fRes.ok) files = await fRes.json();
     } catch(e) {}
+    if (!Array.isArray(files)) files = BTG.Data.getSeriesFiles(seriesId) || [];
     fresh._files[seriesId] = files;
 
     // 2. Explicit standings — SeasonStatistics manifest (data-manifest.json or circuits.json)
@@ -180,13 +240,19 @@ async function autoDiscover() {
           await processRaceFiles(fresh, seriesId, yrs[yi], byYear[yrs[yi]].races);
           await processSprintFiles(fresh, seriesId, yrs[yi], byYear[yrs[yi]].sprints);
         }
-      } else if (!hasStats) {
-        // A folder with no discoverable race files — still register the series
+      } else if (!hasStats && files.length) {
+        // A folder with files but no discoverable race files — still register it.
         if (!fresh.series[seriesId]) {
           fresh.series[seriesId] = { years: {}, logo: 'logos/' + seriesId + '.png' };
         }
       }
     }
+  }
+
+  // Apply the roster so series + driver identity exist even before race
+  // results are available (backfills nation/team/colour; never overwrites).
+  if (BTG.Roster) {
+    try { BTG.Roster.applyToStore(fresh, latestYear(fresh)); } catch(e) {}
   }
 
   // Compute season positions for all drivers (on the fresh store)
@@ -519,7 +585,8 @@ function argbToRgb(hex) {
 
 /* ── Build driver list for UI ────────────────────────────────────────────── */
 
-BTG.Data.buildDriverList = function(targetSeries, targetSeason) {
+BTG.Data.buildDriverList = function(targetSeries, targetSeason, opts) {
+  opts = opts || {};
   var seriesId = targetSeries || Object.keys(BTG.Data.series)[0] || 'F1';
   var season = targetSeason || getLatestSeason(seriesId) || 2026;
   var list = [];
@@ -528,9 +595,14 @@ BTG.Data.buildDriverList = function(targetSeries, targetSeason) {
     var d = BTG.Data.drivers[name];
     var sr = d.seasons[seriesId] && d.seasons[seriesId][String(season)];
 
+    // Only drivers that actually belong to this series — F1 drivers are not
+    // F2 privateers and vice versa. Membership = a season record here, or the
+    // roster lists them in this series.
+    if (!sr && !(d.roster && d.roster.series === seriesId)) return;
+
     var team = BTG.teamByName(sr ? sr.latestTeam : null);
     var teamColor = (sr && sr.teamColor) || (team ? team.color : null);
-    var nation = (sr && sr.nation) || guessNation(name);
+    var nation = (sr && sr.nation) || rosterNation(name) || guessNation(name);
 
     // Build career history across ALL series for this driver. The driver is keyed
     // by name and is the SAME person whether they're a primary or a reserve in any
@@ -596,7 +668,9 @@ BTG.Data.buildDriverList = function(targetSeries, targetSeason) {
     list.push({
       id: name.toLowerCase().replace(/\s+/g, '-'),
       name: name,
+      fullName: (d && d.fullName) || name,
       team: sr ? sr.latestTeam : null,
+      teamOrder: teamOrderIndex(seriesId, sr ? sr.latestTeam : null),
       car: sr ? sr.car : null,
       className: sr ? sr.className : null,
       carNumber: sr ? sr.carNumber : null,
@@ -617,11 +691,31 @@ BTG.Data.buildDriverList = function(targetSeries, targetSeason) {
   });
 
   return list
-    .filter(function(d) { return d.standings && d.standings.pos !== '—'; })
-    .sort(function(a,b) { return (a.standings.pos||999) - (b.standings.pos||999); });
+    .filter(function(d) {
+      // includeAll → also list roster drivers that have no race results yet
+      // (i.e. the Drivers tab shows the full grid before the season starts).
+      if (opts.includeAll) return true;
+      return d.standings && d.standings.pos !== '—';
+    })
+    // Default ordering: team order (last season's team standings), then
+    // driver position within the team, then name.
+    .sort(function(a,b) {
+      var ta = a.teamOrder != null ? a.teamOrder : 99, tb = b.teamOrder != null ? b.teamOrder : 99;
+      if (ta !== tb) return ta - tb;
+      var pa = a.standings && a.standings.pos !== '—' ? a.standings.pos : 999;
+      var pb = b.standings && b.standings.pos !== '—' ? b.standings.pos : 999;
+      if (pa !== pb) return pa - pb;
+      return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+    });
 };
 
 /* ── UI helpers ───────────────────────────────────────────────────────────── */
+
+/** Team order index for a driver (falls back to 99 when unknown). */
+function teamOrderIndex(seriesId, team) {
+  if (BTG.Roster && BTG.Roster.teamOrderIndexOf) return BTG.Roster.teamOrderIndexOf(seriesId, team);
+  return 99;
+}
 
 BTG.Data.getSeriesList = function() {
   return Object.keys(BTG.Data.series).map(function(id) {

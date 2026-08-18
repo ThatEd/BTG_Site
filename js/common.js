@@ -20,6 +20,7 @@ BTG.renderNav = function(activePage) {
     { id: 'drivers',   label: 'Drivers',   href: 'drivers.html' },
     { id: 'race-weekend', label: 'Race Weekend', href: 'race-weekend.html' },
     { id: 'dashboard', label: 'Dashboard', href: 'BTG_DriverAttributes.html' },
+    { id: 'radio',     label: 'Radio Creator', href: 'radio-creator.html' },
     { id: 'news',      label: 'News',      href: 'news.html' }
   ];
 
@@ -44,19 +45,26 @@ BTG.renderNav = function(activePage) {
 
 /* ── Team Colors ──────────────────────────────────────────────────────────── */
 
-/** Parse "r,g,b" string and set CSS --team-* variables on <html>. */
-BTG.setTeamColors = function(rgb) {
+/** Parse "r,g,b" strings and set CSS --team-* variables on <html>.
+    rgb2 (secondary team colour) feeds the second background gradient. */
+BTG.setTeamColors = function(rgb, rgb2) {
   var root = document.documentElement;
   if (!rgb) { BTG.resetTeamColors(); return; }
   var parts = rgb.split(',').map(Number);
   if (parts.length !== 3 || parts.some(isNaN)) { BTG.resetTeamColors(); return; }
   var r = parts[0], g = parts[1], b = parts[2];
+  var r2 = Math.round(r*0.55), g2 = Math.round(g*0.45), b2 = Math.round(b*0.5);
+  if (rgb2) {
+    var p2 = rgb2.split(',').map(Number);
+    if (p2.length === 3 && !p2.some(isNaN)) { r2 = p2[0]; g2 = p2[1]; b2 = p2[2]; }
+  }
   root.style.setProperty('--team-accent', 'rgb('+r+','+g+','+b+')');
   root.style.setProperty('--team-accent-hot', 'rgb('+Math.min(255,Math.round(r*1.15))+','+Math.min(255,Math.round(g*1.15))+','+Math.min(255,Math.round(b*1.15))+')');
   root.style.setProperty('--team-accent-on', '#fff');
   root.style.setProperty('--team-surface', 'rgba('+r+','+g+','+b+',0.08)');
   root.style.setProperty('--team-edge', 'rgba('+r+','+g+','+b+',0.30)');
   root.style.setProperty('--team-glow', 'rgba('+r+','+g+','+b+',0.18)');
+  root.style.setProperty('--team-glow2', 'rgba('+r2+','+g2+','+b2+',0.18)');
 };
 
 BTG.resetTeamColors = function() {
@@ -67,6 +75,7 @@ BTG.resetTeamColors = function() {
   root.style.setProperty('--team-surface', 'rgba(185,29,46,0.08)');
   root.style.setProperty('--team-edge', 'rgba(185,29,46,0.30)');
   root.style.setProperty('--team-glow', 'rgba(185,29,46,0.18)');
+  root.style.setProperty('--team-glow2', 'rgba(185,29,46,0.18)');
 };
 
 /* ── Flags ────────────────────────────────────────────────────────────────── */
@@ -74,7 +83,7 @@ BTG.resetTeamColors = function() {
 /** IOC 3-letter code → local SVG flag <img> HTML (Flags/{a2}.svg). */
 BTG.flagImg = function(ioc, w, h) {
   if (!ioc) return '';
-  // Common IOC → A2 mappings
+  // Common IOC → A2 mappings (plus ISO 3166-1 alpha-3 variants some exports use)
   var map = {
     GBR:'gb',SWE:'se',JPN:'jp',BRA:'br',GER:'de',RUS:'ru',AUT:'at',IND:'in',
     ITA:'it',AUS:'au',NOR:'no',MEX:'mx',RSA:'za',KEN:'ke',FRA:'fr',DEN:'dk',
@@ -84,6 +93,12 @@ BTG.flagImg = function(ioc, w, h) {
     VEN:'ve',URU:'uy',PAR:'py',PER:'pe',ECU:'ec',BOL:'bo',CRO:'hr',SRB:'rs',
     GRE:'gr',ROU:'ro',BUL:'bg',SVK:'sk',SVN:'si',EST:'ee',LVA:'lv',LTU:'lt',
     ISL:'is',LUX:'lu',AND:'ad',SMR:'sm',LIE:'li',MONACO:'mc',MCO:'mc',
+    // Middle East / Asia / others reachable from countryToIoc
+    KSA:'sa',QAT:'qa',BHR:'bh',SGP:'sg',INA:'id',ISR:'il',
+    // ISO 3166-1 alpha-3 variants (some exports use these instead of IOC)
+    DEU:'de',NLD:'nl',PRT:'pt',CHE:'ch',DNK:'dk',GRC:'gr',IRL:'ie',
+    ZAF:'za',MYS:'my',ARE:'ae',SAU:'sa',IDN:'id',
+    // UK nations
     NIR:'gb-nir',ENG:'gb-eng',SCT:'gb-sct',WLS:'gb-wls'
   };
   var code = String(ioc).trim();

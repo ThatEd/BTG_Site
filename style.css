@@ -38,6 +38,7 @@
   --team-surface: rgba(185, 29, 46, 0.08);
   --team-edge: rgba(185, 29, 46, 0.30);
   --team-glow: rgba(185, 29, 46, 0.18);
+  --team-glow2: rgba(185, 29, 46, 0.18);
 
   --focus-ring: 0 0 0 2px var(--ink), 0 0 0 4px var(--team-accent-hot);
 }
@@ -54,8 +55,10 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
 }
-/* Team-colour glow pinned to the viewport so it never cuts off or repeats
-   when a page is taller than the screen. Sits behind all content. */
+/* Two-tone team gradient pinned to the viewport so it always fills the
+   screen — never cuts off, never repeats — on pages taller than the
+   viewport. Color 1 (--team-glow) washes from the top, Color 2
+   (--team-glow2) rises from the bottom. Sits behind all content. */
 body::before {
   content: "";
   position: fixed;
@@ -63,8 +66,9 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(120% 90% at 12% -15%, var(--team-glow), transparent 55%),
-    radial-gradient(120% 90% at 12% -15%, rgba(0,0,0,0.4), transparent 60%);
+    radial-gradient(140% 95% at 12% -12%, var(--team-glow, rgba(185,29,46,0.18)), transparent 58%),
+    radial-gradient(140% 95% at 88% 112%, var(--team-glow2, rgba(185,29,46,0.18)), transparent 58%),
+    linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.2));
 }
 a { color: var(--team-accent-hot); text-decoration: none; }
 a:hover { color: var(--copy); }
