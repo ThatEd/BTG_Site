@@ -295,6 +295,8 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 .mail-sender{font-weight:600; font-size:13px; color:var(--copy); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .mail-date{font-family:var(--data-face); font-size:11px; color:var(--copy-faint); white-space:nowrap;}
 .mail-subj{font-size:13px; color:var(--copy-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.mail-row.unread .mail-subj{color:var(--copy); font-weight:600;}
+.unread-dot{display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--team-accent); margin-right:7px; flex:0 0 auto; vertical-align:middle;}
 .mail-body{font-size:12px; color:var(--copy-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .mail-read{padding:24px; overflow-y:auto;}
 .read-subj{font-family:var(--head-face); font-size:17px; font-weight:700; margin-bottom:10px; line-height:1.3; color:var(--copy);}
@@ -407,7 +409,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 
     <div class="tool-card">
       <h3>Create driver</h3>
-      <p class="muted" style="margin-bottom:12px;">New drivers start at 70 in every rating, with 0 upgrade points. Add a login in the same step.</p>
+      <p class="muted" style="margin-bottom:12px;">New drivers start at 70 in every rating, with 0 upgrade points. Add their account later with the Create login tool.</p>
       <div class="field-row">
         <div class="field">
           <label for="new-driver-name">Driver name</label>
@@ -421,14 +423,6 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
         <div id="nation-preview" style="display:flex; align-items:center; gap:8px; min-width:60px; padding-top:6px;"></div>
       </div>
       <div class="field-row">
-        <div class="field">
-          <label for="new-driver-username">Username</label>
-          <input type="text" id="new-driver-username" placeholder="username" autocomplete="off">
-        </div>
-        <div class="field">
-          <label for="new-driver-password">Password</label>
-          <input type="text" id="new-driver-password" placeholder="password" autocomplete="off">
-        </div>
         <button class="action action-compact" id="create-driver-btn"><span>Create Driver</span></button>
       </div>
       <div class="result-line" id="create-driver-result"></div>
@@ -467,14 +461,6 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
         </div>
       </div>
       <div class="field-row">
-        <div class="field">
-          <label for="new-tp-username">Username</label>
-          <input type="text" id="new-tp-username" placeholder="username" autocomplete="off">
-        </div>
-        <div class="field">
-          <label for="new-tp-password">Password</label>
-          <input type="text" id="new-tp-password" placeholder="password" autocomplete="off">
-        </div>
         <button class="action action-compact" id="create-tp-btn"><span>Create TP</span></button>
       </div>
       <div class="result-line" id="create-tp-result"></div>
@@ -1458,6 +1444,7 @@ function renderContracts() {
 
   var offers = (DASH.offers || []);
   if (role === 'tp') offers = offers.filter(function (o) { return o.team === (DASH.tp && DASH.tp.team) || o.target === (DASH.tp && DASH.tp.team); });
+  else if (role === 'admin') offers = offers.filter(function (o) { return offerStatus(o) === 'On Hold'; });
   var offerHtml = '';
   offers.forEach(function (o, i) {
     const st = offerStatus(o);
@@ -1504,7 +1491,44 @@ function renderContracts() {
       + '<button class="action action-lead" id="p-send-btn"><span>Send pay-for-seat</span></button><div class="result-line" id="p-result"></div></div>';
   }
 
+  if (role === 'driver' || role === 'tp') {
+    var ad = DASH.autoDeny || {};
+    html += '<div class="ov-card" style="margin-top:18px;"><div class="ov-card-title">Auto-deny rules</div>'
+      + '<p class="muted" style="margin-bottom:10px;">Offers to you that break these rules are automatically rejected. Leave a field blank to ignore it.</p>'
+      + '<div class="field-row">'
+      + '<div class="field"><label for="ad-minlen">Min length (seasons)</label><input type="text" id="ad-minlen" value="' + BTG.esc(ad.minLength) + '"></div>'
+      + '<div class="field"><label for="ad-maxlen">Max length (seasons)</label><input type="text" id="ad-maxlen" value="' + BTG.esc(ad.maxLength) + '"></div>'
+      + '<div class="field"><label for="ad-minsal">Min salary</label><input type="text" id="ad-minsal" value="' + BTG.esc(ad.minSalary) + '"></div>'
+      + '</div>'
+      + '<div class="field-row">'
+      + '<div class="field"><label for="ad-teams">Blocked teams (comma-separated)</label><input type="text" id="ad-teams" value="' + BTG.esc((ad.teams || []).join(', ')) + '"></div>'
+      + '<button class="action action-lead" id="ad-save-btn"><span>Save rules</span></button>'
+      + '</div>'
+      + '<div class="result-line" id="ad-result"></div></div>';
+  }
+
   el.innerHTML = html;
+
+  var adBtn = document.getElementById('ad-save-btn');
+  if (adBtn) {
+    adBtn.onclick = async function () {
+      const resultEl = document.getElementById('ad-result');
+      resultEl.style.display = 'none';
+      adBtn.disabled = true;
+      try {
+        const data = await callGateway('saveAutoDeny', {
+          username: CURRENT_USER.username, password: CURRENT_USER.password,
+          minLength: document.getElementById('ad-minlen').value.trim(),
+          maxLength: document.getElementById('ad-maxlen').value.trim(),
+          minSalary: document.getElementById('ad-minsal').value.trim(),
+          teams: document.getElementById('ad-teams').value.trim()
+        });
+        if (data.ok) { showResult(resultEl, true, '✓ Auto-deny rules saved.'); }
+        else { showResult(resultEl, false, '✗ ' + data.error); }
+      } catch (e) { showResult(resultEl, false, '✗ Could not reach the gateway script.'); }
+      finally { adBtn.disabled = false; }
+    };
+  }
 
   var sendBtn = document.getElementById('c-send-btn');
   if (sendBtn) {
@@ -1584,6 +1608,9 @@ function onLoginSuccess(data) {
     salary: data.salary || null,
     bank: data.bank || 0,
     blocked: data.blocked || [],
+    blockedMap: data.blockedMap || null,
+    autoDeny: data.autoDeny || null,
+    driver: data.driver || null,
     offers: data.offers || [],
     mail: data.mail || [],
     sponsors: data.sponsors || [],
@@ -1594,6 +1621,7 @@ function onLoginSuccess(data) {
     teamPrincipals: data.teamPrincipals || [],
     finances: data.finances || null
   };
+  if (data.year) CURRENT_YEAR = data.year;
 
   if (data.role === 'admin') {
     setStatus('admin', 'Admin — ' + data.username);
@@ -1645,6 +1673,7 @@ async function refreshMail() {
       if (data.offers !== undefined) DASH.offers = data.offers || [];
       if (data.mail !== undefined) DASH.mail = data.mail || [];
       if (data.blocked !== undefined) DASH.blocked = data.blocked || [];
+      if (data.blockedMap !== undefined) DASH.blockedMap = data.blockedMap || null;
       if (data.contracts !== undefined) DASH.contracts = data.contracts || [];
       if (data.teamPrincipals !== undefined) DASH.teamPrincipals = data.teamPrincipals || [];
       renderMailbox();
@@ -1712,8 +1741,6 @@ document.getElementById('driver-select').addEventListener('change', (e) => {
 document.getElementById('create-driver-btn').addEventListener('click', async () => {
   const name = document.getElementById('new-driver-name').value.trim();
   const nation = document.getElementById('new-driver-nation').value.trim().toUpperCase();
-  const newUsername = document.getElementById('new-driver-username').value.trim();
-  const newPassword = document.getElementById('new-driver-password').value;
   const resultEl = document.getElementById('create-driver-result');
   const btn = document.getElementById('create-driver-btn');
   resultEl.style.display = 'none';
@@ -1724,13 +1751,13 @@ document.getElementById('create-driver-btn').addEventListener('click', async () 
   try {
     const data = await callGateway('adminCreateDriver', {
       username: CURRENT_USER.username, password: CURRENT_USER.password,
-      driverName: name, nation: nation, newUsername: newUsername, newPassword: newPassword
+      driverName: name, nation: nation
     });
     if (data.ok) {
-      if (data.driver) { data.driver.hasAccount = !!(newUsername && newPassword); DRIVERS.push(data.driver); }
+      if (data.driver) { data.driver.hasAccount = false; DRIVERS.push(data.driver); }
       populateAdminDropdowns();
-      showResult(resultEl, true, '✓ ' + name + ' created' + (newUsername ? ' with login ' + newUsername : '') + '.');
-      ['new-driver-name','new-driver-nation','new-driver-username','new-driver-password'].forEach(id => document.getElementById(id).value = '');
+      showResult(resultEl, true, '✓ ' + name + ' created.');
+      ['new-driver-name','new-driver-nation'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('nation-preview').innerHTML = '';
     } else {
       showResult(resultEl, false, '✗ ' + data.error);
@@ -1777,22 +1804,23 @@ document.getElementById('create-login-btn').addEventListener('click', async () =
 document.getElementById('create-tp-btn').addEventListener('click', async () => {
   const tpName = document.getElementById('new-tp-name').value.trim();
   const team = document.getElementById('new-tp-team').value.trim();
-  const newUsername = document.getElementById('new-tp-username').value.trim();
-  const newPassword = document.getElementById('new-tp-password').value;
   const resultEl = document.getElementById('create-tp-result');
   const btn = document.getElementById('create-tp-btn');
   resultEl.style.display = 'none';
-  if (!tpName || !team || !newUsername || !newPassword) { showResult(resultEl, false, 'Fill in name, team, username and password.'); return; }
+  if (!tpName || !team) { showResult(resultEl, false, 'Fill in name and team.'); return; }
 
   btn.disabled = true;
   try {
     const data = await callGateway('adminCreateTpLogin', {
       username: CURRENT_USER.username, password: CURRENT_USER.password,
-      tpName: tpName, team: team, salary: '1500000', newUsername: newUsername, newPassword: newPassword
+      tpName: tpName, team: team, salary: '1500000'
     });
     if (data.ok) {
-      showResult(resultEl, true, '✓ Team principal created for ' + tpName + ' (' + newUsername + ').');
-      ['new-tp-name','new-tp-team','new-tp-username','new-tp-password'].forEach(id => document.getElementById(id).value = '');
+      showResult(resultEl, true, '✓ Team principal created for ' + tpName + '.');
+      DASH.teamPrincipals = DASH.teamPrincipals || [];
+      DASH.teamPrincipals.push({ name: tpName, team: team, salary: 1500000, hasAccount: false });
+      populateAdminDropdowns();
+      ['new-tp-name','new-tp-team'].forEach(id => document.getElementById(id).value = '');
     } else {
       showResult(resultEl, false, '✗ ' + data.error);
     }
@@ -2360,11 +2388,34 @@ function offerActionsHtml(o, i, role) {
   var st = offerStatus(o);
   var tpTeam = (DASH && DASH.tp && DASH.tp.team) || '';
   if (st === '') {
+    var isDriverInitiated = /driver-initiated/i.test(o.terms || '');
     if (role === 'driver') {
+      if (isDriverInitiated) {
+        return '<div class="offer-actions">'
+          + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Withdraw</span></button>'
+          + '</div>';
+      }
       return '<div class="offer-actions">'
         + '<button class="action action-lead action-compact" onclick="respondOffer(' + i + ', \'accept\')"><span>Accept</span></button>'
         + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Decline</span></button>'
         + ((o.counter && o.counter.team) ? '' : '<button class="action action-quiet action-compact" onclick="promptCounter(' + i + ')"><span>Counter</span></button>')
+        + '</div>';
+    }
+    if (role === 'tp' && o.team === tpTeam) {
+      if (isDriverInitiated) {
+        return '<div class="offer-actions">'
+          + '<button class="action action-lead action-compact" onclick="respondOffer(' + i + ', \'accept\')"><span>Accept</span></button>'
+          + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Decline</span></button>'
+          + '</div>';
+      }
+      if (o.counter && o.counter.team) {
+        return '<div class="offer-actions">'
+          + '<button class="action action-lead action-compact" onclick="respondCounter(' + i + ', true)"><span>Accept counter</span></button>'
+          + '<button class="action action-quiet action-compact" onclick="respondCounter(' + i + ', false)"><span>Reject counter</span></button>'
+          + '</div>';
+      }
+      return '<div class="offer-actions">'
+        + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Withdraw</span></button>'
         + '</div>';
     }
     return '';
@@ -2393,9 +2444,12 @@ function renderMailbox() {
   const root = document.getElementById('mailbox-offers');
   const mailEl = document.getElementById('mailbox-mail');
   mailEl.innerHTML = '';
-  const offers = (DASH && DASH.offers) || [];
+  var offers = (DASH && DASH.offers) || [];
   const mail = (DASH && DASH.mail) || [];
   const role = CURRENT_USER && CURRENT_USER.role;
+
+  // Admins only need offers awaiting their approve/deny.
+  if (role === 'admin') offers = offers.filter(function (o) { return offerStatus(o) === 'On Hold'; });
 
   const offerItems = offers.map(function (o, i) {
     const st = offerStatus(o);
@@ -2404,7 +2458,9 @@ function renderMailbox() {
       + 'Salary: ' + fmtMoney(o.salary)
       + '\nPeriod: ' + (o.from || '—') + '–' + (o.till || '—')
       + (o.terms ? '\nTerms: ' + o.terms : '')
-      + (o.counter && o.counter.team ? '\nYour counter: ' + fmtMoney(o.counter.salary) + ' with ' + o.counter.team : '');
+      + (o.counter && o.counter.team
+          ? '\n' + (role === 'tp' ? 'Driver counter: ' : 'Your counter: ') + fmtMoney(o.counter.salary) + ' with ' + o.counter.team
+          : '');
     return {
       idx: i, kind: 'offer', open: open, status: st,
       hasCounter: !!(o.counter && o.counter.team),
@@ -2414,25 +2470,40 @@ function renderMailbox() {
     };
   });
 
-  var mailList = mail;
-  if (role === 'admin' && MAIL_FILTER) {
-    mailList = mail.filter(function (m) { return m.from === MAIL_FILTER || m.to === MAIL_FILTER; });
+  // Inbox / Sent split. Admin inbox = mail TO the selected person; Sent = mail
+  // FROM that person. Everyone else: inbox = mail to me, Sent = mail from me.
+  var adminFilter = role === 'admin' ? (MAIL_FILTER == null ? 'BTG Officials' : MAIL_FILTER) : '';
+  var myName = role === 'admin' ? adminFilter
+    : role === 'driver' ? ((DASH && DASH.driver && DASH.driver.driver) || '')
+    : role === 'tp' ? ((DASH && DASH.tp && DASH.tp.name) || '')
+    : '';
+  function isForMe(m) {
+    if (role === 'admin') return adminFilter === '' ? true : m.to === adminFilter;
+    return m.to === myName || m.to === CURRENT_USER.username;
   }
-  const mailItems = mailList.map(function (m) {
+  function isFromMe(m) {
+    if (role === 'admin') return adminFilter === '' ? true : m.from === adminFilter;
+    return m.from === myName;
+  }
+  function toMailItem(m, kind) {
     return {
-      kind: 'mail', from: m.from || '?', to: m.to || '?',
+      kind: kind || 'mail', row: m.row, from: m.from || '?', to: m.to || '?',
+      read: !!m.read,
       subject: ((m.message || '').split('\n')[0] || '(no subject)').slice(0, 64),
       body: m.message || '', status: ''
     };
-  });
+  }
+  const mailItems = mail.filter(isForMe).map(function (m) { return toMailItem(m, 'mail'); });
+  const sentItems = mail.filter(isFromMe).map(function (m) { return toMailItem(m, 'sent'); });
 
   const folders = [
     { id: 'offers', label: 'Offers', count: offerItems.filter(function (o) { return o.open; }).length },
-    { id: 'mail', label: 'Mail', count: mailItems.length }
+    { id: 'mail', label: 'Mail', count: mailItems.filter(function (m) { return !m.read; }).length },
+    { id: 'sent', label: 'Sent', count: sentItems.length }
   ];
-  if (MAIL_FOLDER !== 'mail') MAIL_FOLDER = 'offers';
+  if (MAIL_FOLDER !== 'mail' && MAIL_FOLDER !== 'sent') MAIL_FOLDER = 'offers';
 
-  const items = MAIL_FOLDER === 'mail' ? mailItems : offerItems;
+  const items = MAIL_FOLDER === 'mail' ? mailItems : MAIL_FOLDER === 'sent' ? sentItems : offerItems;
   if (MAIL_SEL[MAIL_FOLDER] == null || MAIL_SEL[MAIL_FOLDER] >= items.length) MAIL_SEL[MAIL_FOLDER] = items.length ? 0 : -1;
   const sel = MAIL_SEL[MAIL_FOLDER] >= 0 ? items[MAIL_SEL[MAIL_FOLDER]] : null;
 
@@ -2468,13 +2539,25 @@ function renderMailbox() {
         }).join('')
       + '</div>';
   }
+  if (role === 'admin' && DASH.blockedMap) {
+    var blockRows = Object.keys(DASH.blockedMap).map(function (n) {
+      return (DASH.blockedMap[n] || []).map(function (b) { return BTG.esc(n) + ' blocks ' + BTG.esc(b); });
+    }).reduce(function (a, b) { return a.concat(b); }, []);
+    if (blockRows.length) {
+      html += '<div style="margin-top:14px;padding:0 4px;font-size:12px;color:var(--copy-faint);line-height:1.9;">'
+        + '<div style="text-transform:uppercase;letter-spacing:.08em;font-size:10px;margin-bottom:4px;">Blocked (all)</div>'
+        + blockRows.map(function (t) { return '<div>' + t + '</div>'; }).join('')
+        + '</div>';
+    }
+  }
   html += '</div>';
 
-  html += '<div class="mail-list"><div class="mail-list-head">' + (MAIL_FOLDER === 'mail' ? 'Mail' : 'Contract offers') + '</div>';
-  if (!items.length) html += '<div class="mail-empty">' + (MAIL_FOLDER === 'mail' ? 'No mail.' : 'No contract offers.') + '</div>';
+  html += '<div class="mail-list"><div class="mail-list-head">' + (MAIL_FOLDER === 'mail' ? 'Mail' : MAIL_FOLDER === 'sent' ? 'Sent' : 'Contract offers') + '</div>';
+  if (!items.length) html += '<div class="mail-empty">' + (MAIL_FOLDER === 'mail' ? 'No mail.' : MAIL_FOLDER === 'sent' ? 'Nothing sent.' : 'No contract offers.') + '</div>';
   items.forEach(function (it, i) {
-    html += '<div class="mail-row ' + (i === MAIL_SEL[MAIL_FOLDER] ? 'active' : '') + '" onclick="selectMailItem(' + i + ')">'
-      + '<div class="mail-row-top"><span class="mail-sender">' + BTG.esc(it.from) + (it.kind === 'offer' ? ' → ' + BTG.esc(it.to) : '') + '</span>'
+    var isUnread = it.kind === 'mail' && !it.read;
+    html += '<div class="mail-row ' + (i === MAIL_SEL[MAIL_FOLDER] ? 'active' : '') + (isUnread ? ' unread' : '') + '" onclick="selectMailItem(' + i + ')">'
+      + '<div class="mail-row-top"><span class="mail-sender">' + (isUnread ? '<span class="unread-dot"></span>' : '') + BTG.esc(it.from) + (it.kind === 'offer' ? ' → ' + BTG.esc(it.to) : '') + '</span>'
       + (it.status ? '<span class="mail-date">' + BTG.esc(it.status) + '</span>' : '') + '</div>'
       + '<div class="mail-subj">' + BTG.esc(it.subject) + '</div>'
       + '<div class="mail-body">' + BTG.esc((it.body || '').slice(0, 80)) + '</div>'
@@ -2491,12 +2574,19 @@ function renderMailbox() {
       + '<div class="read-body">' + BTG.esc(sel.body) + '</div>';
     if (sel.kind === 'offer') {
       html += offerActionsHtml(offers[sel.idx], sel.idx, role);
-    } else if (sel.kind === 'mail' && role !== 'admin' && sel.from && sel.from !== 'BTG Officials') {
-      var isBlocked = (DASH.blocked || []).indexOf(sel.from) !== -1;
+    } else if (sel.kind === 'mail' || sel.kind === 'sent') {
+      var canBlock = sel.kind === 'mail' && role !== 'admin' && sel.from && sel.from !== 'BTG Officials';
+      var isBlocked = canBlock && (DASH.blocked || []).indexOf(sel.from) !== -1;
       html += '<div class="read-actions">'
-        + (isBlocked
-           ? '<button class="action action-quiet action-compact" data-from="' + BTG.esc(sel.from) + '" onclick="unblockMailSender(this.dataset.from)"><span>Unblock ' + BTG.esc(sel.from) + '</span></button>'
-           : '<button class="action action-quiet action-compact" data-from="' + BTG.esc(sel.from) + '" onclick="blockMailSender(this.dataset.from)"><span>Block ' + BTG.esc(sel.from) + '</span></button>')
+        + (sel.kind === 'mail' && !sel.read
+            ? '<button class="action action-lead action-compact" onclick="markMailReadItem(' + sel.row + ')"><span>Mark as read</span></button>'
+            : '')
+        + '<button class="action action-quiet action-compact" onclick="deleteMailItem(' + sel.row + ')"><span>Delete</span></button>'
+        + (canBlock
+           ? (isBlocked
+              ? '<button class="action action-quiet action-compact" data-from="' + BTG.esc(sel.from) + '" onclick="unblockMailSender(this.dataset.from)"><span>Unblock ' + BTG.esc(sel.from) + '</span></button>'
+              : '<button class="action action-quiet action-compact" data-from="' + BTG.esc(sel.from) + '" onclick="blockMailSender(this.dataset.from)"><span>Block ' + BTG.esc(sel.from) + '</span></button>')
+           : '')
         + '</div>';
     }
   } else {
@@ -2742,6 +2832,62 @@ async function adminResolveOffer(index, approve) {
       o.status = data.result || '';
       renderMailbox();
       renderContracts();
+    } else {
+      alert('✗ ' + data.error);
+    }
+  } catch (e) {
+    alert('✗ Could not reach the gateway script.');
+  }
+}
+
+async function respondCounter(index, accept) {
+  const o = DASH && DASH.offers && DASH.offers[index];
+  if (!o || !CURRENT_USER) return;
+  try {
+    const data = await callGateway('respondCounter', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      offerRow: o.row, accept: !!accept
+    });
+    if (data.ok) {
+      o.status = data.result || '';
+      if (!accept) { o.counter = null; }
+      renderMailbox();
+      renderContracts();
+    } else {
+      alert('✗ ' + data.error);
+    }
+  } catch (e) {
+    alert('✗ Could not reach the gateway script.');
+  }
+}
+
+async function deleteMailItem(row) {
+  if (!CURRENT_USER) return;
+  if (!confirm('Delete this message?')) return;
+  try {
+    const data = await callGateway('deleteMail', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      mailRow: row
+    });
+    if (data.ok) {
+      refreshMail();
+    } else {
+      alert('✗ ' + data.error);
+    }
+  } catch (e) {
+    alert('✗ Could not reach the gateway script.');
+  }
+}
+
+async function markMailReadItem(row) {
+  if (!CURRENT_USER) return;
+  try {
+    const data = await callGateway('markMailRead', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      mailRow: row, read: true
+    });
+    if (data.ok) {
+      refreshMail();
     } else {
       alert('✗ ' + data.error);
     }
