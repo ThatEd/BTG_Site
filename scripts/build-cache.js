@@ -31,6 +31,11 @@ const SITE_ROOT = path.resolve(__dirname, '..');
 const DATA_ROOT = path.join(SITE_ROOT, 'Data');
 const DEFAULT_OUT = path.join(SITE_ROOT, 'data-cache.json');
 
+/* Shared roster helper (drivers/teams base data) — same logic as the browser,
+   so the pre-built cache matches what live auto-discovery produces. */
+const Roster = require(path.join(SITE_ROOT, 'js', 'roster.js'));
+Roster.setBaseDir(path.join(DATA_ROOT, 'Drivers and teams'));
+
 /* ── CLI flags ───────────────────────────────────────────────────────────── */
 const args = process.argv.slice(2);
 let outPath = DEFAULT_OUT;
@@ -45,7 +50,7 @@ const DATA = { series: {}, drivers: {}, circuits: {}, cars: {} };
 const FILES = {}; // seriesId -> [relative file paths]
 
 /* ── Constants (mirror data-loader.js) ───────────────────────────────────── */
-const DEFAULT_YEAR = 2026;
+const DEFAULT_YEAR = 2024; // fallback when no race data carries a year
 
 /* ── Filesystem helpers ──────────────────────────────────────────────────── */
 
@@ -435,9 +440,11 @@ function build() {
   console.log('BeTheGrid cache builder');
   console.log('  Data root: ' + DATA_ROOT);
 
+  // Data-source folders that are not racing series.
+  const SKIP_SERIES = ['Drivers and teams', 'Drivers', 'Teams'];
   const seriesDirs = fs.existsSync(DATA_ROOT)
     ? fs.readdirSync(DATA_ROOT, { withFileTypes: true })
-      .filter(e => e.isDirectory())
+      .filter(e => e.isDirectory() && SKIP_SERIES.indexOf(e.name) === -1)
       .map(e => e.name)
       .sort()
     : [];
@@ -495,11 +502,22 @@ function build() {
           processRaceFiles(seriesId, year, byYear[year].races);
           processSprintFiles(seriesId, year, byYear[year].sprints);
         });
-      } else if (!hasStats) {
+      } else if (!hasStats && files.length) {
         if (!DATA.series[seriesId]) DATA.series[seriesId] = { years: {}, logo: 'logos/' + seriesId + '.png' };
       }
     }
   });
+
+  // Roster (drivers/teams base data) — fills series + driver identity so the
+  // cache works even before any race results exist. Never overwrites race data.
+  let rosterYear = DEFAULT_YEAR;
+  Object.keys(DATA.series).forEach(function (sid) {
+    Object.keys(DATA.series[sid].years || {}).forEach(function (k) {
+      const v = Number(k); if (v > rosterYear) rosterYear = v;
+    });
+  });
+  try { Roster.applyToStore(DATA, rosterYear); }
+  catch (e) { console.warn('  roster apply skipped: ' + e.message); }
 
   computeAllStandings();
 
