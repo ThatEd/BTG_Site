@@ -385,6 +385,15 @@ body::before {
       });
   }
 
+  // Full team name for the sidebar (from TeamNameLong.csv via the roster);
+  // falls back to the short name when no long form exists.
+  function teamDisplayName(teamName) {
+    if (teamName && window.BTG && BTG.Roster && BTG.Roster.teamName) {
+      return BTG.Roster.teamName(teamName, true) || teamName;
+    }
+    return teamName;
+  }
+
   function renderSidebar() {
     var list = getSeriesDrivers();
     var sb = document.getElementById('sb-list');
@@ -407,7 +416,7 @@ body::before {
       var color = team ? team.color : '185,29,46';
       html += '<div class="dp-picker__group"><div class="dp-picker__team">'
         + BTG.teamLogoImg(teamName, activeSeries, 12)
-        + BTG.esc(teamName)
+        + BTG.esc(teamDisplayName(teamName))
         + '</div>';
       var color2 = team ? (team.colorSecondary || '') : '';
       byTeam[teamName].forEach(function(d) {

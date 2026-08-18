@@ -9,6 +9,13 @@ window.BTG = window.BTG || {};
 (function() {
   'use strict';
 
+  /* Resolve a raw team key/name to the CSV display name via the roster helper
+     (e.g. "F2 MP" → "MP"). No-op when the roster isn't loaded yet. */
+  function normTeam(v) {
+    if (!v) return v;
+    return (window.BTG && BTG.Roster && BTG.Roster.teamName) ? (BTG.Roster.teamName(v) || v) : v;
+  }
+
   /* ── Track metadata (slug → {name, flag ISO2, tag}) ─────────────────────── */
   var TRACK_META = {
     austin:        { name: 'United States Grand Prix', flag: 'us', tag: 'TEX' },
@@ -497,7 +504,7 @@ window.BTG = window.BTG || {};
   /* ── RLT session row → TFG-style row ───────────────────────────────────── */
   function rowFromRlt(row) {
     var name = row.driverName;
-    var teamName = row.teamName || (row.teamInfo && row.teamInfo.fullName) || null;
+    var teamName = normTeam(row.teamName || (row.teamInfo && row.teamInfo.fullName) || null);
     var car = (row.teamInfo && row.teamInfo.car) || null;
     var pos = Number(row.position || 0);
     var grid = Number(row.gridPosition || 0);
@@ -545,7 +552,7 @@ window.BTG = window.BTG || {};
     var car = row.CarName || '';
     // RLT/AMS can carry real team names (GT3/GT4, new series). Keep the real team
     // if present; otherwise leave teamName empty so car fallbacks kick in.
-    var teamName = row.TeamName && row.TeamName.trim() ? row.TeamName.trim() : '';
+    var teamName = normTeam(row.TeamName && row.TeamName.trim() ? row.TeamName.trim() : '');
     var pos = Number(row.FinishingPosition || 0);
     var grid = Number(row.InitialPosition || row.GridPosition || 0);
     var status = row.FinishStatus || '';

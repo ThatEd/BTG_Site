@@ -430,6 +430,27 @@
     return (_state || loadSync()).teams.filter(function (t) { return t.series === seriesId; });
   }
 
+  /* ── Team display name ────────────────────────────────────────────────
+     Resolve any team key / name / long-name to the canonical display name
+     from the CSV source: short name from BTG - Teams.csv, long name from
+     BTG - TeamNameLong.csv (pass long=true for the long form). Unknown
+     names pass through unchanged.                                       */
+  function teamName(nameOrKey, long) {
+    if (!nameOrKey) return nameOrKey;
+    var st = loadSync();
+    var t = st.teamByKey[nameOrKey] || null;
+    if (!t) {
+      var l = String(nameOrKey).trim().toLowerCase();
+      t = st.teams.filter(function (x) {
+        return String(x.key).toLowerCase() === l
+          || (x.name && String(x.name).toLowerCase() === l)
+          || (x.longName && String(x.longName).toLowerCase() === l);
+      })[0] || null;
+    }
+    if (!t) return nameOrKey;
+    return (long && t.longName) ? t.longName : (t.name || t.key);
+  }
+
   /* ── Seed a BTG.Data-style store ─────────────────────────────────────────
      Registers series + driver season records (nation, team, colour) from the
      roster. Existing fields from race data are never overwritten — the roster
@@ -508,6 +529,7 @@
     nameKey: nameKey,
     shortName: shortName,
     applyToStore: applyToStore,
+    teamName: teamName,
     teamOrderFor: teamOrderFor,
     teamOrderIndexOf: teamOrderIndexOf,
     teamByKey: teamByKey,

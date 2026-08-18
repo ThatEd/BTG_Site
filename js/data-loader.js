@@ -591,6 +591,12 @@ BTG.Data.buildDriverList = function(targetSeries, targetSeason, opts) {
   var season = targetSeason || getLatestSeason(seriesId) || 2026;
   var list = [];
 
+  // Resolve team keys / raw names to the canonical display name from the CSV
+  // via the roster helper (e.g. "F2 MP" → "MP"). Unknown names pass through.
+  var normTeam = (window.BTG && BTG.Roster && BTG.Roster.teamName)
+    ? function(v) { return BTG.Roster.teamName(v); }
+    : function(v) { return v; };
+
   Object.keys(BTG.Data.drivers).forEach(function(name) {
     var d = BTG.Data.drivers[name];
     var sr = d.seasons[seriesId] && d.seasons[seriesId][String(season)];
@@ -615,7 +621,7 @@ BTG.Data.buildDriverList = function(targetSeries, targetSeason, opts) {
         history.push({
           season: Number(s),
           series: sid,
-          team: h.latestTeam,
+          team: normTeam(h.latestTeam),
           car: h.car,
           className: h.className,
           races: h.races,
@@ -669,7 +675,7 @@ BTG.Data.buildDriverList = function(targetSeries, targetSeason, opts) {
       id: name.toLowerCase().replace(/\s+/g, '-'),
       name: name,
       fullName: (d && d.fullName) || name,
-      team: sr ? sr.latestTeam : null,
+      team: normTeam(sr ? sr.latestTeam : null),
       teamOrder: teamOrderIndex(seriesId, sr ? sr.latestTeam : null),
       car: sr ? sr.car : null,
       className: sr ? sr.className : null,

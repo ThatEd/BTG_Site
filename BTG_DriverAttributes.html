@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Be The Grid — Driver Console</title>
+<title>Be The Grid — Dashboard</title>
 <link rel="icon" type="image/x-icon" href="logos/BTG.ico">
 <link rel="stylesheet" href="style.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -192,6 +192,18 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 .result-line{font-family:var(--data-face); font-size:13px; padding:12px 14px; border:1px solid var(--edge); display:none;}
 .result-line.ok{color:var(--moss); border-color:color-mix(in oklab, var(--moss) 40%, var(--edge));}
 .result-line.err{color:var(--team-accent-hot); border-color:var(--team-edge);}
+
+/* ---- Mailbox / salary / sponsors ---- */
+.sub-h3{font-family:var(--head-face); font-size:14px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; color:var(--copy); margin:18px 0 10px;}
+.mail-item{background:var(--card); border:1px solid var(--edge); border-left:3px solid var(--team-accent); padding:12px 14px; margin-bottom:10px;}
+.mail-item.plain{border-left-color:var(--edge-strong);}
+.mail-meta{font-family:var(--data-face); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--copy-faint); margin-bottom:6px;}
+.mail-body{font-size:14px; line-height:1.5; color:var(--copy); margin-bottom:6px; white-space:pre-wrap;}
+.mail-terms{font-family:var(--data-face); font-size:12px; color:var(--copy-soft);}
+.mail-actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
+.sponsor-row{display:flex; justify-content:space-between; align-items:center; padding:9px 12px; border-bottom:1px solid var(--edge); font-size:14px;}
+.sponsor-row:last-child{border-bottom:none;}
+.sponsor-row .amt{font-family:var(--data-face); color:var(--moss); white-space:nowrap;}
 </style>
 </head>
 <body data-page="dashboard">
@@ -204,10 +216,11 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
   <div class="masthead">
     <div class="identity">
       <div class="flag"></div>
-      <div class="name">Driver Console</div>
-      <div class="role">Driver Console</div>
+      <div class="name">Dashboard</div>
+      <div class="role">Dashboard</div>
     </div>
     <div class="masthead-right">
+      <div id="month-pill" class="status-pill hidden" style="color:var(--copy-soft);border-color:var(--edge);"><span class="mark"></span><span id="month-pill-label">—</span></div>
       <button class="logout-link hidden" id="logout-btn">Log out</button>
       <div id="status-pill" class="status-pill locked"><span class="mark"></span><span id="status-pill-label">Locked</span></div>
     </div>
@@ -287,6 +300,134 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
       </div>
       <div class="result-line" id="create-login-result"></div>
     </div>
+
+    <div class="tool-card">
+      <h3>Season clock</h3>
+      <p class="muted" style="margin-bottom:12px;">Advance to the next month — the monthly portion of every salary is paid out.</p>
+      <div class="field-row">
+        <div class="readout"><div class="value" id="admin-month">—</div><div class="caption">Current month</div></div>
+        <button class="action action-lead" id="advance-month-btn"><span>Next month →</span></button>
+      </div>
+      <div class="result-line" id="advance-month-result"></div>
+    </div>
+  </section>
+
+  <!-- 02C · TEAM PRINCIPAL -->
+  <section id="tp-section" class="hidden">
+    <div class="section-head">
+      <div class="section-head-mark"></div>
+      <div class="section-head-body">
+        <span class="section-head-num">02C — Team Principal</span>
+        <h2 id="tp-team-heading">Team</h2>
+      </div>
+    </div>
+
+    <div class="surface" style="margin-bottom:16px;">
+      <div class="rail"></div>
+      <div class="readouts">
+        <div class="readout"><div class="value" id="tp-team-name">—</div><div class="caption">Team</div></div>
+        <div class="readout"><div class="value" style="color:var(--team-accent-hot)" id="tp-salary">—</div><div class="caption">Annual salary</div></div>
+        <div class="readout"><div class="value" id="tp-salary-paid">—</div><div class="caption">Paid to date</div></div>
+      </div>
+    </div>
+
+    <div class="tool-card">
+      <h3>Drivers</h3>
+      <div id="tp-drivers" class="cluster"></div>
+    </div>
+
+    <div class="tool-card">
+      <h3>Send a contract offer</h3>
+      <div class="field-row">
+        <div class="field">
+          <label for="tp-offer-driver">Driver</label>
+          <select id="tp-offer-driver"></select>
+        </div>
+        <div class="field">
+          <label for="tp-offer-salary">Offered salary</label>
+          <input type="text" id="tp-offer-salary" placeholder="e.g. 8,000,000">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="tp-offer-from">From (year)</label>
+          <input type="text" id="tp-offer-from" placeholder="2026">
+        </div>
+        <div class="field">
+          <label for="tp-offer-till">Till (year)</label>
+          <input type="text" id="tp-offer-till" placeholder="2028">
+        </div>
+      </div>
+      <div class="field">
+        <label for="tp-offer-terms">Extra terms</label>
+        <input type="text" id="tp-offer-terms" placeholder="e.g. No beer">
+      </div>
+      <div class="field">
+        <label for="tp-offer-message">Message</label>
+        <input type="text" id="tp-offer-message" placeholder="Hey, we would like you to join our team…">
+      </div>
+      <button class="action action-lead" id="tp-send-offer-btn"><span>Send offer</span></button>
+      <div class="result-line" id="tp-offer-result"></div>
+    </div>
+
+    <div class="tool-card">
+      <h3>Send mail</h3>
+      <div class="field">
+        <label for="tp-mail-to">To</label>
+        <input type="text" id="tp-mail-to" placeholder="driver name, team, or username">
+      </div>
+      <div class="field">
+        <label for="tp-mail-message">Message</label>
+        <input type="text" id="tp-mail-message" placeholder="Message…">
+      </div>
+      <button class="action" id="tp-send-mail-btn"><span>Send</span></button>
+      <div class="result-line" id="tp-mail-result"></div>
+    </div>
+  </section>
+
+  <!-- 02D · MAILBOX -->
+  <section id="mailbox-section" class="hidden">
+    <div class="section-head">
+      <div class="section-head-mark"></div>
+      <div class="section-head-body">
+        <span class="section-head-num">02D — Mailbox</span>
+        <h2>Mailbox</h2>
+      </div>
+    </div>
+    <div id="mailbox-offers"></div>
+    <div id="mailbox-mail"></div>
+  </section>
+
+  <!-- 02E · SALARY -->
+  <section id="salary-section" class="hidden">
+    <div class="section-head">
+      <div class="section-head-mark"></div>
+      <div class="section-head-body">
+        <span class="section-head-num">02E — Salary</span>
+        <h2>Salary</h2>
+      </div>
+    </div>
+    <div class="surface">
+      <div class="rail"></div>
+      <div class="readouts">
+        <div class="readout"><div class="value" id="salary-annual">—</div><div class="caption">Annual</div></div>
+        <div class="readout"><div class="value" id="salary-preseason">—</div><div class="caption">Pre-season (80%)</div></div>
+        <div class="readout"><div class="value" id="salary-monthly">—</div><div class="caption">Per month</div></div>
+        <div class="readout"><div class="value" style="color:var(--moss)" id="salary-paid">—</div><div class="caption">Paid to date</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02F · SPONSORS -->
+  <section id="sponsors-section" class="hidden">
+    <div class="section-head">
+      <div class="section-head-mark"></div>
+      <div class="section-head-body">
+        <span class="section-head-num">02F — Sponsors</span>
+        <h2>Sponsors</h2>
+      </div>
+    </div>
+    <div id="sponsors-list"></div>
   </section>
 
   <!-- 03 · DRIVER + ALLOWANCE -->
@@ -783,6 +924,43 @@ let DRIVERS = [];
 let TEAMS = [];
 let SELECTED = null;
 let PENDING = {};
+let DASH = null;        // dashboard payload: {month, salary, offers, mail, sponsors, tp, teamDrivers}
+let CURRENT_YEAR = null;
+
+/* ---------- season year (from race data, fallback 2024) ---------- */
+async function currentYear() {
+  if (CURRENT_YEAR) return CURRENT_YEAR;
+  try {
+    const res = await fetch('data-cache.json', { cache: 'no-store' });
+    const cache = await res.json();
+    let max = 0;
+    Object.keys(cache.series || {}).forEach(sid => {
+      Object.keys((cache.series[sid] && cache.series[sid].years) || {}).forEach(k => {
+        const v = Number(k); if (v > max) max = v;
+      });
+    });
+    CURRENT_YEAR = max > 0 ? max : 2024;
+  } catch (e) { CURRENT_YEAR = 2024; }
+  return CURRENT_YEAR;
+}
+
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function fmtMoney(n) {
+  if (!n) return '—';
+  if (n >= 1000000) return '$' + (n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1) + 'M';
+  if (n >= 1000) return '$' + Math.round(n / 1000) + 'K';
+  return '$' + Math.round(n);
+}
+function setMonthPill() {
+  const pill = document.getElementById('month-pill');
+  const label = document.getElementById('month-pill-label');
+  if (DASH && DASH.month) {
+    pill.classList.remove('hidden');
+    label.textContent = MONTH_NAMES[DASH.month - 1] + ' ' + (CURRENT_YEAR || 2024);
+  } else {
+    pill.classList.add('hidden');
+  }
+}
 
 async function callGateway(action, payload) {
   const res = await fetch(WEB_APP_URL, {
@@ -838,31 +1016,63 @@ function onLoginSuccess(data) {
   document.getElementById('logout-btn').classList.remove('hidden');
   document.getElementById('account-section').classList.remove('hidden');
 
+  DASH = {
+    month: data.month || 1,
+    salary: data.salary || null,
+    offers: data.offers || [],
+    mail: data.mail || [],
+    sponsors: data.sponsors || [],
+    tp: data.tp || null,
+    teamDrivers: data.teamDrivers || [],
+    allDrivers: data.allDrivers || []
+  };
+
   if (data.role === 'admin') {
     setStatus('admin', 'Admin — ' + data.username);
-    DRIVERS = data.drivers;
+    DRIVERS = data.drivers || [];
     TEAMS = data.teams || [];
     document.getElementById('admin-section').classList.remove('hidden');
     document.getElementById('driver-select-wrap').classList.remove('hidden');
     populateAdminDropdowns();
+    document.getElementById('driver-section').classList.remove('hidden');
+    document.getElementById('mailbox-section').classList.remove('hidden');
+    document.getElementById('sponsors-section').classList.remove('hidden');
+    renderMailbox();
+    renderSponsors(DASH.sponsors);
+    renderAdminMonth();
+  } else if (data.role === 'tp') {
+    setStatus('driver', 'Team Principal — ' + data.username);
+    ['admin-section','driver-section','attr-section','aggr-section','submit-section','admin-override-section']
+      .forEach(id => document.getElementById(id).classList.add('hidden'));
+    renderTp();
+    renderMailbox();
+    renderSponsors(DASH.sponsors);
   } else {
     setStatus('driver', 'Driver — ' + data.username);
     DRIVERS = [data.driver];
-    document.getElementById('admin-section').classList.add('hidden');
+    ['admin-section','tp-section','sponsors-section'].forEach(id => document.getElementById(id).classList.add('hidden'));
     document.getElementById('driver-select-wrap').classList.add('hidden');
+    document.getElementById('driver-section').classList.remove('hidden');
     selectDriverByIndex(0);
+    renderSalary(data.salary);
+    renderMailbox();
   }
 
-  document.getElementById('driver-section').classList.remove('hidden');
+  currentYear().then(function () {
+    setMonthPill();
+    if (DASH && DASH.month) renderAdminMonth();
+    if (CURRENT_USER && CURRENT_USER.role === 'tp') renderTp();
+  });
 }
 
 document.getElementById('logout-btn').addEventListener('click', () => {
-  CURRENT_USER = null; DRIVERS = []; TEAMS = []; SELECTED = null; PENDING = {};
+  CURRENT_USER = null; DRIVERS = []; TEAMS = []; SELECTED = null; PENDING = {}; DASH = null;
   document.getElementById('gate-username').value = '';
   document.getElementById('gate-password').value = '';
   document.getElementById('gate-section').classList.remove('hidden');
   ['admin-section','driver-section','attr-section','aggr-section','submit-section',
-   'admin-override-section','account-section','driver-hero','driver-meta-row','logout-btn']
+   'admin-override-section','account-section','driver-hero','driver-meta-row','logout-btn',
+   'tp-section','mailbox-section','salary-section','sponsors-section','month-pill']
     .forEach(id => document.getElementById(id).classList.add('hidden'));
   setTeamColors(null); // reset to default ember tones
   setStatus('locked', 'Locked');
@@ -1508,6 +1718,216 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
   } finally {
     btn.querySelector('span').textContent = 'Submit Update →';
     refreshStepperState();
+  }
+});
+
+/* ════════════════ DASHBOARD — mailbox / salary / sponsors / TP / month ════════════════ */
+
+function renderMailbox() {
+  const offersEl = document.getElementById('mailbox-offers');
+  const mailEl = document.getElementById('mailbox-mail');
+  const offers = (DASH && DASH.offers) || [];
+  const mail = (DASH && DASH.mail) || [];
+
+  offersEl.innerHTML = '<div class="sub-h3">Contract offers</div>'
+    + (offers.length ? offers.map(function (o, i) {
+        const hasCounter = o.counter && o.counter.team;
+        return '<div class="mail-item">'
+          + '<div class="mail-meta">' + BTG.esc(o.team) + ' → ' + BTG.esc(o.target)
+            + (hasCounter ? ' · counter: ' + BTG.esc(o.counter.team) : '') + '</div>'
+          + (o.message ? '<div class="mail-body">' + BTG.esc(o.message) + '</div>' : '')
+          + '<div class="mail-terms">' + fmtMoney(o.salary) + ' · ' + BTG.esc(o.from || '—') + '–' + BTG.esc(o.till || '—')
+            + (o.terms ? ' · ' + BTG.esc(o.terms) : '')
+            + (o._status ? ' · <b>' + o._status + '</b>' : '') + '</div>'
+          + (CURRENT_USER && CURRENT_USER.role === 'driver'
+              ? '<div class="mail-actions">'
+                + '<button class="action action-compact" onclick="respondOffer(' + i + ', \'accept\')"><span>Accept</span></button>'
+                + '<button class="action action-compact action-quiet" onclick="respondOffer(' + i + ', \'decline\')"><span>Decline</span></button>'
+                + (hasCounter ? '' : '<button class="action action-compact action-quiet" onclick="promptCounter(' + i + ')"><span>Counter</span></button>')
+                + '</div>'
+              : '')
+          + '</div>';
+      }).join('') : '<div class="muted">No contract offers.</div>');
+
+  mailEl.innerHTML = '<div class="sub-h3">Mail</div>'
+    + (mail.length ? mail.map(function (m) {
+        return '<div class="mail-item plain">'
+          + '<div class="mail-meta">' + BTG.esc(m.from) + ' → ' + BTG.esc(m.to) + '</div>'
+          + '<div class="mail-body">' + BTG.esc(m.message) + '</div>'
+          + '</div>';
+      }).join('') : '<div class="muted">No mail.</div>');
+}
+
+function renderSalary(salary) {
+  const sec = document.getElementById('salary-section');
+  if (!salary) { sec.classList.add('hidden'); return; }
+  sec.classList.remove('hidden');
+  document.getElementById('salary-annual').textContent = fmtMoney(salary.annual);
+  document.getElementById('salary-preseason').textContent = fmtMoney(salary.preSeason);
+  document.getElementById('salary-monthly').textContent = fmtMoney(salary.monthly);
+  document.getElementById('salary-paid').textContent = fmtMoney(salary.paidToDate);
+}
+
+function renderSponsors(sponsors) {
+  const sec = document.getElementById('sponsors-section');
+  const list = sponsors || [];
+  if (!list.length) { sec.classList.add('hidden'); return; }
+  sec.classList.remove('hidden');
+  document.getElementById('sponsors-list').innerHTML = list.map(function (s) {
+    return '<div class="sponsor-row"><span>' + BTG.esc(s.sponsor) + '</span>'
+      + '<span class="amt">' + fmtMoney(s.amount * 1000000) + '</span></div>';
+  }).join('');
+}
+
+function renderTp() {
+  const tp = DASH && DASH.tp;
+  if (!tp) return;
+  document.getElementById('tp-team-heading').textContent = tp.team || 'Team';
+  document.getElementById('tp-team-name').textContent = tp.team || '—';
+  document.getElementById('tp-salary').textContent = fmtMoney(tp.salary ? tp.salary.annual : 0);
+  document.getElementById('tp-salary-paid').textContent = fmtMoney(tp.salary ? tp.salary.paidToDate : 0);
+
+  const drivers = DASH.teamDrivers || [];
+  document.getElementById('tp-drivers').innerHTML = drivers.length
+    ? drivers.map(function (d) { return '<span class="driver-meta-tag">' + BTG.esc(d) + '</span>'; }).join('')
+    : '<span class="muted">No drivers yet.</span>';
+
+  const all = DASH.allDrivers || drivers;
+  const sel = document.getElementById('tp-offer-driver');
+  sel.innerHTML = '<option value="">— choose a driver —</option>'
+    + all.map(function (d) { return '<option>' + BTG.esc(d) + '</option>'; }).join('');
+  const y = CURRENT_YEAR || 2024;
+  document.getElementById('tp-offer-from').value = y;
+  document.getElementById('tp-offer-till').value = y + 2;
+}
+
+function renderAdminMonth() {
+  const el = document.getElementById('admin-month');
+  if (DASH && DASH.month) el.textContent = MONTH_NAMES[DASH.month - 1] + ' ' + (CURRENT_YEAR || 2024);
+  else el.textContent = '—';
+}
+
+async function respondOffer(index, response) {
+  const o = DASH && DASH.offers && DASH.offers[index];
+  if (!o || !CURRENT_USER) return;
+  try {
+    const data = await callGateway('respondContractOffer', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      offerRow: o.row, response: response
+    });
+    if (data.ok) {
+      o._status = response === 'accept' ? 'accepted' : (response === 'decline' ? 'declined' : 'countered');
+      renderMailbox();
+    } else {
+      alert('✗ ' + data.error);
+    }
+  } catch (e) {
+    alert('✗ Could not reach the gateway script.');
+  }
+}
+
+function promptCounter(index) {
+  const o = DASH && DASH.offers && DASH.offers[index];
+  if (!o) return;
+  var salary = prompt('Counter salary', o.salary ? String(o.salary) : '');
+  if (salary === null) return;
+  var from = prompt('Counter from (year)', String(CURRENT_YEAR || 2024));
+  if (from === null) return;
+  var till = prompt('Counter till (year)', String(o.till || (CURRENT_YEAR || 2024) + 1));
+  if (till === null) return;
+  var terms = prompt('Counter extra terms', '') || '';
+  var message = prompt('Counter message', '') || '';
+  callGateway('respondContractOffer', {
+    username: CURRENT_USER.username, password: CURRENT_USER.password,
+    offerRow: o.row, response: 'counter',
+    counter: { team: o.target, salary: salary, from: from, till: till, terms: terms, message: message }
+  }).then(function (data) {
+    if (data.ok) { o._status = 'countered'; renderMailbox(); }
+    else alert('✗ ' + data.error);
+  }).catch(function () { alert('✗ Could not reach the gateway script.'); });
+}
+
+/* --- admin: next month --- */
+document.getElementById('advance-month-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('advance-month-btn');
+  const resultEl = document.getElementById('advance-month-result');
+  resultEl.style.display = 'none';
+  btn.disabled = true;
+  try {
+    const data = await callGateway('advanceMonth', { username: CURRENT_USER.username, password: CURRENT_USER.password });
+    if (data.ok) {
+      DASH.month = data.month;
+      renderAdminMonth();
+      setMonthPill();
+      showResult(resultEl, true, '✓ Advanced to ' + MONTH_NAMES[data.month - 1] + ' ' + (CURRENT_YEAR || 2024) + '. Monthly salary paid.');
+    } else {
+      showResult(resultEl, false, '✗ ' + data.error);
+    }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* --- TP: send offer --- */
+document.getElementById('tp-send-offer-btn').addEventListener('click', async () => {
+  const driver = document.getElementById('tp-offer-driver').value;
+  const salary = document.getElementById('tp-offer-salary').value;
+  const from = document.getElementById('tp-offer-from').value;
+  const till = document.getElementById('tp-offer-till').value;
+  const terms = document.getElementById('tp-offer-terms').value.trim();
+  const message = document.getElementById('tp-offer-message').value.trim();
+  const resultEl = document.getElementById('tp-offer-result');
+  const btn = document.getElementById('tp-send-offer-btn');
+  resultEl.style.display = 'none';
+  if (!driver || !salary) { showResult(resultEl, false, 'Choose a driver and enter a salary.'); return; }
+
+  btn.disabled = true;
+  try {
+    const data = await callGateway('sendContractOffer', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      team: DASH.tp.team, target: driver, salary: salary, from: from, till: till, terms: terms, message: message
+    });
+    if (data.ok) {
+      showResult(resultEl, true, '✓ Offer sent to ' + driver + '.');
+      ['tp-offer-salary','tp-offer-terms','tp-offer-message'].forEach(id => document.getElementById(id).value = '');
+    } else {
+      showResult(resultEl, false, '✗ ' + data.error);
+    }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* --- TP: send mail --- */
+document.getElementById('tp-send-mail-btn').addEventListener('click', async () => {
+  const to = document.getElementById('tp-mail-to').value.trim();
+  const message = document.getElementById('tp-mail-message').value.trim();
+  const resultEl = document.getElementById('tp-mail-result');
+  const btn = document.getElementById('tp-send-mail-btn');
+  resultEl.style.display = 'none';
+  if (!to || !message) { showResult(resultEl, false, 'Fill in recipient and message.'); return; }
+
+  btn.disabled = true;
+  try {
+    const data = await callGateway('sendMail', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      to: to, message: message
+    });
+    if (data.ok) {
+      showResult(resultEl, true, '✓ Mail sent to ' + to + '.');
+      document.getElementById('tp-mail-to').value = '';
+      document.getElementById('tp-mail-message').value = '';
+    } else {
+      showResult(resultEl, false, '✗ ' + data.error);
+    }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
   }
 });
 </script>
