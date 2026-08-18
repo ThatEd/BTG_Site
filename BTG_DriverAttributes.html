@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ── Driver Console specific (shared tokens in style.css) ── */
-.page{max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:32px;}
+.page{max-width:1200px; margin:0 auto; display:flex; flex-direction:column; gap:32px;}
 section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-transform:uppercase; letter-spacing:.02em; margin-bottom:14px; color:var(--copy);}
 .cluster{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
 
@@ -233,6 +233,27 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 .dash-nav button.active{color:var(--copy); border-left-color:var(--team-accent); background:var(--card-high);}
 .dash-main{min-width:0; display:flex; flex-direction:column; gap:32px;}
 @media (max-width:720px){ .dash-body{grid-template-columns:1fr;} .dash-side{position:static;} }
+
+/* ---- Concept-style dashboard components ---- */
+.ov-hero{display:flex; align-items:center; gap:20px; margin-bottom:20px; background:var(--card); border:1px solid var(--edge); border-radius:12px; padding:22px 24px;}
+.ov-hero__photo{width:84px; height:84px; border-radius:50%; background:var(--card-high); border:2px solid var(--edge); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; flex-shrink:0;}
+.ov-hero__photo .dp-hero__img{width:100%; height:100%; object-fit:cover; border-radius:50%;}
+.ov-hero__num{position:absolute; bottom:-4px; right:-4px; background:var(--team-accent); color:var(--team-accent-on,#fff); font-family:var(--data-face); font-size:12px; font-weight:700; padding:3px 9px; border-radius:6px;}
+.ov-hero__name{font-family:var(--head-face); font-size:26px; font-weight:700; text-transform:uppercase; letter-spacing:.01em; line-height:1.1; margin-bottom:6px;}
+.ov-hero__meta{display:flex; align-items:center; gap:10px; flex-wrap:wrap; color:var(--copy-soft); font-size:13px;}
+.ov-tag{display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600; background:color-mix(in oklab, var(--team-accent) 14%, transparent); color:var(--team-accent-hot); border:1px solid var(--team-edge);}
+.ov-stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:20px;}
+.ov-stat-card{background:var(--card); border:1px solid var(--edge); border-radius:12px; padding:18px 20px; position:relative; overflow:hidden;}
+.ov-stat-card::before{content:""; position:absolute; top:0; left:0; right:0; height:3px; background:var(--team-accent);}
+.ov-stat-card .v{font-family:'Formula1',sans-serif; font-size:30px; font-weight:700; line-height:1.1; margin-bottom:6px;}
+.ov-stat-card .k{font-family:var(--data-face); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--copy-faint);}
+.ov-card{background:var(--card); border:1px solid var(--edge); border-radius:12px; padding:20px;}
+.ov-card-title{font-family:var(--data-face); font-size:12px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--copy-faint); margin-bottom:14px;}
+.ov-table{width:100%; border-collapse:collapse; font-size:14px;}
+.ov-table th{text-align:left; padding:9px 12px; font-family:var(--data-face); font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--copy-faint); border-bottom:2px solid var(--edge);}
+.ov-table td{padding:10px 12px; border-bottom:1px solid var(--edge); color:var(--copy-soft);}
+.ov-table tr:hover td{background:var(--card-high); color:var(--copy);}
+.ov-table .strong{color:var(--copy); font-weight:600;}
 </style>
 </head>
 <body data-page="dashboard">
@@ -336,6 +357,36 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
       </div>
       <div class="result-line" id="create-login-result"></div>
     </div>
+
+    <div class="tool-card">
+      <h3>Create a team principal login</h3>
+      <div class="field-row">
+        <div class="field">
+          <label for="new-tp-name">Name</label>
+          <input type="text" id="new-tp-name" placeholder="e.g. Sarah Calloway" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="new-tp-team">Team</label>
+          <input type="text" id="new-tp-team" placeholder="e.g. Williams" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="new-tp-salary">Salary</label>
+          <input type="text" id="new-tp-salary" placeholder="e.g. 1,500,000" autocomplete="off">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="new-tp-username">Username</label>
+          <input type="text" id="new-tp-username" placeholder="username" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="new-tp-password">Password</label>
+          <input type="text" id="new-tp-password" placeholder="password" autocomplete="off">
+        </div>
+        <button class="action action-compact" id="create-tp-btn"><span>Create TP</span></button>
+      </div>
+      <div class="result-line" id="create-tp-result"></div>
+    </div>
   </section>
 
   <!-- 02C · TEAM PRINCIPAL -->
@@ -436,8 +487,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     <div class="surface">
       <div class="rail"></div>
       <div class="readouts">
-        <div class="readout"><div class="value" id="salary-annual">—</div><div class="caption">Annual</div></div>
-        <div class="readout"><div class="value" id="salary-preseason">—</div><div class="caption">Pre-season (80%)</div></div>
+        <div class="readout"><div class="value" id="salary-annual">—</div><div class="caption">Annual salary</div></div>
         <div class="readout"><div class="value" id="salary-monthly">—</div><div class="caption">Per month</div></div>
         <div class="readout"><div class="value" style="color:var(--moss)" id="salary-paid">—</div><div class="caption">Paid to date</div></div>
       </div>
@@ -1005,6 +1055,7 @@ let SELECTED = null;
 let PENDING = {};
 let DASH = null;        // dashboard payload: {month, salary, offers, mail, sponsors, tp, teamDrivers}
 let CURRENT_YEAR = null;
+let MAIL_FILTER = null; // admin: which driver/TP's mail to view
 
 /* ---------- season year (from race data, fallback 2024) ---------- */
 async function currentYear() {
@@ -1097,6 +1148,7 @@ const DASH_TABS = {
   driver: [
     { id: 'overview', label: 'Overview', sections: ['overview-section','salary-section'] },
     { id: 'mail', label: 'Mail', sections: ['mailbox-section'] },
+    { id: 'contracts', label: 'Contracts', sections: ['contracts-section'] },
     { id: 'attributes', label: 'Attributes', sections: ['driver-section','attr-section','aggr-section','submit-section'] },
     { id: 'account', label: 'Account', sections: ['account-section'] }
   ],
@@ -1169,22 +1221,20 @@ function renderDriverOverview() {
   const results = rec && rec.seasonStats && rec.seasonStats.results ? rec.seasonStats.results : [];
   const lastRace = results.length ? ('P' + results[results.length - 1].pos) : '—';
   const num = d.number || (rec ? rec.carNumber : '') || '';
-  const parts = (d.driver || '').split(' ');
-  const first = parts.slice(0, -1).join(' ') || '';
-  const last = parts.slice(-1)[0] || d.driver || '';
   el.innerHTML =
-    '<div class="section-head"><div class="section-head-mark"></div><div class="section-head-body"><span class="section-head-num">Overview</span><h2>Driver</h2></div></div>'
-    + '<div class="dp-hero">'
-    + (num ? '<div class="dp-hero__number">' + BTG.esc(num) + '</div>' : '')
-    + '<div class="dp-hero__photo">' + BTG.driverPhotoImg(d.driver, 80, 'dp-hero__img') + '</div>'
-    + '<div class="dp-hero__name"><span class="dp-hero__first">' + BTG.esc(first) + '</span><span class="dp-hero__last">' + BTG.esc(last) + '</span>'
-    + '<span class="dp-hero__meta">' + BTG.flagImg(d.nation, 18, 12) + ' ' + BTG.esc(d.nation || '') + '</span>'
-    + (d.team ? '<span class="dp-hero__team"><span class="dp-hero__team-dot" style="background:rgb(' + BTG.esc(d.teamColor || '220,38,38') + ')"></span>' + BTG.esc(d.team) + '</span>' : '')
-    + '</div></div>'
-    + '<div class="ov-grid" style="margin-top:16px;">'
-    + '<div class="ov-stat"><div class="k">Championship</div><div class="v">P' + BTG.esc(standing) + '</div></div>'
-    + '<div class="ov-stat"><div class="k">Season points</div><div class="v">' + BTG.esc(points) + '</div></div>'
-    + '<div class="ov-stat"><div class="k">Last race</div><div class="v">' + BTG.esc(lastRace) + '</div></div>'
+    '<div class="ov-hero">'
+    + '<div class="ov-hero__photo">' + BTG.driverPhotoImg(d.driver, 84, 'dp-hero__img') + (num ? '<div class="ov-hero__num">' + BTG.esc(num) + '</div>' : '') + '</div>'
+    + '<div><div class="ov-hero__name">' + BTG.esc(d.driver) + '</div>'
+    + '<div class="ov-hero__meta">'
+    + (d.team ? '<span class="ov-tag">' + BTG.esc(d.team) + '</span>' : '')
+    + '<span>' + BTG.flagImg(d.nation, 16, 11) + ' ' + BTG.esc(d.nation || '') + '</span>'
+    + (num ? '<span style="font-family:var(--data-face)">#' + BTG.esc(num) + '</span>' : '')
+    + '</div></div></div>'
+    + '<div class="ov-stats">'
+    + '<div class="ov-stat-card"><div class="v" style="color:var(--team-accent-hot)">' + (d.ovr != null ? d.ovr : '—') + '</div><div class="k">Overall rating</div></div>'
+    + '<div class="ov-stat-card"><div class="v">P' + BTG.esc(standing) + '</div><div class="k">Championship</div></div>'
+    + '<div class="ov-stat-card"><div class="v">' + BTG.esc(points) + '</div><div class="k">Season points</div></div>'
+    + '<div class="ov-stat-card"><div class="v">' + BTG.esc(lastRace) + '</div><div class="k">Last race</div></div>'
     + '</div>';
 }
 
@@ -1192,53 +1242,131 @@ function renderTpOverview() {
   const el = document.getElementById('overview-content');
   const tp = DASH && DASH.tp;
   if (!tp) { el.innerHTML = '<div class="muted">No team.</div>'; return; }
-  const drivers = DASH.teamDrivers || [];
+  const fin = DASH && DASH.finances;
   var pts = 0;
-  const rows = drivers.map(function (dn) {
+  const driverRows = (DASH.teamDrivers || []).map(function (dn) {
     const rec = driverSeasonRecord(dn);
     const p = (rec && rec.standings && rec.standings.pts) || 0;
     pts += p;
     const pos = rec && rec.standings && rec.standings.pos ? rec.standings.pos : '—';
-    const results = rec && rec.seasonStats && rec.seasonStats.results ? rec.seasonStats.results : [];
-    const lr = results.length ? ('P' + results[results.length - 1].pos) : '—';
-    return '<div class="sponsor-row"><span>' + BTG.esc(dn) + '</span><span class="amt">P' + pos + ' · ' + p + ' pts · last ' + lr + '</span></div>';
+    const num = rec && rec.carNumber ? rec.carNumber : '';
+    return '<tr><td><div style="display:flex;align-items:center;gap:10px;">'
+      + '<div style="width:34px;height:34px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--card-high);">' + BTG.driverPhotoImg(dn, 34, 'dp-hero__img') + '</div>'
+      + '<span class="strong">' + BTG.esc(dn) + (num ? ' <span style="color:var(--copy-faint);font-family:var(--data-face)">#' + BTG.esc(num) + '</span>' : '') + '</span>'
+      + '</div></td><td>P' + pos + '</td><td>' + p + '</td></tr>';
   }).join('');
   el.innerHTML =
-    '<div class="section-head"><div class="section-head-mark"></div><div class="section-head-body"><span class="section-head-num">Overview</span><h2>' + BTG.esc(tp.team) + '</h2></div></div>'
-    + '<div class="ov-grid">'
-    + '<div class="ov-stat"><div class="k">Team points</div><div class="v">' + pts + '</div></div>'
-    + '<div class="ov-stat"><div class="k">Championship</div><div class="v">—</div></div>'
-    + '<div class="ov-stat"><div class="k">Last race</div><div class="v">—</div></div>'
+    '<div class="ov-hero">'
+    + '<div class="ov-hero__photo" style="background:color-mix(in oklab, var(--team-accent) 22%, transparent);"><span style="font-family:var(--head-face);font-size:26px;font-weight:700;color:var(--team-accent-hot)">' + BTG.esc((tp.team || '?').charAt(0)) + '</span></div>'
+    + '<div><div class="ov-hero__name">' + BTG.esc(tp.team) + '</div><div class="ov-hero__meta"><span class="ov-tag">Team Principal</span></div></div></div>'
+    + '<div class="ov-stats">'
+    + '<div class="ov-stat-card"><div class="v">' + fmtMoney(fin ? fin.budget : 0) + '</div><div class="k">Team budget</div></div>'
+    + '<div class="ov-stat-card"><div class="v">' + fmtMoney(fin && fin.sponsors ? fin.sponsors.annual : 0) + '</div><div class="k">Sponsor income</div></div>'
+    + '<div class="ov-stat-card"><div class="v">' + pts + '</div><div class="k">Team points</div></div>'
     + '</div>'
-    + '<div class="sub-h3" style="margin-top:16px;">Drivers</div>'
-    + (rows || '<div class="muted">No drivers yet.</div>');
+    + '<div class="ov-card"><div class="ov-card-title">Drivers</div>'
+    + (driverRows ? '<table class="ov-table"><thead><tr><th>Driver</th><th>Standing</th><th>Points</th></tr></thead><tbody>' + driverRows + '</tbody></table>' : '<div class="muted">No drivers yet.</div>')
+    + '</div>';
 }
 
 /* ---------- contracts ---------- */
 function renderContracts() {
   const el = document.getElementById('contracts-content');
   const role = CURRENT_USER && CURRENT_USER.role;
-  const contracts = (DASH.contracts || []).filter(function (c) { return role === 'tp' ? (c.team === (DASH.tp && DASH.tp.team)) : true; });
+  var contracts = (DASH.contracts || []);
+  if (role === 'tp') contracts = contracts.filter(function (c) { return c.team === (DASH.tp && DASH.tp.team); });
+  else if (role === 'driver') contracts = contracts.filter(function (c) { return c.driver === (SELECTED && SELECTED.driver); });
+
   const rows = contracts.map(function (c) {
     return '<div class="sponsor-row"><span>' + BTG.esc(c.driver) + ' · ' + BTG.esc(c.team) + '</span><span class="amt">' + fmtMoney(c.salary) + ' · ' + BTG.esc(c.from || '—') + '–' + BTG.esc(c.till || '—') + '</span></div>';
   }).join('');
-  el.innerHTML = '<div class="sub-h3">Current contracts</div>'
-    + (rows || '<div class="muted">No contracts.</div>');
+
+  var html = '<div class="sub-h3">Current contracts</div>' + (rows || '<div class="muted">No contracts.</div>');
+
+  if (role === 'tp') {
+    html += '<div class="tool-card" style="margin-top:16px;"><h3>Send a contract offer</h3>'
+      + '<div class="field-row"><div class="field"><label for="c-driver">Driver</label><select id="c-driver">'
+      + ((DASH.allDrivers || []).map(function (d) { return '<option>' + BTG.esc(d) + '</option>'; }).join('') || '<option value="">No drivers</option>')
+      + '</select></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="8,000,000"></div></div>'
+      + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2026"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2028"></div></div>'
+      + '<div class="field"><label for="c-terms">Extra terms</label><input type="text" id="c-terms"></div>'
+      + '<div class="field"><label for="c-message">Message</label><input type="text" id="c-message"></div>'
+      + '<button class="action action-lead" id="c-send-btn"><span>Send offer</span></button><div class="result-line" id="c-result"></div></div>';
+  } else if (role === 'driver') {
+    html += '<div class="tool-card" style="margin-top:16px;"><h3>Initiate a contract offer</h3>'
+      + '<p class="muted" style="margin-bottom:10px;">Offer yourself to a team. Salary can be negative — a pay driver pays the team.</p>'
+      + '<div class="field-row"><div class="field"><label for="c-team">Team</label><input type="text" id="c-team" placeholder="Red Bull"></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="-2,000,000"></div></div>'
+      + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2026"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2028"></div></div>'
+      + '<div class="field"><label for="c-terms">Extra terms</label><input type="text" id="c-terms"></div>'
+      + '<div class="field"><label for="c-message">Message</label><input type="text" id="c-message"></div>'
+      + '<button class="action action-lead" id="c-send-btn"><span>Send offer</span></button><div class="result-line" id="c-result"></div></div>'
+      + '<div class="tool-card" style="margin-top:16px;"><h3>Pay for a seat</h3>'
+      + '<p class="muted" style="margin-bottom:10px;">Pay a team to take on another driver. If they accept, that driver\'s contract is 30% of your payment.</p>'
+      + '<div class="field-row"><div class="field"><label for="p-team">Team</label><input type="text" id="p-team" placeholder="Red Bull"></div><div class="field"><label for="p-target">Driver</label><input type="text" id="p-target" placeholder="Driver name"></div></div>'
+      + '<div class="field-row"><div class="field"><label for="p-amount">Amount</label><input type="text" id="p-amount" placeholder="30,000,000"></div></div>'
+      + '<div class="field"><label for="p-message">Message</label><input type="text" id="p-message"></div>'
+      + '<button class="action action-lead" id="p-send-btn"><span>Send pay-for-seat</span></button><div class="result-line" id="p-result"></div></div>';
+  }
+
+  el.innerHTML = html;
+
+  var sendBtn = document.getElementById('c-send-btn');
+  if (sendBtn) {
+    sendBtn.onclick = async function () {
+      const resultEl = document.getElementById('c-result');
+      const salary = document.getElementById('c-salary').value.trim();
+      resultEl.style.display = 'none';
+      if (role === 'tp' && !document.getElementById('c-driver').value) { showResult(resultEl, false, 'Choose a driver.'); return; }
+      if (role === 'driver' && !document.getElementById('c-team').value.trim()) { showResult(resultEl, false, 'Enter a team.'); return; }
+      if (!salary) { showResult(resultEl, false, 'Enter a salary.'); return; }
+      sendBtn.disabled = true;
+      try {
+        const payload = role === 'tp'
+          ? { username: CURRENT_USER.username, password: CURRENT_USER.password, team: DASH.tp.team, target: document.getElementById('c-driver').value, salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim() }
+          : { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team').value.trim(), salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim() };
+        const data = await callGateway(role === 'tp' ? 'sendContractOffer' : 'sendDriverOffer', payload);
+        if (data.ok) { showResult(resultEl, true, '✓ Offer sent.'); }
+        else { showResult(resultEl, false, '✗ ' + data.error); }
+      } catch (e) { showResult(resultEl, false, '✗ Could not reach the gateway script.'); }
+      finally { sendBtn.disabled = false; }
+    };
+  }
+
+  var pBtn = document.getElementById('p-send-btn');
+  if (pBtn) {
+    pBtn.onclick = async function () {
+      const resultEl = document.getElementById('p-result');
+      const team = document.getElementById('p-team').value.trim();
+      const target = document.getElementById('p-target').value.trim();
+      const amount = document.getElementById('p-amount').value.trim();
+      resultEl.style.display = 'none';
+      if (!team || !target || !amount) { showResult(resultEl, false, 'Fill in team, driver and amount.'); return; }
+      pBtn.disabled = true;
+      try {
+        const data = await callGateway('sendPayForSeat', {
+          username: CURRENT_USER.username, password: CURRENT_USER.password,
+          team: team, targetDriver: target, amount: amount, message: document.getElementById('p-message').value.trim()
+        });
+        if (data.ok) { showResult(resultEl, true, '✓ Pay-for-seat offer sent.'); }
+        else { showResult(resultEl, false, '✗ ' + data.error); }
+      } catch (e) { showResult(resultEl, false, '✗ Could not reach the gateway script.'); }
+      finally { pBtn.disabled = false; }
+    };
+  }
 }
 
 /* ---------- finances (top-right) ---------- */
 function setFinancesPill() {
   const pill = document.getElementById('finances-pill');
   const label = document.getElementById('finances-pill-label');
-  var val = null;
-  if (CURRENT_USER && CURRENT_USER.role === 'driver' && DASH && DASH.salary) val = DASH.salary.annual;
-  else if (CURRENT_USER && CURRENT_USER.role === 'tp' && DASH && DASH.tp && DASH.tp.salary) val = DASH.tp.salary.annual;
-  if (val != null) {
-    pill.classList.remove('hidden');
-    label.textContent = fmtMoney(val);
-  } else {
-    pill.classList.add('hidden');
+  var txt = null;
+  if (CURRENT_USER && CURRENT_USER.role === 'driver' && DASH && DASH.salary) {
+    txt = fmtMoney(DASH.salary.annual) + ' salary';
+  } else if (CURRENT_USER && CURRENT_USER.role === 'tp' && DASH && DASH.tp && DASH.tp.salary) {
+    txt = fmtMoney(DASH.tp.salary.annual) + ' salary · ' + fmtMoney(DASH.finances ? DASH.finances.budget : 0) + ' budget';
   }
+  if (txt) { pill.classList.remove('hidden'); label.textContent = txt; }
+  else { pill.classList.add('hidden'); }
 }
 
 function renderRoleContent(role) {
@@ -1264,7 +1392,8 @@ function onLoginSuccess(data) {
     teamDrivers: data.teamDrivers || [],
     allDrivers: data.allDrivers || [],
     contracts: data.contracts || [],
-    teamPrincipals: data.teamPrincipals || []
+    teamPrincipals: data.teamPrincipals || [],
+    finances: data.finances || null
   };
 
   if (data.role === 'admin') {
@@ -1292,7 +1421,7 @@ function onLoginSuccess(data) {
 }
 
 document.getElementById('logout-btn').addEventListener('click', () => {
-  CURRENT_USER = null; DRIVERS = []; TEAMS = []; SELECTED = null; PENDING = {}; DASH = null;
+  CURRENT_USER = null; DRIVERS = []; TEAMS = []; SELECTED = null; PENDING = {}; DASH = null; MAIL_FILTER = null;
   document.getElementById('gate-username').value = '';
   document.getElementById('gate-password').value = '';
   document.getElementById('gate-section').classList.remove('hidden');
@@ -1391,6 +1520,36 @@ document.getElementById('create-login-btn').addEventListener('click', async () =
       // The driver now has an account — remove them from the create-login list.
       DRIVERS.forEach(d => { if (d.driver === driverName) d.hasAccount = true; });
       populateAdminDropdowns();
+    } else {
+      showResult(resultEl, false, '✗ ' + data.error);
+    }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('create-tp-btn').addEventListener('click', async () => {
+  const tpName = document.getElementById('new-tp-name').value.trim();
+  const team = document.getElementById('new-tp-team').value.trim();
+  const salary = document.getElementById('new-tp-salary').value.trim();
+  const newUsername = document.getElementById('new-tp-username').value.trim();
+  const newPassword = document.getElementById('new-tp-password').value;
+  const resultEl = document.getElementById('create-tp-result');
+  const btn = document.getElementById('create-tp-btn');
+  resultEl.style.display = 'none';
+  if (!tpName || !team || !newUsername || !newPassword) { showResult(resultEl, false, 'Fill in name, team, username and password.'); return; }
+
+  btn.disabled = true;
+  try {
+    const data = await callGateway('adminCreateTpLogin', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      tpName: tpName, team: team, salary: salary, newUsername: newUsername, newPassword: newPassword
+    });
+    if (data.ok) {
+      showResult(resultEl, true, '✓ Team principal login created for ' + tpName + ' (' + newUsername + ').');
+      ['new-tp-name','new-tp-team','new-tp-salary','new-tp-username','new-tp-password'].forEach(id => document.getElementById(id).value = '');
     } else {
       showResult(resultEl, false, '✗ ' + data.error);
     }
@@ -1963,8 +2122,8 @@ function renderMailbox() {
           + (o.message ? '<div class="mail-body">' + BTG.esc(o.message) + '</div>' : '')
           + '<div class="mail-terms">' + fmtMoney(o.salary) + ' · ' + BTG.esc(o.from || '—') + '–' + BTG.esc(o.till || '—')
             + (o.terms ? ' · ' + BTG.esc(o.terms) : '')
-            + (o._status ? ' · <b>' + o._status + '</b>' : '') + '</div>'
-          + (CURRENT_USER && CURRENT_USER.role === 'driver'
+            + ((o.status || o._status) ? ' · <b>' + BTG.esc(o.status || o._status) + '</b>' : '') + '</div>'
+          + (CURRENT_USER && CURRENT_USER.role === 'driver' && o.status !== 'Denied' && o._status !== 'accepted' && o._status !== 'declined'
               ? '<div class="mail-actions">'
                 + '<button class="action action-compact" onclick="respondOffer(' + i + ', \'accept\')"><span>Accept</span></button>'
                 + '<button class="action action-compact action-quiet" onclick="respondOffer(' + i + ', \'decline\')"><span>Decline</span></button>'
@@ -1974,13 +2133,35 @@ function renderMailbox() {
           + '</div>';
       }).join('') : '<div class="muted">No contract offers.</div>');
 
-  mailEl.innerHTML = '<div class="sub-h3">Mail</div>'
-    + (mail.length ? mail.map(function (m) {
+  mailEl.innerHTML = '';
+  var mailHtml = '<div class="sub-h3">Mail</div>';
+  if (CURRENT_USER && CURRENT_USER.role === 'admin') {
+    var people = [];
+    DRIVERS.forEach(function (d) { if (d.driver) people.push(d.driver); });
+    ((DASH && DASH.teamPrincipals) || []).forEach(function (t) { if (t.name) people.push(t.name); });
+    mailHtml += '<div class="field" style="max-width:360px; margin-bottom:12px;">'
+      + '<label for="mail-person-filter">Show mail for</label>'
+      + '<select id="mail-person-filter" onchange="MAIL_FILTER=this.value;renderMailbox();"><option value="">— choose a driver or TP —</option>'
+      + people.map(function (p) { return '<option' + (MAIL_FILTER === p ? ' selected' : '') + '>' + BTG.esc(p) + '</option>'; }).join('')
+      + '</select></div>';
+    if (MAIL_FILTER) {
+      var filtered = mail.filter(function (m) { return m.from === MAIL_FILTER || m.to === MAIL_FILTER; });
+      mailHtml += filtered.length ? filtered.map(function (m) {
         return '<div class="mail-item plain">'
           + '<div class="mail-meta">' + BTG.esc(m.from) + ' → ' + BTG.esc(m.to) + '</div>'
           + '<div class="mail-body">' + BTG.esc(m.message) + '</div>'
           + '</div>';
-      }).join('') : '<div class="muted">No mail.</div>');
+      }).join('') : '<div class="muted">No mail for this person.</div>';
+    }
+  } else {
+    mailHtml += mail.length ? mail.map(function (m) {
+      return '<div class="mail-item plain">'
+        + '<div class="mail-meta">' + BTG.esc(m.from) + ' → ' + BTG.esc(m.to) + '</div>'
+        + '<div class="mail-body">' + BTG.esc(m.message) + '</div>'
+        + '</div>';
+    }).join('') : '<div class="muted">No mail.</div>';
+  }
+  mailEl.innerHTML = mailHtml;
 }
 
 function renderSalary(salary) {
@@ -1988,7 +2169,6 @@ function renderSalary(salary) {
   if (!salary) { sec.classList.add('hidden'); return; }
   sec.classList.remove('hidden');
   document.getElementById('salary-annual').textContent = fmtMoney(salary.annual);
-  document.getElementById('salary-preseason').textContent = fmtMoney(salary.preSeason);
   document.getElementById('salary-monthly').textContent = fmtMoney(salary.monthly);
   document.getElementById('salary-paid').textContent = fmtMoney(salary.paidToDate);
 }
