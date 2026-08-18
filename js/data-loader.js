@@ -59,9 +59,9 @@ function ensureRoster() {
   });
 }
 
-/** Newest season year seen in a store (defaults to 2026). */
+/** Newest season year seen in a store (defaults to 2024). */
 function latestYear(store) {
-  var y = 2026;
+  var y = 2024;
   Object.keys((store && store.series) || {}).forEach(function(sid) {
     Object.keys((store.series[sid] && store.series[sid].years) || {}).forEach(function(k) {
       var v = Number(k); if (v > y) y = v;
@@ -296,7 +296,7 @@ async function loadSeasonStats(store, seriesId, files) {
   if (!m || !m.seasonStatistics || !m.seasonStatistics.driverStandings) return false;
 
   // Year from seasonName ("Season 1 2024") or seasonStartDate
-  var year = 2026;
+  var year = 2024;
   var yMatch = m.season && String(m.season.seasonName).match(/(20\d{2})/);
   if (!yMatch && m.season && m.season.seasonStartDate) yMatch = String(m.season.seasonStartDate).match(/(20\d{2})/);
   if (yMatch) year = Number(yMatch[1]);
@@ -361,7 +361,7 @@ async function loadRltEvents(store, seriesId, files) {
       var res = await fetch('Data/' + encodeURIComponent(seriesId) + '/' + eventFiles[i]);
       if (!res.ok) continue;
       var m = await res.json();
-      var year = 2026;
+      var year = 2024;
       var yMatch = m.season && String(m.season.seasonName).match(/(20\d{2})/);
       if (yMatch) year = Number(yMatch[1]);
       registerSeries(store, seriesId, year);
@@ -546,7 +546,7 @@ function guessYearFromFile(store, seriesId, file) {
     var ys = Object.keys(s.years).map(Number).sort(function(a,b){return b-a;});
     if (ys.length) return ys[0];
   }
-  return 2026;
+  return 2024;
 }
 
 /** Full country name → IOC 3-letter code (for SeasonStatistics manifests). */
@@ -588,7 +588,7 @@ function argbToRgb(hex) {
 BTG.Data.buildDriverList = function(targetSeries, targetSeason, opts) {
   opts = opts || {};
   var seriesId = targetSeries || Object.keys(BTG.Data.series)[0] || 'F1';
-  var season = targetSeason || getLatestSeason(seriesId) || 2026;
+  var season = targetSeason || getLatestSeason(seriesId) || 2024;
   var list = [];
 
   // Resolve team keys / raw names to the canonical display name from the CSV
@@ -731,7 +731,7 @@ BTG.Data.getSeriesList = function() {
 
 BTG.Data.getSeasons = function(seriesId) {
   var s = BTG.Data.series[seriesId];
-  return s ? Object.keys(s.years).sort(function(a,b){return Number(b)-Number(a);}).map(Number) : [2026];
+  return s ? Object.keys(s.years).sort(function(a,b){return Number(b)-Number(a);}).map(Number) : [2024];
 };
 
 /* ── Internal ─────────────────────────────────────────────────────────────── */

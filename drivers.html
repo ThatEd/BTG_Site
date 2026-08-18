@@ -502,7 +502,7 @@ body::before {
       + '</div>'
       + '<div class="dp-hero__info">'
       + '<div class="dp-hero__name"><span class="dp-hero__first">'+(nameParts.slice(0,-1).join(' ')||'')+'</span><span class="dp-hero__last">'+(nameParts.slice(-1)[0]||'')+'</span></div>'
-      + '<div class="dp-hero__meta">'+BTG.esc(d.nation||'')+'</div>'
+      + '<div class="dp-hero__meta">'+BTG.esc(d.nation||'')+(d.carNumber ? '<span class="dp-hero__sep">·</span>#'+BTG.esc(d.carNumber) : '')+'</div>'
       + '<div class="dp-hero__team" style="color:rgb('+color+')">'
       + BTG.entryLogoImg(d.team, d.car, d.series || activeSeries, 18)
       + '<span>'+BTG.esc(BTG.entryLabel(d.team, d.car))+'</span>'

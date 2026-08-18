@@ -797,7 +797,7 @@ function loadTeamsFromRoster() {
 }
 
 function loadDriversFromRoster() {
-  const norm = d => ({ id: d.id || d.name, name: d.name, number: '', teamKey: d.team });
+  const norm = d => ({ id: d.id || d.name, name: d.name, number: d.number || '', teamKey: d.team });
   ALL_DB_DRIVERS = (BTG.Roster.drivers || []).map(norm);
   CURRENT_F1_DRIVERS = (BTG.Roster.drivers || [])
     .filter(d => d.series === 'F1')

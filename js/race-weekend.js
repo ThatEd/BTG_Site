@@ -178,7 +178,7 @@ window.BTG = window.BTG || {};
       state.seriesList = BTG.Data.getSeriesList();
       state.activeSeries = state.seriesList[0] ? state.seriesList[0].id : 'F1';
       state.seasons = BTG.Data.getSeasons(state.activeSeries);
-      state.activeSeason = state.seasons[0] || 2026;
+      state.activeSeason = state.seasons[0] || 2024;
       render(); // render shell + selector immediately (keeps selector visible)
       loadRaces();
     }).catch(function() {
@@ -193,7 +193,7 @@ window.BTG = window.BTG || {};
         state.activeSeries = state.seriesList[0].id;
       }
       state.seasons = BTG.Data.getSeasons(state.activeSeries);
-      if (state.seasons.indexOf(state.activeSeason) === -1) state.activeSeason = state.seasons[0] || 2026;
+      if (state.seasons.indexOf(state.activeSeason) === -1) state.activeSeason = state.seasons[0] || 2024;
       loadRaces();
     });
   }
@@ -1392,7 +1392,7 @@ window.BTG = window.BTG || {};
       if (id === state.activeSeries) return;
       state.activeSeries = id;
       state.seasons = BTG.Data.getSeasons(id);
-      state.activeSeason = state.seasons[0] || 2026;
+      state.activeSeason = state.seasons[0] || 2024;
       state.selectedRaceId = null;
       state.selectedRace = null;
       state.activeTab = 'race';

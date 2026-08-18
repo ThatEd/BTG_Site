@@ -194,6 +194,7 @@
         nation: nation,
         team: team,
         normalName: cell(r, h.hdr, 'Normal Name'),
+        number: cell(r, h.hdr, 'Driver Number'),
         affiliation: cell(r, h.hdr, 'Affiliation'),
         ovr: numCell(r, h.hdr, 'OVR'),
         targetOvr: numCell(r, h.hdr, 'Target OVR'),
@@ -261,7 +262,7 @@
     // Track the fullest known name for the drivers tab (e.g. "Theo Rafael Amaro").
     if (src.fullName && src.fullName.length > (target.fullName || '').length) target.fullName = src.fullName;
     target.nameKey = target.nameKey || src.nameKey;
-    ['id', 'nation', 'team', 'normalName', 'affiliation', 'ovr', 'targetOvr', 'aggression'].forEach(function (k) {
+    ['id', 'nation', 'team', 'normalName', 'number', 'affiliation', 'ovr', 'targetOvr', 'aggression'].forEach(function (k) {
       if (src[k] && !target[k]) target[k] = src[k];
     });
     if (src.skills && Object.keys(src.skills).length) {
@@ -514,6 +515,7 @@
       var sr = drv.seasons[d.series][year];
       if (!sr.nation) sr.nation = d.nation;
       if (!sr.latestTeam) sr.latestTeam = d.team;
+      if (!sr.carNumber && d.number) sr.carNumber = d.number;
       var t = st.teamByKey[d.team];
       if (!sr.teamColor && t && t.colorRgb) sr.teamColor = t.colorRgb;
       drv.roster = d;
