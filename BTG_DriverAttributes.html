@@ -254,6 +254,79 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 .ov-table td{padding:10px 12px; border-bottom:1px solid var(--edge); color:var(--copy-soft);}
 .ov-table tr:hover td{background:var(--card-high); color:var(--copy);}
 .ov-table .strong{color:var(--copy); font-weight:600;}
+
+/* ════════ Concept-style: sidebar nav ════════ */
+.dash-side{background:var(--card); border:1px solid var(--edge); border-radius:12px; padding:10px 8px;}
+.dash-nav{display:flex; flex-direction:column; gap:2px; border:none; background:transparent;}
+.dash-nav button{display:flex; align-items:center; gap:11px; width:100%; text-align:left; font-family:var(--head-face); font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--copy-faint); background:none; border:none; border-left:3px solid transparent; padding:10px 12px; cursor:pointer; transition:.15s ease; border-radius:0 8px 8px 0;}
+.dash-nav button:hover{color:var(--copy); background:var(--card-high);}
+.dash-nav button.active{color:var(--copy); border-left-color:var(--team-accent); background:var(--card-high);}
+.dash-nav button .nav-ico{width:19px; height:19px; flex-shrink:0; opacity:.6; color:currentColor;}
+.dash-nav button.active .nav-ico{opacity:1;}
+.dash-nav button .nav-badge{margin-left:auto; background:var(--team-accent); color:#fff; font-family:var(--data-face); font-size:11px; font-weight:600; line-height:1; padding:4px 8px; border-radius:100px;}
+
+/* ════════ Concept-style: centered login card ════════ */
+.gate-wrap{display:flex; align-items:center; justify-content:center; padding:48px 8px;}
+.login-card{width:100%; max-width:420px; background:var(--card); border:1px solid var(--edge); border-radius:12px; padding:32px; box-shadow:0 8px 32px rgba(0,0,0,.4);}
+.login-brand{display:flex; align-items:center; gap:12px; margin-bottom:8px;}
+.login-mark{width:8px; height:28px; background:var(--team-accent); transform:skewX(-14deg); border-radius:2px;}
+.login-title{font-family:var(--head-face); font-weight:700; font-size:20px; letter-spacing:.02em; text-transform:uppercase; color:var(--copy);}
+.login-sub{color:var(--copy-faint); font-size:13px; margin-bottom:24px;}
+.login-card .field{margin-bottom:16px;}
+.login-card .btn-login{width:100%; justify-content:center;}
+
+/* ════════ Concept-style: 3-pane mailbox ════════ */
+.mail-app{display:grid; grid-template-columns:170px 300px 1fr; border:1px solid var(--edge); border-radius:12px; overflow:hidden; min-height:560px; background:var(--card);}
+.mail-folders{background:var(--card-high); border-right:1px solid var(--edge); padding:12px 10px; display:flex; flex-direction:column; gap:2px;}
+.folder{display:flex; align-items:center; justify-content:space-between; padding:9px 11px; border-radius:6px; font-family:var(--head-face); font-size:12.5px; font-weight:600; color:var(--copy-faint); cursor:pointer; transition:.15s; text-transform:uppercase; letter-spacing:.06em;}
+.folder:hover{background:var(--card); color:var(--copy);}
+.folder.active{background:var(--card); color:var(--copy); border-left:3px solid var(--team-accent); padding-left:8px;}
+.folder-count{font-family:var(--data-face); font-size:11px; padding:2px 7px; border-radius:100px; background:var(--card); color:var(--copy-faint);}
+.folder.active .folder-count{background:var(--team-accent); color:#fff;}
+.mail-list{border-right:1px solid var(--edge); overflow-y:auto; background:var(--card);}
+.mail-list-head{padding:12px 14px; border-bottom:1px solid var(--edge); font-family:var(--data-face); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--copy-faint); position:sticky; top:0; background:var(--card); z-index:2;}
+.mail-row{padding:13px 14px; border-bottom:1px solid var(--edge); cursor:pointer; transition:.15s;}
+.mail-row:hover{background:var(--card-high);}
+.mail-row.active{background:color-mix(in oklab, var(--team-accent) 7%, transparent); border-left:3px solid var(--team-accent); padding-left:11px;}
+.mail-row-top{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:3px;}
+.mail-sender{font-weight:600; font-size:13px; color:var(--copy); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.mail-date{font-family:var(--data-face); font-size:11px; color:var(--copy-faint); white-space:nowrap;}
+.mail-subj{font-size:13px; color:var(--copy-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.mail-body{font-size:12px; color:var(--copy-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.mail-read{padding:24px; overflow-y:auto;}
+.read-subj{font-family:var(--head-face); font-size:17px; font-weight:700; margin-bottom:10px; line-height:1.3; color:var(--copy);}
+.read-meta{display:flex; align-items:center; gap:12px; margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid var(--edge);}
+.read-avatar{width:36px; height:36px; border-radius:50%; background:var(--card-high); border:1px solid var(--edge); display:flex; align-items:center; justify-content:center; font-family:var(--head-face); font-size:14px; font-weight:700; color:var(--copy-soft); flex-shrink:0;}
+.read-body{font-size:14px; line-height:1.7; color:var(--copy-soft); white-space:pre-wrap;}
+.read-actions{display:flex; gap:8px; margin-top:22px; padding-top:18px; border-top:1px solid var(--edge);}
+.mail-empty{padding:40px; text-align:center; color:var(--copy-faint);}
+@media (max-width:900px){ .mail-app{grid-template-columns:1fr; min-height:0;} .mail-folders{flex-direction:row; overflow-x:auto; border-right:none; border-bottom:1px solid var(--edge);} .mail-list{max-height:240px; border-right:none;} }
+
+/* ════════ Concept-style: contracts + offers ════════ */
+.contract-table{width:100%; border-collapse:collapse; font-size:14px;}
+.contract-table th{text-align:left; padding:10px 12px; font-family:var(--data-face); font-size:10.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--copy-faint); border-bottom:2px solid var(--edge);}
+.contract-table td{padding:11px 12px; border-bottom:1px solid var(--edge); color:var(--copy-soft);}
+.contract-table tr:hover td{background:var(--card-high); color:var(--copy);}
+.contract-table .strong{color:var(--copy); font-weight:600;}
+.offer{background:var(--card-high); border:1px solid var(--edge); border-left:3px solid var(--team-accent); border-radius:10px; padding:16px; margin-bottom:12px;}
+.offer.warn{border-left-color:var(--brass);}
+.offer.denied{border-left-color:var(--copy-faint); opacity:.7;}
+.offer-top{display:flex; justify-content:space-between; gap:12px; margin-bottom:8px; font-size:14px;}
+.offer-top .strong{color:var(--copy); font-weight:600;}
+.offer-top .stamp{font-family:var(--data-face); font-size:11px; color:var(--copy-faint); white-space:nowrap;}
+.offer-body{font-size:13px; color:var(--copy-soft); margin-bottom:12px; white-space:pre-wrap;}
+.offer-actions{display:flex; gap:8px; flex-wrap:wrap;}
+.tag-pill{display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:6px; font-size:11.5px; font-weight:600; background:color-mix(in oklab, var(--moss) 14%, transparent); color:var(--moss); border:1px solid color-mix(in oklab, var(--moss) 30%, transparent);}
+.tag-pill.denied{background:color-mix(in oklab, var(--team-accent) 10%, transparent); color:var(--team-accent-hot); border-color:var(--team-edge);}
+.tag-pill.warn{background:color-mix(in oklab, var(--brass) 12%, transparent); color:var(--brass); border-color:color-mix(in oklab, var(--brass) 30%, transparent);}
+
+/* ════════ Concept-style: sponsors table ════════ */
+.sponsor-table{width:100%; border-collapse:collapse; font-size:14px;}
+.sponsor-table th{text-align:left; padding:10px 12px; font-family:var(--data-face); font-size:10.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--copy-faint); border-bottom:2px solid var(--edge);}
+.sponsor-table td{padding:11px 12px; border-bottom:1px solid var(--edge); color:var(--copy-soft);}
+.sponsor-table tr:hover td{background:var(--card-high); color:var(--copy);}
+.sponsor-table .amt{font-family:var(--data-face); color:var(--moss); white-space:nowrap;}
+.sponsor-table .strong{color:var(--copy); font-weight:600;}
 </style>
 </head>
 <body data-page="dashboard">
@@ -285,28 +358,25 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 
   <!-- 01 · ACCESS -->
   <section id="gate-section">
-    <div class="section-head">
-      <div class="section-head-mark"></div>
-      <div class="section-head-body">
-        <span class="section-head-num">01 — Access</span>
-        <h2>Log in</h2>
+    <div class="gate-wrap">
+      <div class="login-card">
+        <div class="login-brand">
+          <div class="login-mark"></div>
+          <div class="login-title">Be The Grid</div>
+        </div>
+        <p class="login-sub">Driver and team principal portal</p>
+        <div class="field">
+          <label for="gate-username">Username</label>
+          <input type="text" id="gate-username" placeholder="username" autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="gate-password">Password</label>
+          <input type="password" id="gate-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') document.getElementById('unlock-btn').click();">
+        </div>
+        <button class="action action-lead btn-login" id="unlock-btn"><span>Log in →</span></button>
+        <div class="error-line" id="gate-error" style="margin-top:12px;"></div>
       </div>
     </div>
-    <p class="muted" style="max-width:520px; margin-bottom:16px;">
-      Sign in to continue.
-    </p>
-    <div class="field-row" style="max-width:520px;">
-      <div class="field">
-        <label for="gate-username">Username</label>
-        <input type="text" id="gate-username" placeholder="username" autocomplete="username">
-      </div>
-      <div class="field">
-        <label for="gate-password">Password</label>
-        <input type="password" id="gate-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') document.getElementById('unlock-btn').click();">
-      </div>
-      <button class="action action-lead" id="unlock-btn"><span>Log in →</span></button>
-    </div>
-    <div class="error-line" id="gate-error" style="margin-top:10px;"></div>
   </section>
 
   <!-- 02 · ADMIN TOOLS (admin role only) -->
@@ -475,22 +545,11 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     <div id="mailbox-mail"></div>
   </section>
 
-  <!-- 02E · SALARY -->
+  <!-- 02E · SALARY / BANK -->
   <section id="salary-section" class="hidden">
-    <div class="section-head">
-      <div class="section-head-mark"></div>
-      <div class="section-head-body">
-        <span class="section-head-num">02E — Salary</span>
-        <h2>Salary</h2>
-      </div>
-    </div>
-    <div class="surface">
-      <div class="rail"></div>
-      <div class="readouts">
-        <div class="readout"><div class="value" id="salary-annual">—</div><div class="caption">Annual salary</div></div>
-        <div class="readout"><div class="value" id="salary-monthly">—</div><div class="caption">Per month</div></div>
-        <div class="readout"><div class="value" style="color:var(--moss)" id="salary-paid">—</div><div class="caption">Paid to date</div></div>
-      </div>
+    <div class="ov-stats" style="margin-bottom:20px;">
+      <div class="ov-stat-card"><div class="v" style="color:var(--moss)" id="salary-bank">—</div><div class="k">Bank — from Finances</div></div>
+      <div class="ov-stat-card"><div class="v" id="salary-monthly">—</div><div class="k">Salary per month</div></div>
     </div>
   </section>
 
@@ -1076,10 +1135,13 @@ async function currentYear() {
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 function fmtMoney(n) {
-  if (!n) return '—';
-  if (n >= 1000000) return '$' + (n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1) + 'M';
-  if (n >= 1000) return '$' + Math.round(n / 1000) + 'K';
-  return '$' + Math.round(n);
+  if (n === null || n === undefined || n === '' || isNaN(Number(n))) return '—';
+  n = Number(n);
+  var sign = n < 0 ? '-' : '';
+  var a = Math.abs(n);
+  if (a >= 1000000) return sign + '$' + (a / 1000000).toFixed(a % 1000000 === 0 ? 0 : 1) + 'M';
+  if (a >= 1000) return sign + '$' + Math.round(a / 1000) + 'K';
+  return sign + '$' + Math.round(a);
 }
 function setMonthPill() {
   const pill = document.getElementById('month-pill');
@@ -1171,13 +1233,35 @@ const DASH_TABS = {
   ]
 };
 
+const TAB_ICONS = {
+  overview: '<path d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm10 0h6v-9h-6v9zm0-16v5h6V4h-6z"/>',
+  drivers: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  mail: '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>',
+  contracts: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+  attributes: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+  sponsors: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>',
+  partorders: '<path d="M6 9l6-6 6 6v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9z"/><path d="M10 22V12h4v10"/>',
+  season: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  account: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
+};
+
+function navBadgeCount(tabId) {
+  if (tabId !== 'mail') return null;
+  const offers = (DASH && DASH.offers) || [];
+  const open = offers.filter(function (o) { return o.status !== 'Denied' && o._status !== 'accepted' && o._status !== 'declined'; });
+  return open.length || null;
+}
+
 function buildDashSidebar(role) {
   const nav = document.getElementById('dash-nav');
   nav.innerHTML = '';
   (DASH_TABS[role] || []).forEach(function (tab) {
     const b = document.createElement('button');
-    b.textContent = tab.label;
     b.dataset.tab = tab.id;
+    const badge = navBadgeCount(tab.id);
+    b.innerHTML = '<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (TAB_ICONS[tab.id] || '') + '</svg>'
+      + '<span>' + tab.label + '</span>'
+      + (badge ? '<span class="nav-badge">' + badge + '</span>' : '');
     b.onclick = function () { showDashTab(tab.id); };
     nav.appendChild(b);
   });
@@ -1278,29 +1362,59 @@ function renderContracts() {
   else if (role === 'driver') contracts = contracts.filter(function (c) { return c.driver === (SELECTED && SELECTED.driver); });
 
   const rows = contracts.map(function (c) {
-    return '<div class="sponsor-row"><span>' + BTG.esc(c.driver) + ' · ' + BTG.esc(c.team) + '</span><span class="amt">' + fmtMoney(c.salary) + ' · ' + BTG.esc(c.from || '—') + '–' + BTG.esc(c.till || '—') + '</span></div>';
+    return '<tr><td class="strong">' + BTG.esc(c.driver) + '</td><td>' + BTG.esc(c.team) + '</td>'
+      + '<td>' + fmtMoney(c.salary) + '</td><td>' + BTG.esc(c.from || '—') + '–' + BTG.esc(c.till || '—') + '</td>'
+      + '<td><span class="tag-pill">Active</span></td></tr>';
   }).join('');
 
-  var html = '<div class="sub-h3">Current contracts</div>' + (rows || '<div class="muted">No contracts.</div>');
+  var offers = (DASH.offers || []);
+  if (role === 'tp') offers = offers.filter(function (o) { return o.team === (DASH.tp && DASH.tp.team) || o.target === (DASH.tp && DASH.tp.team); });
+  var offerHtml = '';
+  offers.forEach(function (o, i) {
+    const st = offerStatus(o);
+    const open = st !== 'Denied' && st !== 'accepted' && st !== 'declined' && st !== 'countered';
+    var actions = '';
+    if (role === 'driver' && open) {
+      actions = '<div class="offer-actions">'
+        + '<button class="action action-lead action-compact" onclick="respondOffer(' + i + ', \'accept\')"><span>Accept</span></button>'
+        + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Decline</span></button>'
+        + ((o.counter && o.counter.team) ? '' : '<button class="action action-quiet action-compact" onclick="promptCounter(' + i + ')"><span>Counter</span></button>')
+        + '</div>';
+    } else if (st) {
+      actions = '<div class="offer-actions"><span class="tag-pill ' + (st === 'accepted' ? '' : (st === 'Denied' ? 'denied' : 'warn')) + '">' + BTG.esc(st) + '</span></div>';
+    }
+    offerHtml += '<div class="offer ' + (st === 'Denied' ? 'denied' : (st && st !== 'accepted' ? 'warn' : '')) + '">'
+      + '<div class="offer-top"><span class="strong">' + BTG.esc(o.team) + ' → ' + BTG.esc(o.target) + '</span>'
+      + '<span class="stamp">' + fmtMoney(o.salary) + ' · ' + BTG.esc(o.from || '—') + '–' + BTG.esc(o.till || '—') + '</span></div>'
+      + (o.message ? '<div class="offer-body">' + BTG.esc(o.message) + '</div>' : '')
+      + actions + '</div>';
+  });
+
+  var html = '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Active contracts</div>'
+    + (rows ? '<table class="contract-table"><thead><tr><th>Driver</th><th>Team</th><th>Salary</th><th>Period</th><th>Status</th></tr></thead><tbody>' + rows + '</tbody></table>' : '<div class="muted">No contracts.</div>')
+    + '</div>'
+    + '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Pending offers</div>'
+    + (offerHtml || '<div class="muted">No pending offers.</div>')
+    + '</div>';
 
   if (role === 'tp') {
-    html += '<div class="tool-card" style="margin-top:16px;"><h3>Send a contract offer</h3>'
+    html += '<div class="ov-card"><div class="ov-card-title">Send a contract offer</div>'
       + '<div class="field-row"><div class="field"><label for="c-driver">Driver</label><select id="c-driver">'
       + ((DASH.allDrivers || []).map(function (d) { return '<option>' + BTG.esc(d) + '</option>'; }).join('') || '<option value="">No drivers</option>')
       + '</select></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="8,000,000"></div></div>'
-      + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2026"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2028"></div></div>'
+      + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div></div>'
       + '<div class="field"><label for="c-terms">Extra terms</label><input type="text" id="c-terms"></div>'
       + '<div class="field"><label for="c-message">Message</label><input type="text" id="c-message"></div>'
       + '<button class="action action-lead" id="c-send-btn"><span>Send offer</span></button><div class="result-line" id="c-result"></div></div>';
   } else if (role === 'driver') {
-    html += '<div class="tool-card" style="margin-top:16px;"><h3>Initiate a contract offer</h3>'
+    html += '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Initiate a contract offer</div>'
       + '<p class="muted" style="margin-bottom:10px;">Offer yourself to a team. Salary can be negative — a pay driver pays the team.</p>'
       + '<div class="field-row"><div class="field"><label for="c-team">Team</label><input type="text" id="c-team" placeholder="Red Bull"></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="-2,000,000"></div></div>'
-      + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2026"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2028"></div></div>'
+      + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div></div>'
       + '<div class="field"><label for="c-terms">Extra terms</label><input type="text" id="c-terms"></div>'
       + '<div class="field"><label for="c-message">Message</label><input type="text" id="c-message"></div>'
       + '<button class="action action-lead" id="c-send-btn"><span>Send offer</span></button><div class="result-line" id="c-result"></div></div>'
-      + '<div class="tool-card" style="margin-top:16px;"><h3>Pay for a seat</h3>'
+      + '<div class="ov-card"><div class="ov-card-title">Pay for a seat</div>'
       + '<p class="muted" style="margin-bottom:10px;">Pay a team to take on another driver. If they accept, that driver\'s contract is 30% of your payment.</p>'
       + '<div class="field-row"><div class="field"><label for="p-team">Team</label><input type="text" id="p-team" placeholder="Red Bull"></div><div class="field"><label for="p-target">Driver</label><input type="text" id="p-target" placeholder="Driver name"></div></div>'
       + '<div class="field-row"><div class="field"><label for="p-amount">Amount</label><input type="text" id="p-amount" placeholder="30,000,000"></div></div>'
@@ -1371,7 +1485,7 @@ function setFinancesPill() {
 
 function renderRoleContent(role) {
   renderMailbox();
-  if (role === 'driver') { renderDriverOverview(); renderSalary(DASH.salary); }
+  if (role === 'driver') { renderDriverOverview(); renderSalary(DASH.salary, DASH.bank); renderContracts(); }
   else if (role === 'tp') { renderTpOverview(); renderContracts(); renderSponsors(DASH.sponsors); }
   else { renderContracts(); renderSponsors(DASH.sponsors); }
 }
@@ -1385,6 +1499,7 @@ function onLoginSuccess(data) {
   DASH = {
     month: data.month || 1,
     salary: data.salary || null,
+    bank: data.bank || 0,
     offers: data.offers || [],
     mail: data.mail || [],
     sponsors: data.sponsors || [],
@@ -2107,70 +2222,128 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
 
 /* ════════════════ DASHBOARD — mailbox / salary / sponsors / TP / month ════════════════ */
 
+var MAIL_FOLDER = 'offers';
+var MAIL_SEL = {};
+
+function offerStatus(o) { return o.status || o._status || ''; }
+
 function renderMailbox() {
-  const offersEl = document.getElementById('mailbox-offers');
+  const root = document.getElementById('mailbox-offers');
   const mailEl = document.getElementById('mailbox-mail');
+  mailEl.innerHTML = '';
   const offers = (DASH && DASH.offers) || [];
   const mail = (DASH && DASH.mail) || [];
+  const role = CURRENT_USER && CURRENT_USER.role;
 
-  offersEl.innerHTML = '<div class="sub-h3">Contract offers</div>'
-    + (offers.length ? offers.map(function (o, i) {
-        const hasCounter = o.counter && o.counter.team;
-        return '<div class="mail-item">'
-          + '<div class="mail-meta">' + BTG.esc(o.team) + ' → ' + BTG.esc(o.target)
-            + (hasCounter ? ' · counter: ' + BTG.esc(o.counter.team) : '') + '</div>'
-          + (o.message ? '<div class="mail-body">' + BTG.esc(o.message) + '</div>' : '')
-          + '<div class="mail-terms">' + fmtMoney(o.salary) + ' · ' + BTG.esc(o.from || '—') + '–' + BTG.esc(o.till || '—')
-            + (o.terms ? ' · ' + BTG.esc(o.terms) : '')
-            + ((o.status || o._status) ? ' · <b>' + BTG.esc(o.status || o._status) + '</b>' : '') + '</div>'
-          + (CURRENT_USER && CURRENT_USER.role === 'driver' && o.status !== 'Denied' && o._status !== 'accepted' && o._status !== 'declined'
-              ? '<div class="mail-actions">'
-                + '<button class="action action-compact" onclick="respondOffer(' + i + ', \'accept\')"><span>Accept</span></button>'
-                + '<button class="action action-compact action-quiet" onclick="respondOffer(' + i + ', \'decline\')"><span>Decline</span></button>'
-                + (hasCounter ? '' : '<button class="action action-compact action-quiet" onclick="promptCounter(' + i + ')"><span>Counter</span></button>')
-                + '</div>'
-              : '')
-          + '</div>';
-      }).join('') : '<div class="muted">No contract offers.</div>');
+  const offerItems = offers.map(function (o, i) {
+    const st = offerStatus(o);
+    const open = st !== 'Denied' && st !== 'accepted' && st !== 'declined' && st !== 'countered';
+    var body = (o.message ? o.message + '\n\n' : '')
+      + 'Salary: ' + fmtMoney(o.salary)
+      + '\nPeriod: ' + (o.from || '—') + '–' + (o.till || '—')
+      + (o.terms ? '\nTerms: ' + o.terms : '')
+      + (o.counter && o.counter.team ? '\nYour counter: ' + fmtMoney(o.counter.salary) + ' with ' + o.counter.team : '');
+    return {
+      idx: i, kind: 'offer', open: open, status: st,
+      hasCounter: !!(o.counter && o.counter.team),
+      from: o.team || '?', to: o.target || '?',
+      subject: 'Contract offer — ' + fmtMoney(o.salary),
+      body: body
+    };
+  });
 
-  mailEl.innerHTML = '';
-  var mailHtml = '<div class="sub-h3">Mail</div>';
-  if (CURRENT_USER && CURRENT_USER.role === 'admin') {
+  var mailList = mail;
+  if (role === 'admin' && MAIL_FILTER) {
+    mailList = mail.filter(function (m) { return m.from === MAIL_FILTER || m.to === MAIL_FILTER; });
+  }
+  const mailItems = mailList.map(function (m) {
+    return {
+      kind: 'mail', from: m.from || '?', to: m.to || '?',
+      subject: ((m.message || '').split('\n')[0] || '(no subject)').slice(0, 64),
+      body: m.message || '', status: ''
+    };
+  });
+
+  const folders = [
+    { id: 'offers', label: 'Offers', count: offerItems.filter(function (o) { return o.open; }).length },
+    { id: 'mail', label: 'Mail', count: mailItems.length }
+  ];
+  if (MAIL_FOLDER !== 'mail') MAIL_FOLDER = 'offers';
+
+  const items = MAIL_FOLDER === 'mail' ? mailItems : offerItems;
+  if (MAIL_SEL[MAIL_FOLDER] == null || MAIL_SEL[MAIL_FOLDER] >= items.length) MAIL_SEL[MAIL_FOLDER] = items.length ? 0 : -1;
+  const sel = MAIL_SEL[MAIL_FOLDER] >= 0 ? items[MAIL_SEL[MAIL_FOLDER]] : null;
+
+  var html = '<div class="mail-app">';
+
+  html += '<div class="mail-folders">';
+  folders.forEach(function (f) {
+    html += '<div class="folder ' + (f.id === MAIL_FOLDER ? 'active' : '') + '" onclick="setMailFolder(\'' + f.id + '\')"><span>' + f.label + '</span>'
+      + (f.count > 0 ? '<span class="folder-count">' + f.count + '</span>' : '') + '</div>';
+  });
+  if (role === 'admin') {
     var people = [];
     DRIVERS.forEach(function (d) { if (d.driver) people.push(d.driver); });
     ((DASH && DASH.teamPrincipals) || []).forEach(function (t) { if (t.name) people.push(t.name); });
-    mailHtml += '<div class="field" style="max-width:360px; margin-bottom:12px;">'
+    html += '<div class="field" style="margin-top:12px;padding:0 4px;">'
       + '<label for="mail-person-filter">Show mail for</label>'
-      + '<select id="mail-person-filter" onchange="MAIL_FILTER=this.value;renderMailbox();"><option value="">— choose a driver or TP —</option>'
+      + '<select id="mail-person-filter" onchange="MAIL_FILTER=this.value;renderMailbox();"><option value="">— everyone —</option>'
       + people.map(function (p) { return '<option' + (MAIL_FILTER === p ? ' selected' : '') + '>' + BTG.esc(p) + '</option>'; }).join('')
       + '</select></div>';
-    if (MAIL_FILTER) {
-      var filtered = mail.filter(function (m) { return m.from === MAIL_FILTER || m.to === MAIL_FILTER; });
-      mailHtml += filtered.length ? filtered.map(function (m) {
-        return '<div class="mail-item plain">'
-          + '<div class="mail-meta">' + BTG.esc(m.from) + ' → ' + BTG.esc(m.to) + '</div>'
-          + '<div class="mail-body">' + BTG.esc(m.message) + '</div>'
+  }
+  html += '</div>';
+
+  html += '<div class="mail-list"><div class="mail-list-head">' + (MAIL_FOLDER === 'mail' ? 'Mail' : 'Contract offers') + '</div>';
+  if (!items.length) html += '<div class="mail-empty">' + (MAIL_FOLDER === 'mail' ? 'No mail.' : 'No contract offers.') + '</div>';
+  items.forEach(function (it, i) {
+    html += '<div class="mail-row ' + (i === MAIL_SEL[MAIL_FOLDER] ? 'active' : '') + '" onclick="selectMailItem(' + i + ')">'
+      + '<div class="mail-row-top"><span class="mail-sender">' + BTG.esc(it.from) + (it.kind === 'offer' ? ' → ' + BTG.esc(it.to) : '') + '</span>'
+      + (it.status ? '<span class="mail-date">' + BTG.esc(it.status) + '</span>' : '') + '</div>'
+      + '<div class="mail-subj">' + BTG.esc(it.subject) + '</div>'
+      + '<div class="mail-body">' + BTG.esc((it.body || '').slice(0, 80)) + '</div>'
+      + '</div>';
+  });
+  html += '</div>';
+
+  html += '<div class="mail-read">';
+  if (sel) {
+    html += '<div class="read-subj">' + BTG.esc(sel.subject) + '</div>'
+      + '<div class="read-meta"><div class="read-avatar">' + BTG.esc((sel.from || '?').charAt(0)) + '</div>'
+      + '<div><div style="font-weight:600;color:var(--copy)">' + BTG.esc(sel.from) + ' → ' + BTG.esc(sel.to) + '</div>'
+      + '<div style="font-size:12px;color:var(--copy-faint)">' + (sel.kind === 'offer' ? 'Contract offer' : 'Message') + '</div></div></div>'
+      + '<div class="read-body">' + BTG.esc(sel.body) + '</div>';
+    if (sel.kind === 'offer') {
+      if (role === 'driver' && sel.open) {
+        html += '<div class="read-actions">'
+          + '<button class="action action-lead action-compact" onclick="respondOffer(' + sel.idx + ', \'accept\')"><span>Accept</span></button>'
+          + '<button class="action action-quiet action-compact" onclick="respondOffer(' + sel.idx + ', \'decline\')"><span>Decline</span></button>'
+          + (sel.hasCounter ? '' : '<button class="action action-quiet action-compact" onclick="promptCounter(' + sel.idx + ')"><span>Counter</span></button>')
           + '</div>';
-      }).join('') : '<div class="muted">No mail for this person.</div>';
+      } else if (sel.status === 'Denied') {
+        html += '<div class="read-actions"><span class="tag-pill denied">Denied — auto-deny rule</span></div>';
+      } else if (sel.status) {
+        html += '<div class="read-actions"><span class="tag-pill ' + (sel.status === 'accepted' ? '' : 'warn') + '">' + BTG.esc(sel.status) + '</span></div>';
+      }
     }
   } else {
-    mailHtml += mail.length ? mail.map(function (m) {
-      return '<div class="mail-item plain">'
-        + '<div class="mail-meta">' + BTG.esc(m.from) + ' → ' + BTG.esc(m.to) + '</div>'
-        + '<div class="mail-body">' + BTG.esc(m.message) + '</div>'
-        + '</div>';
-    }).join('') : '<div class="muted">No mail.</div>';
+    html += '<div class="mail-empty">Select a message.</div>';
   }
-  mailEl.innerHTML = mailHtml;
+  html += '</div>';
+
+  html += '</div>';
+  root.innerHTML = html;
 }
 
-function renderSalary(salary) {
+function setMailFolder(f) { MAIL_FOLDER = f; MAIL_SEL[f] = MAIL_SEL[f] || 0; renderMailbox(); }
+function selectMailItem(i) { MAIL_SEL[MAIL_FOLDER] = i; renderMailbox(); }
+
+function renderSalary(salary, bank) {
   const sec = document.getElementById('salary-section');
-  if (!salary) { sec.classList.add('hidden'); return; }
-  sec.classList.remove('hidden');
-  document.getElementById('salary-annual').textContent = fmtMoney(salary.annual);
-  document.getElementById('salary-monthly').textContent = fmtMoney(salary.monthly);
-  document.getElementById('salary-paid').textContent = fmtMoney(salary.paidToDate);
+  if (sec) sec.classList.remove('hidden');
+  const bankEl = document.getElementById('salary-bank');
+  const monthlyEl = document.getElementById('salary-monthly');
+  if (bankEl) bankEl.textContent = fmtMoney(bank);
+  if (monthlyEl) monthlyEl.textContent = salary && salary.monthly != null ? fmtMoney(salary.monthly) + ' / mo' : '—';
 }
 
 function renderSponsors(sponsors) {
@@ -2182,7 +2355,7 @@ function renderSponsors(sponsors) {
 
   var html = '';
   if (role === 'admin') {
-    html += '<div class="tool-card" style="margin-bottom:16px;"><h3>Assign sponsor</h3>'
+    html += '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Assign sponsor</div>'
       + '<div class="field-row">'
       + '<div class="field"><label for="sp-sponsor">Sponsor</label><input type="text" id="sp-sponsor" placeholder="e.g. Oracle"></div>'
       + '<div class="field"><label for="sp-amount">Amount (USD M)</label><input type="text" id="sp-amount" placeholder="30"></div>'
@@ -2195,16 +2368,17 @@ function renderSponsors(sponsors) {
       + '<div class="result-line" id="sp-result"></div></div>';
   }
 
-  var grouped = {};
-  list.forEach(function (s) { var k = s.team || '—'; if (!grouped[k]) grouped[k] = []; grouped[k].push(s); });
-  Object.keys(grouped).forEach(function (team) {
-    var next = grouped[team][0] && grouped[team][0].season === 'next';
-    html += '<div class="sub-h3">' + BTG.esc(team) + (next ? ' · next season' : '') + '</div>';
-    html += grouped[team].map(function (s) {
-      return '<div class="sponsor-row"><span>' + BTG.esc(s.sponsor) + '</span><span class="amt">' + fmtMoney(s.amount * 1000000) + '</span></div>';
-    }).join('');
-  });
-  document.getElementById('sponsors-list').innerHTML = html || '<div class="muted">No sponsors.</div>';
+  var rows = list.map(function (s) {
+    return '<tr><td class="strong">' + BTG.esc(s.team || '—') + '</td><td>' + BTG.esc(s.sponsor) + '</td>'
+      + '<td class="amt">' + fmtMoney(s.amount * 1000000) + '</td>'
+      + '<td>' + (s.season === 'next' ? '<span class="tag-pill warn">Next season</span>' : '<span class="tag-pill">Active</span>') + '</td></tr>';
+  }).join('');
+
+  html += '<div class="ov-card"><div class="ov-card-title">Sponsors</div>'
+    + (rows ? '<table class="sponsor-table"><thead><tr><th>Team</th><th>Sponsor</th><th>Amount</th><th>Season</th></tr></thead><tbody>' + rows + '</tbody></table>' : '<div class="muted">No sponsors.</div>')
+    + '</div>';
+
+  document.getElementById('sponsors-list').innerHTML = html;
 
   var btn = document.getElementById('sp-assign-btn');
   if (btn) {
