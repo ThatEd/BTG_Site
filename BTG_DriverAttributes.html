@@ -360,6 +360,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     <div class="masthead-right">
       <div id="finances-pill" class="status-pill hidden" style="color:var(--moss);border-color:color-mix(in oklab, var(--moss) 40%, var(--edge));"><span class="mark"></span><span id="finances-pill-label">—</span></div>
       <div id="month-pill" class="status-pill hidden" style="color:var(--copy-soft);border-color:var(--edge);"><span class="mark"></span><span id="month-pill-label">—</span></div>
+      <button class="logout-link hidden" id="refresh-btn">Refresh</button>
       <button class="logout-link hidden" id="logout-btn">Log out</button>
       <div id="status-pill" class="status-pill locked"><span class="mark"></span><span id="status-pill-label">Locked</span></div>
     </div>
@@ -405,8 +406,8 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     </div>
 
     <div class="tool-card">
-      <h3>Create a new driver</h3>
-      <p class="muted" style="margin-bottom:12px;">New drivers start at 70 in every rating, with 0 upgrade points.</p>
+      <h3>Create driver</h3>
+      <p class="muted" style="margin-bottom:12px;">New drivers start at 70 in every rating, with 0 upgrade points. Add a login in the same step.</p>
       <div class="field-row">
         <div class="field">
           <label for="new-driver-name">Driver name</label>
@@ -418,17 +419,27 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
           <datalist id="nation-list"></datalist>
         </div>
         <div id="nation-preview" style="display:flex; align-items:center; gap:8px; min-width:60px; padding-top:6px;"></div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="new-driver-username">Username</label>
+          <input type="text" id="new-driver-username" placeholder="username" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="new-driver-password">Password</label>
+          <input type="text" id="new-driver-password" placeholder="password" autocomplete="off">
+        </div>
         <button class="action action-compact" id="create-driver-btn"><span>Create Driver</span></button>
       </div>
       <div class="result-line" id="create-driver-result"></div>
     </div>
 
     <div class="tool-card">
-      <h3>Create a driver login</h3>
+      <h3>Create login</h3>
       <div class="field-row">
         <div class="field">
-          <label for="login-driver-select">Driver</label>
-          <select id="login-driver-select"><option value="">— choose a driver —</option></select>
+          <label for="login-driver-select">Person</label>
+          <select id="login-driver-select"><option value="">— choose a person —</option></select>
         </div>
         <div class="field">
           <label for="new-login-username">Username</label>
@@ -444,7 +455,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     </div>
 
     <div class="tool-card">
-      <h3>Create a team principal login</h3>
+      <h3>Create team principal</h3>
       <div class="field-row">
         <div class="field">
           <label for="new-tp-name">Name</label>
@@ -453,10 +464,6 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
         <div class="field">
           <label for="new-tp-team">Team</label>
           <input type="text" id="new-tp-team" placeholder="e.g. Williams" autocomplete="off">
-        </div>
-        <div class="field">
-          <label for="new-tp-salary">Salary</label>
-          <input type="text" id="new-tp-salary" placeholder="e.g. 1,500,000" autocomplete="off">
         </div>
       </div>
       <div class="field-row">
@@ -536,7 +543,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
       <h3>Send mail</h3>
       <div class="field">
         <label for="tp-mail-to">To</label>
-        <input type="text" id="tp-mail-to" placeholder="driver name, team, or username">
+        <select id="tp-mail-to"></select>
       </div>
       <div class="field">
         <label for="tp-mail-message">Message</label>
@@ -885,7 +892,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     <div class="modal-body">
       <div class="field">
         <label for="compose-to">To</label>
-        <input type="text" id="compose-to" placeholder="Driver, team principal, or username">
+        <select id="compose-to"></select>
       </div>
       <div class="field">
         <label for="compose-body">Message</label>
@@ -1135,6 +1142,14 @@ function setTeamColors(teamColor, teamColor2) {
   root.style.setProperty('--team-accent-hot', 'rgb(' + brightR + ',' + brightG + ',' + brightB + ')');
   root.style.setProperty('--team-accent-on', '#fff');
 
+  // Secondary accent from Color 2 — used alongside the primary so both team
+  // colors show nearly equally. Contrast-aware text color for on-accent2.
+  root.style.setProperty('--team-accent2', 'rgb(' + r2 + ',' + g2 + ',' + b2 + ')');
+  var lum2 = 0.299 * r2 + 0.587 * g2 + 0.114 * b2;
+  root.style.setProperty('--team-accent2-on', lum2 > 160 ? '#1a1a1a' : '#ffffff');
+  root.style.setProperty('--team-edge2', 'rgba(' + r2 + ',' + g2 + ',' + b2 + ',0.35)');
+  root.style.setProperty('--team-surface2', 'rgba(' + r2 + ',' + g2 + ',' + b2 + ',0.10)');
+
   // Surface: very dim background (~8% opacity equivalent blended over --card)
   root.style.setProperty('--team-surface', 'rgba(' + r + ',' + g + ',' + b + ',0.08)');
   // Edge: dim border (~30% opacity)
@@ -1284,6 +1299,7 @@ const TAB_ICONS = {
 
 function navBadgeCount(tabId) {
   if (tabId !== 'mail') return null;
+  if (CURRENT_USER && CURRENT_USER.role === 'admin') return null; // admins aren't pinged about others' mail
   const offers = (DASH && DASH.offers) || [];
   const open = offers.filter(function (o) { return o.status !== 'Denied' && o._status !== 'accepted' && o._status !== 'declined'; });
   return open.length || null;
@@ -1391,6 +1407,42 @@ function renderTpOverview() {
 }
 
 /* ---------- contracts ---------- */
+
+/* Roster-backed option lists so contract forms auto-fill from the data. */
+function contractTeamOptions(selected) {
+  var opts = '<option value="">— choose a team —</option>';
+  try {
+    if (window.BTG && BTG.Roster && BTG.Roster.teamsFor) {
+      ['F1', 'F2'].forEach(function (sid) {
+        (BTG.Roster.teamsFor(sid) || []).forEach(function (t) {
+          var key = t.key || t.name || '';
+          var label = t.name || key;
+          if (!key) return;
+          opts += '<option value="' + BTG.esc(key) + '"' + (selected === key ? ' selected' : '') + '>' + BTG.esc(label) + '</option>';
+        });
+      });
+    }
+  } catch (e) {}
+  return opts;
+}
+
+function contractDriverOptions(selected, excludeName) {
+  var opts = '<option value="">— choose a driver —</option>';
+  var seen = {};
+  try {
+    if (window.BTG && BTG.Roster && BTG.Roster.drivers) {
+      (BTG.Roster.drivers || []).forEach(function (d) {
+        var n = d.name || d.fullName || '';
+        if (!n || seen[n]) return;
+        if (excludeName && String(n).toLowerCase() === String(excludeName).toLowerCase()) return;
+        seen[n] = true;
+        opts += '<option value="' + BTG.esc(n) + '"' + (selected === n ? ' selected' : '') + '>' + BTG.esc(n) + '</option>';
+      });
+    }
+  } catch (e) {}
+  return opts;
+}
+
 function renderContracts() {
   const el = document.getElementById('contracts-content');
   const role = CURRENT_USER && CURRENT_USER.role;
@@ -1409,22 +1461,13 @@ function renderContracts() {
   var offerHtml = '';
   offers.forEach(function (o, i) {
     const st = offerStatus(o);
-    const open = st !== 'Denied' && st !== 'accepted' && st !== 'declined' && st !== 'countered';
-    var actions = '';
-    if (role === 'driver' && open) {
-      actions = '<div class="offer-actions">'
-        + '<button class="action action-lead action-compact" onclick="respondOffer(' + i + ', \'accept\')"><span>Accept</span></button>'
-        + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Decline</span></button>'
-        + ((o.counter && o.counter.team) ? '' : '<button class="action action-quiet action-compact" onclick="promptCounter(' + i + ')"><span>Counter</span></button>')
-        + '</div>';
-    } else if (st) {
-      actions = '<div class="offer-actions"><span class="tag-pill ' + (st === 'accepted' ? '' : (st === 'Denied' ? 'denied' : 'warn')) + '">' + BTG.esc(st) + '</span></div>';
-    }
-    offerHtml += '<div class="offer ' + (st === 'Denied' ? 'denied' : (st && st !== 'accepted' ? 'warn' : '')) + '">'
+    const offerClass = st === 'Rejected' ? 'denied' : (st === 'On Hold' ? 'warn' : '');
+    offerHtml += '<div class="offer ' + offerClass + '">'
       + '<div class="offer-top"><span class="strong">' + BTG.esc(o.team) + ' → ' + BTG.esc(o.target) + '</span>'
       + '<span class="stamp">' + fmtMoney(o.salary) + ' · ' + BTG.esc(o.from || '—') + '–' + BTG.esc(o.till || '—') + '</span></div>'
       + (o.message ? '<div class="offer-body">' + BTG.esc(o.message) + '</div>' : '')
-      + actions + '</div>';
+      + offerActionsHtml(o, i, role)
+      + '</div>';
   });
 
   var html = '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Active contracts</div>'
@@ -1437,7 +1480,9 @@ function renderContracts() {
   if (role === 'tp') {
     html += '<div class="ov-card"><div class="ov-card-title">Send a contract offer</div>'
       + '<div class="field-row"><div class="field"><label for="c-driver">Driver</label><select id="c-driver">'
-      + ((DASH.allDrivers || []).map(function (d) { return '<option>' + BTG.esc(d) + '</option>'; }).join('') || '<option value="">No drivers</option>')
+      + ((DASH.allDrivers && DASH.allDrivers.length)
+          ? '<option value="">— choose a driver —</option>' + DASH.allDrivers.map(function (d) { return '<option>' + BTG.esc(d) + '</option>'; }).join('')
+          : contractDriverOptions(''))
       + '</select></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="8,000,000"></div></div>'
       + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div></div>'
       + '<div class="field"><label for="c-terms">Extra terms</label><input type="text" id="c-terms"></div>'
@@ -1446,14 +1491,14 @@ function renderContracts() {
   } else if (role === 'driver') {
     html += '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Initiate a contract offer</div>'
       + '<p class="muted" style="margin-bottom:10px;">Offer yourself to a team. Salary can be negative — a pay driver pays the team.</p>'
-      + '<div class="field-row"><div class="field"><label for="c-team">Team</label><input type="text" id="c-team" placeholder="Red Bull"></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="-2,000,000"></div></div>'
+      + '<div class="field-row"><div class="field"><label for="c-team">Team</label><select id="c-team">' + contractTeamOptions('') + '</select></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="-2,000,000"></div></div>'
       + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div></div>'
       + '<div class="field"><label for="c-terms">Extra terms</label><input type="text" id="c-terms"></div>'
       + '<div class="field"><label for="c-message">Message</label><input type="text" id="c-message"></div>'
       + '<button class="action action-lead" id="c-send-btn"><span>Send offer</span></button><div class="result-line" id="c-result"></div></div>'
       + '<div class="ov-card"><div class="ov-card-title">Pay for a seat</div>'
       + '<p class="muted" style="margin-bottom:10px;">Pay a team to take on another driver. If they accept, that driver\'s contract is 30% of your payment.</p>'
-      + '<div class="field-row"><div class="field"><label for="p-team">Team</label><input type="text" id="p-team" placeholder="Red Bull"></div><div class="field"><label for="p-target">Driver</label><input type="text" id="p-target" placeholder="Driver name"></div></div>'
+      + '<div class="field-row"><div class="field"><label for="p-team">Team</label><select id="p-team">' + contractTeamOptions('') + '</select></div><div class="field"><label for="p-target">Driver</label><select id="p-target">' + contractDriverOptions('', SELECTED && SELECTED.driver) + '</select></div></div>'
       + '<div class="field-row"><div class="field"><label for="p-amount">Amount</label><input type="text" id="p-amount" placeholder="30,000,000"></div></div>'
       + '<div class="field"><label for="p-message">Message</label><input type="text" id="p-message"></div>'
       + '<button class="action action-lead" id="p-send-btn"><span>Send pay-for-seat</span></button><div class="result-line" id="p-result"></div></div>';
@@ -1530,6 +1575,7 @@ function renderRoleContent(role) {
 function onLoginSuccess(data) {
   document.getElementById('gate-section').classList.add('hidden');
   document.getElementById('logout-btn').classList.remove('hidden');
+  document.getElementById('refresh-btn').classList.remove('hidden');
   document.getElementById('account-section').classList.remove('hidden');
   document.getElementById('dash-side').classList.remove('hidden');
 
@@ -1537,6 +1583,7 @@ function onLoginSuccess(data) {
     month: data.month || 1,
     salary: data.salary || null,
     bank: data.bank || 0,
+    blocked: data.blocked || [],
     offers: data.offers || [],
     mail: data.mail || [],
     sponsors: data.sponsors || [],
@@ -1552,12 +1599,16 @@ function onLoginSuccess(data) {
     setStatus('admin', 'Admin — ' + data.username);
     DRIVERS = data.drivers || [];
     TEAMS = data.teams || [];
+    MAIL_FILTER = 'BTG Officials';
+    document.getElementById('driver-select-wrap').classList.remove('hidden');
     populateAdminDropdowns();
   } else if (data.role === 'tp') {
     setStatus('driver', 'Team Principal — ' + data.username);
+    document.getElementById('driver-select-wrap').classList.add('hidden');
   } else {
     setStatus('driver', 'Driver — ' + data.username);
     DRIVERS = [data.driver];
+    document.getElementById('driver-select-wrap').classList.add('hidden');
     selectDriverByIndex(0);
   }
 
@@ -1578,11 +1629,47 @@ document.getElementById('logout-btn').addEventListener('click', () => {
   document.getElementById('gate-password').value = '';
   document.getElementById('gate-section').classList.remove('hidden');
   document.getElementById('dash-side').classList.add('hidden');
-  ALL_DASH_SECTIONS.concat(['driver-hero','driver-meta-row','logout-btn','month-pill','finances-pill'])
+  ALL_DASH_SECTIONS.concat(['driver-hero','driver-meta-row','driver-select-wrap','logout-btn','refresh-btn','month-pill','finances-pill'])
     .forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
   setTeamColors(null); // reset to default ember tones
   setStatus('locked', 'Locked');
 });
+
+/* ---------- refresh (re-login without logging out) ---------- */
+
+async function refreshMail() {
+  if (!CURRENT_USER) return;
+  try {
+    const data = await callGateway('login', { username: CURRENT_USER.username, password: CURRENT_USER.password });
+    if (data.ok) {
+      if (data.offers !== undefined) DASH.offers = data.offers || [];
+      if (data.mail !== undefined) DASH.mail = data.mail || [];
+      if (data.blocked !== undefined) DASH.blocked = data.blocked || [];
+      if (data.contracts !== undefined) DASH.contracts = data.contracts || [];
+      if (data.teamPrincipals !== undefined) DASH.teamPrincipals = data.teamPrincipals || [];
+      renderMailbox();
+      renderContracts();
+      buildDashSidebar(CURRENT_USER.role);
+    } else {
+      alert('✗ ' + data.error);
+    }
+  } catch (e) {
+    alert('✗ Could not reach the gateway script.');
+  }
+}
+
+async function refreshDashboard() {
+  if (!CURRENT_USER) return;
+  try {
+    const data = await callGateway('login', { username: CURRENT_USER.username, password: CURRENT_USER.password });
+    if (data.ok) onLoginSuccess(data);
+    else alert('✗ ' + data.error);
+  } catch (e) {
+    alert('✗ Could not reach the gateway script.');
+  }
+}
+
+document.getElementById('refresh-btn').addEventListener('click', () => { refreshDashboard(); });
 
 /* ---------- admin: driver dropdown + create driver + create login ---------- */
 
@@ -1590,16 +1677,20 @@ function populateAdminDropdowns() {
   const driverSel = document.getElementById('driver-select');
   const loginSel = document.getElementById('login-driver-select');
   driverSel.innerHTML = '<option value="">— choose a driver —</option>';
-  loginSel.innerHTML = '<option value="">— choose a driver —</option>';
+  loginSel.innerHTML = '<option value="">— choose a person —</option>';
+
+  var driverOpts = '';
+  var tpOpts = '';
   DRIVERS.forEach((d, i) => {
     const opt1 = document.createElement('option'); opt1.value = i; opt1.textContent = d.driver;
     driverSel.appendChild(opt1);
-    // Create-login only lists drivers that don't already have an account.
-    if (!d.hasAccount) {
-      const opt2 = document.createElement('option'); opt2.value = d.driver; opt2.textContent = d.driver;
-      loginSel.appendChild(opt2);
-    }
+    if (!d.hasAccount) driverOpts += '<option value="' + BTG.esc(d.driver) + '">' + BTG.esc(d.driver) + '</option>';
   });
+  ((DASH && DASH.teamPrincipals) || []).forEach(function (t) {
+    if (!t.hasAccount) tpOpts += '<option value="' + BTG.esc(t.name) + '">' + BTG.esc(t.name) + '</option>';
+  });
+  if (driverOpts) loginSel.innerHTML += '<optgroup label="Drivers">' + driverOpts + '</optgroup>';
+  if (tpOpts) loginSel.innerHTML += '<optgroup label="Team Principals">' + tpOpts + '</optgroup>';
   populateNationDropdown();
 }
 
@@ -1621,6 +1712,8 @@ document.getElementById('driver-select').addEventListener('change', (e) => {
 document.getElementById('create-driver-btn').addEventListener('click', async () => {
   const name = document.getElementById('new-driver-name').value.trim();
   const nation = document.getElementById('new-driver-nation').value.trim().toUpperCase();
+  const newUsername = document.getElementById('new-driver-username').value.trim();
+  const newPassword = document.getElementById('new-driver-password').value;
   const resultEl = document.getElementById('create-driver-result');
   const btn = document.getElementById('create-driver-btn');
   resultEl.style.display = 'none';
@@ -1631,14 +1724,13 @@ document.getElementById('create-driver-btn').addEventListener('click', async () 
   try {
     const data = await callGateway('adminCreateDriver', {
       username: CURRENT_USER.username, password: CURRENT_USER.password,
-      driverName: name, nation: nation
+      driverName: name, nation: nation, newUsername: newUsername, newPassword: newPassword
     });
     if (data.ok) {
-      DRIVERS.push(data.driver);
+      if (data.driver) { data.driver.hasAccount = !!(newUsername && newPassword); DRIVERS.push(data.driver); }
       populateAdminDropdowns();
-      showResult(resultEl, true, '✓ ' + name + ' created with every rating at 70.');
-      document.getElementById('new-driver-name').value = '';
-      document.getElementById('new-driver-nation').value = '';
+      showResult(resultEl, true, '✓ ' + name + ' created' + (newUsername ? ' with login ' + newUsername : '') + '.');
+      ['new-driver-name','new-driver-nation','new-driver-username','new-driver-password'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('nation-preview').innerHTML = '';
     } else {
       showResult(resultEl, false, '✗ ' + data.error);
@@ -1651,26 +1743,26 @@ document.getElementById('create-driver-btn').addEventListener('click', async () 
 });
 
 document.getElementById('create-login-btn').addEventListener('click', async () => {
-  const driverName = document.getElementById('login-driver-select').value;
+  const personName = document.getElementById('login-driver-select').value;
   const newUsername = document.getElementById('new-login-username').value.trim();
   const newPassword = document.getElementById('new-login-password').value;
   const resultEl = document.getElementById('create-login-result');
   const btn = document.getElementById('create-login-btn');
   resultEl.style.display = 'none';
-  if (!driverName || !newUsername || !newPassword) { showResult(resultEl, false, 'Fill in driver, username and password.'); return; }
+  if (!personName || !newUsername || !newPassword) { showResult(resultEl, false, 'Fill in person, username and password.'); return; }
 
   btn.disabled = true;
   try {
     const data = await callGateway('adminCreateLogin', {
       username: CURRENT_USER.username, password: CURRENT_USER.password,
-      driverName: driverName, newUsername: newUsername, newPassword: newPassword
+      personName: personName, newUsername: newUsername, newPassword: newPassword
     });
     if (data.ok) {
-      showResult(resultEl, true, '✓ Login created for ' + driverName + ' (' + newUsername + ').');
+      showResult(resultEl, true, '✓ Login created for ' + personName + ' (' + newUsername + ').');
       document.getElementById('new-login-username').value = '';
       document.getElementById('new-login-password').value = '';
-      // The driver now has an account — remove them from the create-login list.
-      DRIVERS.forEach(d => { if (d.driver === driverName) d.hasAccount = true; });
+      DRIVERS.forEach(d => { if (d.driver === personName) d.hasAccount = true; });
+      ((DASH && DASH.teamPrincipals) || []).forEach(t => { if (t.name === personName) t.hasAccount = true; });
       populateAdminDropdowns();
     } else {
       showResult(resultEl, false, '✗ ' + data.error);
@@ -1685,7 +1777,6 @@ document.getElementById('create-login-btn').addEventListener('click', async () =
 document.getElementById('create-tp-btn').addEventListener('click', async () => {
   const tpName = document.getElementById('new-tp-name').value.trim();
   const team = document.getElementById('new-tp-team').value.trim();
-  const salary = document.getElementById('new-tp-salary').value.trim();
   const newUsername = document.getElementById('new-tp-username').value.trim();
   const newPassword = document.getElementById('new-tp-password').value;
   const resultEl = document.getElementById('create-tp-result');
@@ -1697,11 +1788,11 @@ document.getElementById('create-tp-btn').addEventListener('click', async () => {
   try {
     const data = await callGateway('adminCreateTpLogin', {
       username: CURRENT_USER.username, password: CURRENT_USER.password,
-      tpName: tpName, team: team, salary: salary, newUsername: newUsername, newPassword: newPassword
+      tpName: tpName, team: team, salary: '1500000', newUsername: newUsername, newPassword: newPassword
     });
     if (data.ok) {
-      showResult(resultEl, true, '✓ Team principal login created for ' + tpName + ' (' + newUsername + ').');
-      ['new-tp-name','new-tp-team','new-tp-salary','new-tp-username','new-tp-password'].forEach(id => document.getElementById(id).value = '');
+      showResult(resultEl, true, '✓ Team principal created for ' + tpName + ' (' + newUsername + ').');
+      ['new-tp-name','new-tp-team','new-tp-username','new-tp-password'].forEach(id => document.getElementById(id).value = '');
     } else {
       showResult(resultEl, false, '✗ ' + data.error);
     }
@@ -2263,7 +2354,40 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
 var MAIL_FOLDER = 'offers';
 var MAIL_SEL = {};
 
-function offerStatus(o) { return o.status || o._status || ''; }
+function offerStatus(o) { return o.status || ''; }
+
+function offerActionsHtml(o, i, role) {
+  var st = offerStatus(o);
+  var tpTeam = (DASH && DASH.tp && DASH.tp.team) || '';
+  if (st === '') {
+    if (role === 'driver') {
+      return '<div class="offer-actions">'
+        + '<button class="action action-lead action-compact" onclick="respondOffer(' + i + ', \'accept\')"><span>Accept</span></button>'
+        + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Decline</span></button>'
+        + ((o.counter && o.counter.team) ? '' : '<button class="action action-quiet action-compact" onclick="promptCounter(' + i + ')"><span>Counter</span></button>')
+        + '</div>';
+    }
+    return '';
+  }
+  var pill = st === 'Accepted' ? '<span class="tag-pill">Accepted</span>'
+    : st === 'Rejected' ? '<span class="tag-pill denied">Rejected</span>'
+    : '<span class="tag-pill warn">' + BTG.esc(st) + '</span>';
+  if (st === 'On Hold') {
+    if (role === 'driver') {
+      return '<div class="offer-actions">' + pill + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Reject</span></button></div>';
+    }
+    if (role === 'tp' && o.team === tpTeam) {
+      return '<div class="offer-actions">' + pill + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Reject</span></button></div>';
+    }
+    if (role === 'admin') {
+      return '<div class="offer-actions">' + pill
+        + '<button class="action action-lead action-compact" onclick="adminResolveOffer(' + i + ', true)"><span>Approve</span></button>'
+        + '<button class="action action-quiet action-compact" onclick="adminResolveOffer(' + i + ', false)"><span>Deny</span></button></div>';
+    }
+    return '<div class="offer-actions">' + pill + '</div>';
+  }
+  return '<div class="offer-actions">' + pill + '</div>';
+}
 
 function renderMailbox() {
   const root = document.getElementById('mailbox-offers');
@@ -2275,7 +2399,7 @@ function renderMailbox() {
 
   const offerItems = offers.map(function (o, i) {
     const st = offerStatus(o);
-    const open = st !== 'Denied' && st !== 'accepted' && st !== 'declined' && st !== 'countered';
+    const open = st === '';
     var body = (o.message ? o.message + '\n\n' : '')
       + 'Salary: ' + fmtMoney(o.salary)
       + '\nPeriod: ' + (o.from || '—') + '–' + (o.till || '—')
@@ -2312,7 +2436,8 @@ function renderMailbox() {
   if (MAIL_SEL[MAIL_FOLDER] == null || MAIL_SEL[MAIL_FOLDER] >= items.length) MAIL_SEL[MAIL_FOLDER] = items.length ? 0 : -1;
   const sel = MAIL_SEL[MAIL_FOLDER] >= 0 ? items[MAIL_SEL[MAIL_FOLDER]] : null;
 
-  var html = '<div style="display:flex;justify-content:flex-end;margin-bottom:12px;">'
+  var html = '<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;">'
+    + '<button class="action action-quiet action-compact" onclick="refreshMail()"><span>Refresh</span></button>'
     + '<button class="action action-lead action-compact" onclick="openMailCompose()"><span>Compose</span></button>'
     + '</div>'
     + '<div class="mail-app">';
@@ -2328,9 +2453,20 @@ function renderMailbox() {
     ((DASH && DASH.teamPrincipals) || []).forEach(function (t) { if (t.name) people.push(t.name); });
     html += '<div class="field" style="margin-top:12px;padding:0 4px;">'
       + '<label for="mail-person-filter">Show mail for</label>'
-      + '<select id="mail-person-filter" onchange="MAIL_FILTER=this.value;renderMailbox();"><option value="">— everyone —</option>'
-      + people.map(function (p) { return '<option' + (MAIL_FILTER === p ? ' selected' : '') + '>' + BTG.esc(p) + '</option>'; }).join('')
+      + '<select id="mail-person-filter" onchange="MAIL_FILTER=this.value;renderMailbox();">'
+      + '<option value="BTG Officials"' + (MAIL_FILTER === 'BTG Officials' ? ' selected' : '') + '>BTG Officials</option>'
+      + '<option value=""' + (MAIL_FILTER === '' ? ' selected' : '') + '>— everyone —</option>'
+      + people.map(function (p) { return '<option value="' + BTG.esc(p) + '"' + (MAIL_FILTER === p ? ' selected' : '') + '>' + BTG.esc(p) + '</option>'; }).join('')
       + '</select></div>';
+  }
+  if (role !== 'admin' && (DASH.blocked || []).length) {
+    html += '<div style="margin-top:14px;padding:0 4px;font-size:12px;color:var(--copy-faint);line-height:1.9;">'
+      + '<div style="text-transform:uppercase;letter-spacing:.08em;font-size:10px;margin-bottom:4px;">Blocked</div>'
+      + DASH.blocked.map(function (n) {
+          return '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;"><span>' + BTG.esc(n) + '</span>'
+            + '<button class="modal-close" style="width:20px;height:20px;font-size:12px;" data-from="' + BTG.esc(n) + '" onclick="unblockMailSender(this.dataset.from)" title="Unblock">✕</button></div>';
+        }).join('')
+      + '</div>';
   }
   html += '</div>';
 
@@ -2354,17 +2490,14 @@ function renderMailbox() {
       + '<div style="font-size:12px;color:var(--copy-faint)">' + (sel.kind === 'offer' ? 'Contract offer' : 'Message') + '</div></div></div>'
       + '<div class="read-body">' + BTG.esc(sel.body) + '</div>';
     if (sel.kind === 'offer') {
-      if (role === 'driver' && sel.open) {
-        html += '<div class="read-actions">'
-          + '<button class="action action-lead action-compact" onclick="respondOffer(' + sel.idx + ', \'accept\')"><span>Accept</span></button>'
-          + '<button class="action action-quiet action-compact" onclick="respondOffer(' + sel.idx + ', \'decline\')"><span>Decline</span></button>'
-          + (sel.hasCounter ? '' : '<button class="action action-quiet action-compact" onclick="promptCounter(' + sel.idx + ')"><span>Counter</span></button>')
-          + '</div>';
-      } else if (sel.status === 'Denied') {
-        html += '<div class="read-actions"><span class="tag-pill denied">Denied — auto-deny rule</span></div>';
-      } else if (sel.status) {
-        html += '<div class="read-actions"><span class="tag-pill ' + (sel.status === 'accepted' ? '' : 'warn') + '">' + BTG.esc(sel.status) + '</span></div>';
-      }
+      html += offerActionsHtml(offers[sel.idx], sel.idx, role);
+    } else if (sel.kind === 'mail' && role !== 'admin' && sel.from && sel.from !== 'BTG Officials') {
+      var isBlocked = (DASH.blocked || []).indexOf(sel.from) !== -1;
+      html += '<div class="read-actions">'
+        + (isBlocked
+           ? '<button class="action action-quiet action-compact" data-from="' + BTG.esc(sel.from) + '" onclick="unblockMailSender(this.dataset.from)"><span>Unblock ' + BTG.esc(sel.from) + '</span></button>'
+           : '<button class="action action-quiet action-compact" data-from="' + BTG.esc(sel.from) + '" onclick="blockMailSender(this.dataset.from)"><span>Block ' + BTG.esc(sel.from) + '</span></button>')
+        + '</div>';
     }
   } else {
     html += '<div class="mail-empty">Select a message.</div>';
@@ -2378,9 +2511,35 @@ function renderMailbox() {
 function setMailFolder(f) { MAIL_FOLDER = f; MAIL_SEL[f] = MAIL_SEL[f] || 0; renderMailbox(); }
 function selectMailItem(i) { MAIL_SEL[MAIL_FOLDER] = i; renderMailbox(); }
 
+function mailRecipientOptions() {
+  var html = '<option value="">— choose a recipient —</option>';
+  var seen = {};
+  var driverOpts = '';
+  var tpOpts = '';
+  try {
+    if (window.BTG && BTG.Roster && BTG.Roster.drivers) {
+      BTG.Roster.drivers.forEach(function (d) {
+        var n = d.name || d.fullName || '';
+        if (!n || seen[n]) return;
+        seen[n] = true;
+        driverOpts += '<option value="' + BTG.esc(n) + '">' + BTG.esc(n) + '</option>';
+      });
+    }
+  } catch (e) {}
+  ((DASH && DASH.teamPrincipals) || []).forEach(function (t) {
+    if (!t.name || seen[t.name]) return;
+    seen[t.name] = true;
+    tpOpts += '<option value="' + BTG.esc(t.name) + '">' + BTG.esc(t.name) + '</option>';
+  });
+  html += '<optgroup label="Officials"><option value="BTG Officials">BTG Officials</option></optgroup>';
+  if (driverOpts) html += '<optgroup label="Drivers">' + driverOpts + '</optgroup>';
+  if (tpOpts) html += '<optgroup label="Team Principals">' + tpOpts + '</optgroup>';
+  return html;
+}
+
 function openMailCompose() {
   document.getElementById('compose-modal').classList.add('open');
-  document.getElementById('compose-to').value = '';
+  document.getElementById('compose-to').innerHTML = mailRecipientOptions();
   document.getElementById('compose-body').value = '';
   const res = document.getElementById('compose-result');
   res.style.display = 'none';
@@ -2411,6 +2570,39 @@ async function sendMailCompose() {
     showResult(resultEl, false, '✗ Could not reach the gateway script.');
   } finally {
     btn.disabled = false;
+  }
+}
+
+async function blockMailSender(name) {
+  try {
+    const data = await callGateway('blockUser', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password, blockedName: name
+    });
+    if (data.ok) {
+      DASH.blocked = DASH.blocked || [];
+      if (DASH.blocked.indexOf(name) === -1) DASH.blocked.push(name);
+      renderMailbox();
+    } else {
+      alert('✗ ' + data.error);
+    }
+  } catch (e) {
+    alert('✗ Could not reach the gateway script.');
+  }
+}
+
+async function unblockMailSender(name) {
+  try {
+    const data = await callGateway('unblockUser', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password, blockedName: name
+    });
+    if (data.ok) {
+      DASH.blocked = (DASH.blocked || []).filter(function (x) { return x !== name; });
+      renderMailbox();
+    } else {
+      alert('✗ ' + data.error);
+    }
+  } catch (e) {
+    alert('✗ Could not reach the gateway script.');
   }
 }
 
@@ -2506,6 +2698,7 @@ function renderTp() {
   const sel = document.getElementById('tp-offer-driver');
   sel.innerHTML = '<option value="">— choose a driver —</option>'
     + all.map(function (d) { return '<option>' + BTG.esc(d) + '</option>'; }).join('');
+  document.getElementById('tp-mail-to').innerHTML = mailRecipientOptions();
   const y = CURRENT_YEAR || 2024;
   document.getElementById('tp-offer-from').value = y;
   document.getElementById('tp-offer-till').value = y + 2;
@@ -2526,8 +2719,29 @@ async function respondOffer(index, response) {
       offerRow: o.row, response: response
     });
     if (data.ok) {
-      o._status = response === 'accept' ? 'accepted' : (response === 'decline' ? 'declined' : 'countered');
+      o.status = data.result || '';
       renderMailbox();
+      renderContracts();
+    } else {
+      alert('✗ ' + data.error);
+    }
+  } catch (e) {
+    alert('✗ Could not reach the gateway script.');
+  }
+}
+
+async function adminResolveOffer(index, approve) {
+  const o = DASH && DASH.offers && DASH.offers[index];
+  if (!o || !CURRENT_USER) return;
+  try {
+    const data = await callGateway('adminResolveOffer', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      offerRow: o.row, approve: approve
+    });
+    if (data.ok) {
+      o.status = data.result || '';
+      renderMailbox();
+      renderContracts();
     } else {
       alert('✗ ' + data.error);
     }
@@ -2552,7 +2766,7 @@ function promptCounter(index) {
     offerRow: o.row, response: 'counter',
     counter: { team: o.target, salary: salary, from: from, till: till, terms: terms, message: message }
   }).then(function (data) {
-    if (data.ok) { o._status = 'countered'; renderMailbox(); }
+    if (data.ok) { renderMailbox(); renderContracts(); }
     else alert('✗ ' + data.error);
   }).catch(function () { alert('✗ Could not reach the gateway script.'); });
 }
@@ -2629,7 +2843,7 @@ document.getElementById('tp-send-mail-btn').addEventListener('click', async () =
     });
     if (data.ok) {
       showResult(resultEl, true, '✓ Mail sent to ' + to + '.');
-      document.getElementById('tp-mail-to').value = '';
+      document.getElementById('tp-mail-to').innerHTML = mailRecipientOptions();
       document.getElementById('tp-mail-message').value = '';
     } else {
       showResult(resultEl, false, '✗ ' + data.error);
