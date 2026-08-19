@@ -300,7 +300,6 @@ body::before {
 <div class="tfg-attrib">UI by <a href="https://www.patreon.com/c/TFGTools" target="_blank" rel="noopener">TFGTools</a></div>
 
 <script src="js/common.js"></script>
-<script src="js/api.js"></script>
 <script src="js/border-glow.js"></script>
 <script src="teams/f1.js"></script>
 <script src="js/data-loader.js"></script>
@@ -313,7 +312,7 @@ body::before {
   // Load from cache (fast) — init() resolves immediately and auto-discovery
   // runs in the background, re-triggering load() via onUpdate when it lands.
   BTG.Data.init().then(load).catch(function() {
-    BTG.useDemo(); drivers = BTG.DEMO.drivers;
+    drivers = [];
     seriesList = ['F1']; activeSeries = 'F1';
     seasons = [2026]; activeSeason = 2026;
     build();

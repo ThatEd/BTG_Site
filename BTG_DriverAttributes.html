@@ -305,6 +305,21 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 .read-body{font-size:14px; line-height:1.7; color:var(--copy-soft); white-space:pre-wrap;}
 .read-actions{display:flex; gap:8px; margin-top:22px; padding-top:18px; border-top:1px solid var(--edge);}
 .mail-empty{padding:40px; text-align:center; color:var(--copy-faint);}
+
+/* ════════ Team chat ════════ */
+.chat-app{display:grid; grid-template-columns:200px 1fr; border:1px solid var(--edge); border-radius:12px; overflow:hidden; min-height:440px; background:var(--card);}
+.chat-side{background:var(--card-high); border-right:1px solid var(--edge); padding:12px; display:flex; flex-direction:column; gap:4px; min-width:0;}
+.chat-side-head{font-family:var(--data-face); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--copy-faint); padding:4px 8px 8px;}
+.chat-member{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--copy); padding:6px 8px; border-radius:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.chat-dot{width:8px; height:8px; border-radius:50%; background:var(--moss); flex:0 0 auto;}
+.chat-main{display:flex; flex-direction:column; min-width:0;}
+#chat-messages{flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:8px; max-height:420px;}
+.chat-msg{max-width:72%; align-self:flex-start; padding:8px 12px; border-radius:12px; background:var(--card-high); border:1px solid var(--edge); font-size:13px; color:var(--copy); white-space:pre-wrap; word-break:break-word;}
+.chat-msg .who{font-family:var(--data-face); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--copy-faint); margin-bottom:2px;}
+.chat-msg.me{align-self:flex-end; background:color-mix(in oklab, var(--team-accent) 14%, transparent); border-color:color-mix(in oklab, var(--team-accent) 32%, transparent);}
+.chat-input-row{display:flex; gap:8px; padding:12px; border-top:1px solid var(--edge);}
+.chat-input-row input{flex:1;}
+@media (max-width:900px){ .chat-app{grid-template-columns:1fr;} .chat-side{border-right:none; border-bottom:1px solid var(--edge); flex-direction:row; overflow-x:auto;} }
 @media (max-width:900px){ .mail-app{grid-template-columns:1fr; min-height:0;} .mail-folders{flex-direction:row; overflow-x:auto; border-right:none; border-bottom:1px solid var(--edge);} .mail-list{max-height:240px; border-right:none;} }
 
 /* ════════ Concept-style: contracts + offers ════════ */
@@ -429,6 +444,25 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     </div>
 
     <div class="tool-card">
+      <h3>Create team principal</h3>
+      <p class="muted" style="margin-bottom:12px;">Add their account later with the Create login tool.</p>
+      <div class="field-row">
+        <div class="field">
+          <label for="new-tp-name">Name</label>
+          <input type="text" id="new-tp-name" placeholder="e.g. Sarah Calloway" autocomplete="off">
+        </div>
+        <div class="field" style="flex:2; min-width:200px;">
+          <label for="new-tp-nation">Nation</label>
+          <input type="text" id="new-tp-nation" list="nation-list" placeholder="Type nation or IOC code…" autocomplete="off">
+        </div>
+      </div>
+      <div class="field-row">
+        <button class="action action-compact" id="create-tp-btn"><span>Create TP</span></button>
+      </div>
+      <div class="result-line" id="create-tp-result"></div>
+    </div>
+
+    <div class="tool-card">
       <h3>Create login</h3>
       <div class="field-row">
         <div class="field">
@@ -446,24 +480,6 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
         <button class="action action-compact" id="create-login-btn"><span>Create Login</span></button>
       </div>
       <div class="result-line" id="create-login-result"></div>
-    </div>
-
-    <div class="tool-card">
-      <h3>Create team principal</h3>
-      <div class="field-row">
-        <div class="field">
-          <label for="new-tp-name">Name</label>
-          <input type="text" id="new-tp-name" placeholder="e.g. Sarah Calloway" autocomplete="off">
-        </div>
-        <div class="field">
-          <label for="new-tp-team">Team</label>
-          <input type="text" id="new-tp-team" placeholder="e.g. Williams" autocomplete="off">
-        </div>
-      </div>
-      <div class="field-row">
-        <button class="action action-compact" id="create-tp-btn"><span>Create TP</span></button>
-      </div>
-      <div class="result-line" id="create-tp-result"></div>
     </div>
   </section>
 
@@ -553,7 +569,31 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     <div id="mailbox-mail"></div>
   </section>
 
-  <!-- 02E · SALARY / BANK -->
+  <!-- 02E · TEAM CHAT -->
+  <section id="chat-section" class="hidden">
+    <div class="section-head">
+      <div class="section-head-mark"></div>
+      <div class="section-head-body">
+        <span class="section-head-num">02E — Team Chat</span>
+        <h2>Team Chat</h2>
+      </div>
+    </div>
+    <div class="chat-app">
+      <div class="chat-side">
+        <div class="chat-side-head">Online now</div>
+        <div id="chat-members"></div>
+      </div>
+      <div class="chat-main">
+        <div id="chat-messages"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" placeholder="Message your team…" autocomplete="off">
+          <button class="action action-lead action-compact" id="chat-send-btn"><span>Send</span></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02F · SALARY / BANK -->
   <section id="salary-section" class="hidden">
     <div class="ov-stats" style="margin-bottom:20px;">
       <div class="ov-stat-card"><div class="v" style="color:var(--moss)" id="salary-bank">—</div><div class="k">Bank — from Finances</div></div>
@@ -897,12 +937,15 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 <script src="teams/f1.js"></script>
 <script src="js/roster.js"></script>
 <script src="js/data-loader.js"></script>
+<script src="js/notification-sounds.js"></script>
 <script>
 /* ============================================================
    CONFIG
-   Point this at your BTG-Gateway Web App deployment URL.
+   The dashboard talks to the Supabase Edge Function, which holds
+   the service_role key server-side. No DB secret ever reaches the
+   browser, and RLS is re-enabled so the publishable key is inert.
    ============================================================ */
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbynjzkleTl5YLyw6ty9FI2S7Jy5lgKie4cJDWZ6fm_2gMqofZHfN3NqKgVp7fW0frZI/exec';
+const EDGE_URL = 'https://jocmjietuviegelluiev.supabase.co/functions/v1/api';
 const ATTR_MAX = 99;
 
 /* ---------- nations (IOC codes) ---------- */
@@ -1193,9 +1236,9 @@ function setMonthPill() {
 }
 
 async function callGateway(action, payload) {
-  const res = await fetch(WEB_APP_URL, {
+  const res = await fetch(EDGE_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(Object.assign({ action: action }, payload))
   });
   const raw = await res.text();
@@ -1221,6 +1264,7 @@ document.getElementById('unlock-btn').addEventListener('click', async () => {
   const btn = document.getElementById('unlock-btn');
   err.style.display = 'none';
   btn.disabled = true; btn.querySelector('span').textContent = 'Checking…';
+  initNotificationAudio(); // unlock audio from the login user-gesture
 
   try {
     const data = await callGateway('login', { username, password });
@@ -1242,12 +1286,13 @@ document.getElementById('unlock-btn').addEventListener('click', async () => {
 });
 
 /* ---------- dashboard sidebar / tabs ---------- */
-const ALL_DASH_SECTIONS = ['overview-section','mailbox-section','salary-section','driver-section','attr-section','aggr-section','submit-section','admin-section','admin-override-section','tp-section','contracts-section','partorders-section','sponsors-section','season-section','account-section'];
+const ALL_DASH_SECTIONS = ['overview-section','mailbox-section','chat-section','salary-section','driver-section','attr-section','aggr-section','submit-section','admin-section','admin-override-section','tp-section','contracts-section','partorders-section','sponsors-section','season-section','account-section'];
 
 const DASH_TABS = {
   driver: [
     { id: 'overview', label: 'Overview', sections: ['overview-section','salary-section'] },
     { id: 'mail', label: 'Mail', sections: ['mailbox-section'] },
+    { id: 'chat', label: 'Chat', sections: ['chat-section'] },
     { id: 'contracts', label: 'Contracts', sections: ['contracts-section'] },
     { id: 'attributes', label: 'Attributes', sections: ['driver-section','attr-section','aggr-section','submit-section'] },
     { id: 'account', label: 'Account', sections: ['account-section'] }
@@ -1255,6 +1300,7 @@ const DASH_TABS = {
   tp: [
     { id: 'overview', label: 'Overview', sections: ['overview-section'] },
     { id: 'mail', label: 'Mail', sections: ['mailbox-section'] },
+    { id: 'chat', label: 'Chat', sections: ['chat-section'] },
     { id: 'contracts', label: 'Contracts', sections: ['contracts-section'] },
     { id: 'partorders', label: 'Part Orders', sections: ['partorders-section'] },
     { id: 'sponsors', label: 'Sponsors', sections: ['sponsors-section'] },
@@ -1280,6 +1326,7 @@ const TAB_ICONS = {
   sponsors: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>',
   partorders: '<path d="M6 9l6-6 6 6v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9z"/><path d="M10 22V12h4v10"/>',
   season: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
   account: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
 };
 
@@ -1288,7 +1335,9 @@ function navBadgeCount(tabId) {
   if (CURRENT_USER && CURRENT_USER.role === 'admin') return null; // admins aren't pinged about others' mail
   const offers = (DASH && DASH.offers) || [];
   const open = offers.filter(function (o) { return o.status !== 'Denied' && o._status !== 'accepted' && o._status !== 'declined'; });
-  return open.length || null;
+  const unread = (DASH && DASH.mail) ? DASH.mail.filter(function (m) { return !m.read; }).length : 0;
+  const total = open.length + unread;
+  return total || null;
 }
 
 function buildDashSidebar(role) {
@@ -1436,10 +1485,11 @@ function renderContracts() {
   if (role === 'tp') contracts = contracts.filter(function (c) { return c.team === (DASH.tp && DASH.tp.team); });
   else if (role === 'driver') contracts = contracts.filter(function (c) { return c.driver === (SELECTED && SELECTED.driver); });
 
-  const rows = contracts.map(function (c) {
+  const sorted = contracts.slice().sort(function (a, b) { return (Number(a.seat) || 0) - (Number(b.seat) || 0); });
+  const rows = sorted.map(function (c) {
     return '<tr><td class="strong">' + BTG.esc(c.driver) + '</td><td>' + BTG.esc(c.team) + '</td>'
       + '<td>' + fmtMoney(c.salary) + '</td><td>' + BTG.esc(c.from || '—') + '–' + BTG.esc(c.till || '—') + '</td>'
-      + '<td><span class="tag-pill">Active</span></td></tr>';
+      + '<td>' + BTG.esc(c.seat || '—') + '</td><td><span class="tag-pill">' + BTG.esc(seatCategoryLabel_(c.seat)) + '</span></td></tr>';
   }).join('');
 
   var offers = (DASH.offers || []);
@@ -1451,14 +1501,14 @@ function renderContracts() {
     const offerClass = st === 'Rejected' ? 'denied' : (st === 'On Hold' ? 'warn' : '');
     offerHtml += '<div class="offer ' + offerClass + '">'
       + '<div class="offer-top"><span class="strong">' + BTG.esc(o.team) + ' → ' + BTG.esc(o.target) + '</span>'
-      + '<span class="stamp">' + fmtMoney(o.salary) + ' · ' + BTG.esc(o.from || '—') + '–' + BTG.esc(o.till || '—') + '</span></div>'
+      + '<span class="stamp">' + fmtMoney(o.salary) + ' · ' + BTG.esc(o.from || '—') + '–' + BTG.esc(o.till || '—') + (o.role ? ' · ' + BTG.esc(o.role) : '') + '</span></div>'
       + (o.message ? '<div class="offer-body">' + BTG.esc(o.message) + '</div>' : '')
       + offerActionsHtml(o, i, role)
       + '</div>';
   });
 
   var html = '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Active contracts</div>'
-    + (rows ? '<table class="contract-table"><thead><tr><th>Driver</th><th>Team</th><th>Salary</th><th>Period</th><th>Status</th></tr></thead><tbody>' + rows + '</tbody></table>' : '<div class="muted">No contracts.</div>')
+    + (rows ? '<table class="contract-table"><thead><tr><th>Driver</th><th>Team</th><th>Salary</th><th>Period</th><th>Seat</th><th>Role</th></tr></thead><tbody>' + rows + '</tbody></table>' : '<div class="muted">No contracts.</div>')
     + '</div>'
     + '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Pending offers</div>'
     + (offerHtml || '<div class="muted">No pending offers.</div>')
@@ -1471,7 +1521,7 @@ function renderContracts() {
           ? '<option value="">— choose a driver —</option>' + DASH.allDrivers.map(function (d) { return '<option>' + BTG.esc(d) + '</option>'; }).join('')
           : contractDriverOptions(''))
       + '</select></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="8,000,000"></div></div>'
-      + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div></div>'
+      + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div><div class="field"><label for="c-role">Role</label><select id="c-role">' + ROLE_OPTIONS + '</select></div></div>'
       + '<div class="field"><label for="c-terms">Extra terms</label><input type="text" id="c-terms"></div>'
       + '<div class="field"><label for="c-message">Message</label><input type="text" id="c-message"></div>'
       + '<button class="action action-lead" id="c-send-btn"><span>Send offer</span></button><div class="result-line" id="c-result"></div></div>';
@@ -1479,14 +1529,14 @@ function renderContracts() {
     html += '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Initiate a contract offer</div>'
       + '<p class="muted" style="margin-bottom:10px;">Offer yourself to a team. Salary can be negative — a pay driver pays the team.</p>'
       + '<div class="field-row"><div class="field"><label for="c-team">Team</label><select id="c-team">' + contractTeamOptions('') + '</select></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="-2,000,000"></div></div>'
-      + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div></div>'
+      + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div><div class="field"><label for="c-role">Role</label><select id="c-role">' + ROLE_OPTIONS + '</select></div></div>'
       + '<div class="field"><label for="c-terms">Extra terms</label><input type="text" id="c-terms"></div>'
       + '<div class="field"><label for="c-message">Message</label><input type="text" id="c-message"></div>'
       + '<button class="action action-lead" id="c-send-btn"><span>Send offer</span></button><div class="result-line" id="c-result"></div></div>'
       + '<div class="ov-card"><div class="ov-card-title">Pay for a seat</div>'
-      + '<p class="muted" style="margin-bottom:10px;">Pay a team to take on another driver. If they accept, that driver\'s contract is 30% of your payment.</p>'
+      + '<p class="muted" style="margin-bottom:10px;">Pay a team to take on another driver. 70% of your payment goes to the team; 30% becomes that driver\'s contract salary.</p>'
       + '<div class="field-row"><div class="field"><label for="p-team">Team</label><select id="p-team">' + contractTeamOptions('') + '</select></div><div class="field"><label for="p-target">Driver</label><select id="p-target">' + contractDriverOptions('', SELECTED && SELECTED.driver) + '</select></div></div>'
-      + '<div class="field-row"><div class="field"><label for="p-amount">Amount</label><input type="text" id="p-amount" placeholder="30,000,000"></div></div>'
+      + '<div class="field-row"><div class="field"><label for="p-amount">Amount</label><input type="text" id="p-amount" placeholder="30,000,000"></div><div class="field"><label for="p-role">Role</label><select id="p-role">' + ROLE_OPTIONS + '</select></div></div>'
       + '<div class="field"><label for="p-message">Message</label><input type="text" id="p-message"></div>'
       + '<button class="action action-lead" id="p-send-btn"><span>Send pay-for-seat</span></button><div class="result-line" id="p-result"></div></div>';
   }
@@ -1542,8 +1592,8 @@ function renderContracts() {
       sendBtn.disabled = true;
       try {
         const payload = role === 'tp'
-          ? { username: CURRENT_USER.username, password: CURRENT_USER.password, team: DASH.tp.team, target: document.getElementById('c-driver').value, salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim() }
-          : { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team').value.trim(), salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim() };
+          ? { username: CURRENT_USER.username, password: CURRENT_USER.password, team: DASH.tp.team, target: document.getElementById('c-driver').value, salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim() }
+          : { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team').value.trim(), salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim() };
         const data = await callGateway(role === 'tp' ? 'sendContractOffer' : 'sendDriverOffer', payload);
         if (data.ok) { showResult(resultEl, true, '✓ Offer sent.'); }
         else { showResult(resultEl, false, '✗ ' + data.error); }
@@ -1565,7 +1615,7 @@ function renderContracts() {
       try {
         const data = await callGateway('sendPayForSeat', {
           username: CURRENT_USER.username, password: CURRENT_USER.password,
-          team: team, targetDriver: target, amount: amount, message: document.getElementById('p-message').value.trim()
+          team: team, targetDriver: target, amount: amount, role: document.getElementById('p-role').value, message: document.getElementById('p-message').value.trim()
         });
         if (data.ok) { showResult(resultEl, true, '✓ Pay-for-seat offer sent.'); }
         else { showResult(resultEl, false, '✗ ' + data.error); }
@@ -1643,6 +1693,7 @@ function onLoginSuccess(data) {
   buildDashSidebar(data.role);
   renderRoleContent(data.role);
   showDashTab((DASH_TABS[data.role] || [{}])[0].id);
+  startLive();
   currentYear().then(function () {
     setMonthPill();
     setFinancesPill();
@@ -1652,6 +1703,7 @@ function onLoginSuccess(data) {
 }
 
 document.getElementById('logout-btn').addEventListener('click', () => {
+  stopLive();
   CURRENT_USER = null; DRIVERS = []; TEAMS = []; SELECTED = null; PENDING = {}; DASH = null; MAIL_FILTER = null;
   document.getElementById('gate-username').value = '';
   document.getElementById('gate-password').value = '';
@@ -1803,24 +1855,24 @@ document.getElementById('create-login-btn').addEventListener('click', async () =
 
 document.getElementById('create-tp-btn').addEventListener('click', async () => {
   const tpName = document.getElementById('new-tp-name').value.trim();
-  const team = document.getElementById('new-tp-team').value.trim();
+  const nation = document.getElementById('new-tp-nation').value.trim().toUpperCase();
   const resultEl = document.getElementById('create-tp-result');
   const btn = document.getElementById('create-tp-btn');
   resultEl.style.display = 'none';
-  if (!tpName || !team) { showResult(resultEl, false, 'Fill in name and team.'); return; }
+  if (!tpName) { showResult(resultEl, false, 'Enter a name.'); return; }
 
   btn.disabled = true;
   try {
     const data = await callGateway('adminCreateTpLogin', {
       username: CURRENT_USER.username, password: CURRENT_USER.password,
-      tpName: tpName, team: team, salary: '1500000'
+      tpName: tpName, nation: nation, salary: '1500000'
     });
     if (data.ok) {
       showResult(resultEl, true, '✓ Team principal created for ' + tpName + '.');
       DASH.teamPrincipals = DASH.teamPrincipals || [];
-      DASH.teamPrincipals.push({ name: tpName, team: team, salary: 1500000, hasAccount: false });
+      DASH.teamPrincipals.push({ name: tpName, team: '', nation: nation, salary: 1500000, hasAccount: false });
       populateAdminDropdowns();
-      ['new-tp-name','new-tp-team'].forEach(id => document.getElementById(id).value = '');
+      ['new-tp-name','new-tp-nation'].forEach(id => document.getElementById(id).value = '');
     } else {
       showResult(resultEl, false, '✗ ' + data.error);
     }
@@ -2382,6 +2434,17 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
 var MAIL_FOLDER = 'offers';
 var MAIL_SEL = {};
 
+var ROLE_OPTIONS = '<option value="Driving">Driving</option><option value="Reserve">Reserve</option><option value="Junior">Junior</option><option value="Affiliate">Affiliate</option>';
+
+function seatCategoryLabel_(seat) {
+  var s = Number(seat);
+  if (isNaN(s)) return '—';
+  if (s <= 2) return 'Driving';
+  if (s <= 5) return 'Reserve';
+  if (s <= 16) return 'Junior';
+  return 'Affiliate';
+}
+
 function offerStatus(o) { return o.status || ''; }
 
 function offerActionsHtml(o, i, role) {
@@ -2398,7 +2461,7 @@ function offerActionsHtml(o, i, role) {
       return '<div class="offer-actions">'
         + '<button class="action action-lead action-compact" onclick="respondOffer(' + i + ', \'accept\')"><span>Accept</span></button>'
         + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Decline</span></button>'
-        + ((o.counter && o.counter.team) ? '' : '<button class="action action-quiet action-compact" onclick="promptCounter(' + i + ')"><span>Counter</span></button>')
+        + ((o.hasCounter) ? '' : '<button class="action action-quiet action-compact" onclick="promptCounter(' + i + ')"><span>Counter</span></button>')
         + '</div>';
     }
     if (role === 'tp' && o.team === tpTeam) {
@@ -2408,7 +2471,7 @@ function offerActionsHtml(o, i, role) {
           + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Decline</span></button>'
           + '</div>';
       }
-      if (o.counter && o.counter.team) {
+      if (o.hasCounter) {
         return '<div class="offer-actions">'
           + '<button class="action action-lead action-compact" onclick="respondCounter(' + i + ', true)"><span>Accept counter</span></button>'
           + '<button class="action action-quiet action-compact" onclick="respondCounter(' + i + ', false)"><span>Reject counter</span></button>'
@@ -2457,15 +2520,16 @@ function renderMailbox() {
     var body = (o.message ? o.message + '\n\n' : '')
       + 'Salary: ' + fmtMoney(o.salary)
       + '\nPeriod: ' + (o.from || '—') + '–' + (o.till || '—')
+      + (o.role ? '\nRole: ' + o.role : '')
       + (o.terms ? '\nTerms: ' + o.terms : '')
-      + (o.counter && o.counter.team
-          ? '\n' + (role === 'tp' ? 'Driver counter: ' : 'Your counter: ') + fmtMoney(o.counter.salary) + ' with ' + o.counter.team
+      + (o.hasCounter
+          ? '\n' + (role === 'tp' ? 'Driver counter: ' : 'Your counter: ') + fmtMoney(o.counter.salary) + (o.counter.role ? ' · ' + o.counter.role : '')
           : '');
     return {
       idx: i, kind: 'offer', open: open, status: st,
-      hasCounter: !!(o.counter && o.counter.team),
+      hasCounter: !!o.hasCounter,
       from: o.team || '?', to: o.target || '?',
-      subject: 'Contract offer — ' + fmtMoney(o.salary),
+      subject: 'Contract offer — ' + fmtMoney(o.salary) + (o.role ? ' · ' + o.role : ''),
       body: body
     };
   });
@@ -2910,7 +2974,7 @@ function promptCounter(index) {
   callGateway('respondContractOffer', {
     username: CURRENT_USER.username, password: CURRENT_USER.password,
     offerRow: o.row, response: 'counter',
-    counter: { team: o.target, salary: salary, from: from, till: till, terms: terms, message: message }
+    counter: { role: o.role, salary: salary, from: from, till: till, terms: terms, message: message }
   }).then(function (data) {
     if (data.ok) { renderMailbox(); renderContracts(); }
     else alert('✗ ' + data.error);
@@ -3000,6 +3064,124 @@ document.getElementById('tp-send-mail-btn').addEventListener('click', async () =
     btn.disabled = false;
   }
 });
+
+/* ---------- live polling: mail (30s) + team chat (3s) ---------- */
+
+let MAIL_POLL_INTERVAL = null;
+let CHAT_POLL_INTERVAL = null;
+let MAIL_MAX_ID = 0;
+let CHAT = null; // { room, sinceId, messages, members, myIdentity }
+
+function mailMaxIdFrom(mail) {
+  var m = 0;
+  (mail || []).forEach(function (x) { if (x.row > m) m = x.row; });
+  return m;
+}
+
+async function pollMailOnce() {
+  if (!CURRENT_USER) return;
+  try {
+    const data = await callGateway('pollMail', { username: CURRENT_USER.username, password: CURRENT_USER.password, since: MAIL_MAX_ID });
+    if (data.ok) {
+      if (data.maxId > MAIL_MAX_ID) MAIL_MAX_ID = data.maxId;
+      if (data.mail && data.mail.length) {
+        DASH.mail = (DASH.mail || []).concat(data.mail);
+        renderMailbox();
+        buildDashSidebar(CURRENT_USER.role);
+        playNewMailSound();
+      }
+    }
+  } catch (e) { /* transient — next poll retries */ }
+}
+
+function renderChat() {
+  const membersEl = document.getElementById('chat-members');
+  const msgsEl = document.getElementById('chat-messages');
+  if (!membersEl || !msgsEl) return;
+  const members = (CHAT && CHAT.members) || [];
+  membersEl.innerHTML = members.length
+    ? members.map(function (m) {
+        return '<div class="chat-member"><span class="chat-dot"></span>' + BTG.esc(m.identity)
+          + (m.role === 'tp' ? ' <span style="color:var(--copy-faint);font-size:11px;">(TP)</span>' : '') + '</div>';
+      }).join('')
+    : '<div class="muted" style="font-size:12px;padding:6px 8px;">No one online.</div>';
+  const msgs = (CHAT && CHAT.messages) || [];
+  if (!msgs.length) {
+    msgsEl.innerHTML = '<div class="muted" style="margin:auto;text-align:center;">No messages yet — say hi to your team.</div>';
+  } else {
+    msgsEl.innerHTML = msgs.map(function (m) {
+      const me = CHAT.myIdentity && m.sender === CHAT.myIdentity;
+      return '<div class="chat-msg' + (me ? ' me' : '') + '"><div class="who">' + BTG.esc(m.sender) + '</div>' + BTG.esc(m.message) + '</div>';
+    }).join('');
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+}
+
+async function chatPollOnce() {
+  if (!CURRENT_USER || !CHAT) return;
+  try {
+    const data = await callGateway('chatPoll', { username: CURRENT_USER.username, password: CURRENT_USER.password, room: CHAT.room, since: CHAT.sinceId });
+    if (data.ok) {
+      if (data.maxId > CHAT.sinceId) CHAT.sinceId = data.maxId;
+      if (data.messages && data.messages.length) {
+        var fromOthers = CHAT.myIdentity ? data.messages.some(function (m) { return m.sender !== CHAT.myIdentity; }) : true;
+        CHAT.messages = (CHAT.messages || []).concat(data.messages);
+        if (CHAT.everLoaded && fromOthers) playNewMessageSound();
+      }
+      CHAT.everLoaded = true;
+      CHAT.members = data.members || [];
+      renderChat();
+    }
+  } catch (e) { /* transient */ }
+}
+
+async function sendChatMessage() {
+  if (!CURRENT_USER || !CHAT) return;
+  const input = document.getElementById('chat-input');
+  const msg = (input.value || '').trim();
+  if (!msg) return;
+  input.value = '';
+  try {
+    const data = await callGateway('chatSend', { username: CURRENT_USER.username, password: CURRENT_USER.password, room: CHAT.room, message: msg });
+    if (data.ok && data.message) {
+      CHAT.messages = (CHAT.messages || []).concat([data.message]);
+      if (data.message.id > CHAT.sinceId) CHAT.sinceId = data.message.id;
+      renderChat();
+    }
+  } catch (e) { /* transient */ }
+}
+
+function startLive() {
+  stopLive();
+  if (!CURRENT_USER) return;
+  MAIL_MAX_ID = mailMaxIdFrom(DASH && DASH.mail);
+  MAIL_POLL_INTERVAL = setInterval(pollMailOnce, 30000);
+  const room = CURRENT_USER.role === 'tp' ? (DASH.tp && DASH.tp.team) : (DASH.driver && DASH.driver.team);
+  if (room && (CURRENT_USER.role === 'driver' || CURRENT_USER.role === 'tp')) {
+    CHAT = {
+      room: room,
+      sinceId: 0,
+      messages: [],
+      members: [],
+      myIdentity: CURRENT_USER.role === 'tp' ? (DASH.tp && DASH.tp.name) : (DASH.driver && DASH.driver.driver)
+    };
+    chatPollOnce();
+    CHAT_POLL_INTERVAL = setInterval(chatPollOnce, 3000);
+  }
+}
+
+function stopLive() {
+  if (MAIL_POLL_INTERVAL) { clearInterval(MAIL_POLL_INTERVAL); MAIL_POLL_INTERVAL = null; }
+  if (CHAT_POLL_INTERVAL) { clearInterval(CHAT_POLL_INTERVAL); CHAT_POLL_INTERVAL = null; }
+  CHAT = null;
+}
+
+(function () {
+  const chatSendBtn = document.getElementById('chat-send-btn');
+  const chatInput = document.getElementById('chat-input');
+  if (chatSendBtn) chatSendBtn.addEventListener('click', sendChatMessage);
+  if (chatInput) chatInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendChatMessage(); });
+})();
 
 /* ---------- pre-load race data for overview standings/points ---------- */
 (function () {

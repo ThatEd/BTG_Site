@@ -139,6 +139,17 @@ BTG.esc = function(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 };
 
+/** Group drivers by series. Returns { seriesId: [drivers] }. */
+BTG.groupBySeries = function(drivers) {
+  var groups = {};
+  (drivers || []).forEach(function(d) {
+    var s = d.series || 'Unknown';
+    if (!groups[s]) groups[s] = [];
+    groups[s].push(d);
+  });
+  return groups;
+};
+
 /* ── Modal ────────────────────────────────────────────────────────────────── */
 
 BTG.openModal = function(id) {
