@@ -629,8 +629,12 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
       <div class="section-head-mark"></div>
       <div class="section-head-body">
         <span class="section-head-num">02E — Team Chat</span>
-        <h2>Team Chat</h2>
+        <h2 id="chat-heading">Team Chat</h2>
       </div>
+    </div>
+    <div class="field hidden" id="chat-room-picker" style="max-width:340px; margin-bottom:14px;">
+      <label for="chat-room-select">Chat</label>
+      <select id="chat-room-select"></select>
     </div>
     <div class="chat-app">
       <div class="chat-side">
@@ -1450,12 +1454,23 @@ const TAB_ICONS = {
   account: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
 };
 
+function myMailIdentity() {
+  if (!CURRENT_USER) return '';
+  if (CURRENT_USER.role === 'driver') return (DASH && DASH.driver && DASH.driver.driver) || '';
+  if (CURRENT_USER.role === 'tp') return (DASH && DASH.tp && DASH.tp.name) || '';
+  return '';
+}
+
+function mailIsInboxUnread(m) {
+  return !m.read && m.from !== myMailIdentity();
+}
+
 function navBadgeCount(tabId) {
   if (tabId !== 'mail') return null;
   if (CURRENT_USER && CURRENT_USER.role === 'admin') return null; // admins aren't pinged about others' mail
   const offers = (DASH && DASH.offers) || [];
   const open = offers.filter(function (o) { return o.status !== 'Denied' && o._status !== 'accepted' && o._status !== 'declined'; });
-  const unread = (DASH && DASH.mail) ? DASH.mail.filter(function (m) { return !m.read; }).length : 0;
+  const unread = (DASH && DASH.mail) ? DASH.mail.filter(mailIsInboxUnread).length : 0;
   const total = open.length + unread;
   return total || null;
 }
@@ -1860,6 +1875,7 @@ function onLoginSuccess(data) {
     allDrivers: data.allDrivers || [],
     contracts: data.contracts || [],
     teamPrincipals: data.teamPrincipals || [],
+    chatRooms: data.chatRooms || [],
     finances: data.finances || null
   };
   if (data.year) CURRENT_YEAR = data.year;
@@ -3491,7 +3507,7 @@ async function pollMailOnce() {
         DASH.mail = (DASH.mail || []).concat(data.mail);
         renderMailbox();
         buildDashSidebar(CURRENT_USER.role);
-        playNewMailSound();
+        if (CURRENT_USER.role !== 'admin' && data.mail.some(mailIsInboxUnread)) playNewMailSound();
       }
     }
   } catch (e) { /* transient — next poll retries */ }
@@ -3500,21 +3516,48 @@ async function pollMailOnce() {
 function renderChat() {
   const membersEl = document.getElementById('chat-members');
   const msgsEl = document.getElementById('chat-messages');
-  if (!membersEl || !msgsEl) return;
-  const members = (CHAT && CHAT.members) || [];
+  if (!membersEl || !msgsEl || !CHAT) return;
+  const headingEl = document.getElementById('chat-heading');
+  const pickerWrap = document.getElementById('chat-room-picker');
+  const picker = document.getElementById('chat-room-select');
+
+  if (picker && pickerWrap) {
+    if (CHAT.rooms.length > 1) {
+      pickerWrap.classList.remove('hidden');
+      var cur = CHAT.activeRoom;
+      picker.innerHTML = CHAT.rooms.map(function (r) {
+        var st = CHAT.state[r] || {};
+        var unread = st.unread || 0;
+        return '<option value="' + BTG.esc(r) + '"' + (r === cur ? ' selected' : '') + '>' + BTG.esc(r) + (unread ? ' (' + unread + ')' : '') + '</option>';
+      }).join('');
+    } else {
+      pickerWrap.classList.add('hidden');
+    }
+  }
+  if (headingEl) headingEl.textContent = (CHAT.activeRoom || 'Team') + ' Chat';
+
+  var st = CHAT.state[CHAT.activeRoom] || { messages: [], members: [] };
+
+  var members = st.members || [];
+  var me = CHAT.myIdentity;
+  var ids = members.map(function (m) { return m.identity; });
+  if (me && ids.indexOf(me) === -1) members = [{ identity: me, role: (CURRENT_USER && CURRENT_USER.role) || '' }].concat(members);
   membersEl.innerHTML = members.length
     ? members.map(function (m) {
         return '<div class="chat-member"><span class="chat-dot"></span>' + BTG.esc(m.identity)
-          + (m.role === 'tp' ? ' <span style="color:var(--copy-faint);font-size:11px;">(TP)</span>' : '') + '</div>';
+          + (m.identity === me ? ' <span style="color:var(--copy-faint);font-size:11px;">(You)</span>' : '')
+          + (m.role === 'tp' ? ' <span style="color:var(--copy-faint);font-size:11px;">(TP)</span>' : '')
+          + '</div>';
       }).join('')
     : '<div class="muted" style="font-size:12px;padding:6px 8px;">No one online.</div>';
-  const msgs = (CHAT && CHAT.messages) || [];
+
+  var msgs = st.messages || [];
   if (!msgs.length) {
     msgsEl.innerHTML = '<div class="muted" style="margin:auto;text-align:center;">No messages yet — say hi to your team.</div>';
   } else {
     msgsEl.innerHTML = msgs.map(function (m) {
-      const me = CHAT.myIdentity && m.sender === CHAT.myIdentity;
-      return '<div class="chat-msg' + (me ? ' me' : '') + '"><div class="who">' + BTG.esc(m.sender) + '</div>' + BTG.esc(m.message) + '</div>';
+      const meMsg = CHAT.myIdentity && m.sender === CHAT.myIdentity;
+      return '<div class="chat-msg' + (meMsg ? ' me' : '') + '"><div class="who">' + BTG.esc(m.sender) + '</div>' + BTG.esc(m.message) + '</div>';
     }).join('');
     msgsEl.scrollTop = msgsEl.scrollHeight;
   }
@@ -3522,20 +3565,30 @@ function renderChat() {
 
 async function chatPollOnce() {
   if (!CURRENT_USER || !CHAT) return;
-  try {
-    const data = await callGateway('chatPoll', { username: CURRENT_USER.username, password: CURRENT_USER.password, room: CHAT.room, since: CHAT.sinceId });
-    if (data.ok) {
-      if (data.maxId > CHAT.sinceId) CHAT.sinceId = data.maxId;
-      if (data.messages && data.messages.length) {
-        var fromOthers = CHAT.myIdentity ? data.messages.some(function (m) { return m.sender !== CHAT.myIdentity; }) : true;
-        CHAT.messages = (CHAT.messages || []).concat(data.messages);
-        if (CHAT.everLoaded && fromOthers) playNewMessageSound();
+  var anyNewFromOthers = false;
+  for (var i = 0; i < CHAT.rooms.length; i++) {
+    var room = CHAT.rooms[i];
+    var st = CHAT.state[room] || { sinceId: 0, messages: [], members: [], unread: 0 };
+    try {
+      const data = await callGateway('chatPoll', { username: CURRENT_USER.username, password: CURRENT_USER.password, room: room, since: st.sinceId });
+      if (data.ok) {
+        if (data.maxId > st.sinceId) st.sinceId = data.maxId;
+        if (data.messages && data.messages.length) {
+          var others = CHAT.myIdentity ? data.messages.filter(function (m) { return m.sender !== CHAT.myIdentity; }) : data.messages;
+          st.messages = (st.messages || []).concat(data.messages);
+          if (others.length) {
+            anyNewFromOthers = true;
+            if (room !== CHAT.activeRoom) st.unread = (st.unread || 0) + others.length;
+          }
+        }
+        st.members = data.members || [];
+        CHAT.state[room] = st;
       }
-      CHAT.everLoaded = true;
-      CHAT.members = data.members || [];
-      renderChat();
-    }
-  } catch (e) { /* transient */ }
+    } catch (e) { /* transient */ }
+  }
+  if (anyNewFromOthers && CHAT.everLoaded) playNewMessageSound();
+  CHAT.everLoaded = true;
+  renderChat();
 }
 
 async function sendChatMessage() {
@@ -3545,10 +3598,12 @@ async function sendChatMessage() {
   if (!msg) return;
   input.value = '';
   try {
-    const data = await callGateway('chatSend', { username: CURRENT_USER.username, password: CURRENT_USER.password, room: CHAT.room, message: msg });
+    const data = await callGateway('chatSend', { username: CURRENT_USER.username, password: CURRENT_USER.password, room: CHAT.activeRoom, message: msg });
     if (data.ok && data.message) {
-      CHAT.messages = (CHAT.messages || []).concat([data.message]);
-      if (data.message.id > CHAT.sinceId) CHAT.sinceId = data.message.id;
+      var st = CHAT.state[CHAT.activeRoom] || { sinceId: 0, messages: [], members: [], unread: 0 };
+      st.messages = (st.messages || []).concat([data.message]);
+      if (data.message.id > st.sinceId) st.sinceId = data.message.id;
+      CHAT.state[CHAT.activeRoom] = st;
       renderChat();
     }
   } catch (e) { /* transient */ }
@@ -3559,15 +3614,18 @@ function startLive() {
   if (!CURRENT_USER) return;
   MAIL_MAX_ID = mailMaxIdFrom(DASH && DASH.mail);
   MAIL_POLL_INTERVAL = setInterval(pollMailOnce, 30000);
-  const room = CURRENT_USER.role === 'tp' ? (DASH.tp && DASH.tp.team) : (DASH.driver && DASH.driver.team);
-  if (room && (CURRENT_USER.role === 'driver' || CURRENT_USER.role === 'tp')) {
+  var rooms = (DASH && DASH.chatRooms) || [];
+  if (rooms.length && (CURRENT_USER.role === 'driver' || CURRENT_USER.role === 'tp')) {
+    var state = {};
+    rooms.forEach(function (r) { state[r] = { sinceId: 0, messages: [], members: [], unread: 0 }; });
     CHAT = {
-      room: room,
-      sinceId: 0,
-      messages: [],
-      members: [],
+      rooms: rooms,
+      activeRoom: rooms[0],
+      state: state,
+      everLoaded: false,
       myIdentity: CURRENT_USER.role === 'tp' ? (DASH.tp && DASH.tp.name) : (DASH.driver && DASH.driver.driver)
     };
+    renderChat();
     chatPollOnce();
     CHAT_POLL_INTERVAL = setInterval(chatPollOnce, 3000);
   }
@@ -3582,8 +3640,16 @@ function stopLive() {
 (function () {
   const chatSendBtn = document.getElementById('chat-send-btn');
   const chatInput = document.getElementById('chat-input');
+  const chatRoomSel = document.getElementById('chat-room-select');
   if (chatSendBtn) chatSendBtn.addEventListener('click', sendChatMessage);
   if (chatInput) chatInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendChatMessage(); });
+  if (chatRoomSel) chatRoomSel.addEventListener('change', function () {
+    if (!CHAT) return;
+    CHAT.activeRoom = this.value;
+    var st = CHAT.state[CHAT.activeRoom];
+    if (st) st.unread = 0;
+    renderChat();
+  });
 })();
 
 /* ---------- pre-load race data for overview standings/points ---------- */
