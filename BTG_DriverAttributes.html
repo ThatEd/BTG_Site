@@ -101,18 +101,18 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 .attr-group{background:var(--card); border:1px solid var(--edge); border-radius:12px; overflow:hidden;}
 .attr-head{padding:14px 18px; background:var(--card-high); border-bottom:1px solid var(--edge); font-family:var(--head-face); font-size:14px; font-weight:700; display:flex; align-items:center; gap:10px; text-transform:uppercase; letter-spacing:.03em; color:var(--copy);}
 .attr-head::before{content:""; width:5px; height:14px; background:var(--team-accent); transform:skewX(-14deg); border-radius:2px;}
-.attr-row{display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-bottom:1px solid var(--edge); gap:16px;}
+.attr-row{display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid var(--edge); gap:10px;}
 .attr-row:last-child{border-bottom:none;}
-.attr-name{font-family:var(--head-face); font-size:14px; font-weight:600; text-transform:uppercase; letter-spacing:.01em; color:var(--copy);}
+.attr-name{font-family:var(--head-face); font-size:14px; font-weight:600; text-transform:uppercase; letter-spacing:.01em; color:var(--copy); min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .attr-weight{font-size:11px; color:var(--copy-faint); margin-top:2px; font-family:var(--data-face); letter-spacing:.04em;}
-.attr-right{display:flex; align-items:center; gap:12px; flex-shrink:0;}
-.attr-bar{width:96px; height:6px; background:var(--card-high); border-radius:3px; overflow:hidden;}
+.attr-right{display:flex; align-items:center; gap:8px; flex-shrink:0;}
+.attr-bar{width:60px; height:6px; background:var(--card-high); border-radius:3px; overflow:hidden; flex:0 0 auto;}
 .attr-bar-fill{height:100%; background:var(--team-accent); border-radius:3px; transition:width .3s ease;}
-.attr-val{font-family:'Formula1',sans-serif; font-size:16px; font-weight:700; min-width:28px; text-align:right; color:var(--copy);}
-.attr-delta{font-family:var(--data-face); font-size:13px; color:var(--brass); min-width:24px; text-align:left;}
-.stepper{display:flex; align-items:center; gap:6px; margin-left:4px;}
+.attr-val{font-family:'Formula1',sans-serif; font-size:16px; font-weight:700; min-width:24px; text-align:right; color:var(--copy);}
+.attr-delta{font-family:var(--data-face); font-size:13px; color:var(--brass); min-width:20px; text-align:left;}
+.stepper{display:flex; align-items:center; gap:4px; margin-left:2px;}
 .stepper button{
-  width:28px; height:28px; background:var(--card-high); border:1px solid var(--edge-strong);
+  width:26px; height:26px; background:var(--card-high); border:1px solid var(--edge-strong);
   color:var(--copy); font-family:var(--data-face); font-size:16px; line-height:1; cursor:pointer; transition:.12s; border-radius:6px;
 }
 .stepper button:hover:not(:disabled){background:var(--edge-strong);}

@@ -160,10 +160,12 @@ h1, h2, h3, h4, h5, h6 {
 .modal-close{background:none; border:none; color:var(--copy-faint); cursor:pointer; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:8px; font-size:16px; transition:.15s;}
 .modal-close:hover{background:var(--card-high); color:var(--copy);}
 .modal-body{padding:22px;}
-.donate-modal{max-width:580px;}
-.donate-modal iframe{display:block; width:100%; height:520px; border:1px solid var(--edge); border-radius:8px; background:#fff;}
-.donate-fallback{display:block; margin-top:12px; text-align:center; font-size:13px; color:var(--copy-soft);}
-.donate-fallback a{color:var(--team-accent-hot); font-weight:600;}
+.donate-modal{max-width:460px;}
+.donate-btn{display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:13px 18px; border-radius:8px; background:#0070ba; border:1px solid #005ea6; color:#fff; font-family:var(--head-face); font-size:15px; font-weight:700; letter-spacing:.02em; text-decoration:none; cursor:pointer; transition:background .15s ease, transform .1s ease;}
+.donate-btn:hover{background:#005ea6;}
+.donate-btn:active{transform:translateY(1px);}
+.donate-btn-icon{font-size:16px; line-height:1;}
+.donate-note{margin-top:14px; text-align:center; font-size:12px; color:var(--copy-faint);}
 
 /* ── Series Bar ── */
 .series-bar {
