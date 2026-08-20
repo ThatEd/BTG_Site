@@ -359,6 +359,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 .modal-close{background:none; border:none; color:var(--copy-faint); cursor:pointer; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:8px; font-size:16px; transition:.15s;}
 .modal-close:hover{background:var(--card-high); color:var(--copy);}
 .modal-body{padding:22px;}
+.readonly-value{font-family:var(--data-face); font-size:14px; color:var(--copy-soft); background:var(--card-high); border:1px solid var(--edge-strong); padding:11px 14px; border-radius:8px;}
 .field textarea{background:var(--card-high); border:1px solid var(--edge-strong); color:var(--copy); font-family:var(--data-face); font-size:14px; padding:11px 14px; width:100%; resize:vertical; min-height:100px;}
 .field textarea:focus-visible{outline:none; box-shadow:var(--focus-ring);}
 </style>
@@ -1010,6 +1011,40 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
   </div>
 </div>
 
+<!-- ═══ Modify contract modal ═══ -->
+<div class="modal-overlay" id="contract-modify-modal" onclick="if(event.target===this) closeContractModify()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Modify contract</div>
+      <button class="modal-close" onclick="closeContractModify()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field"><label>Driver</label><div class="readonly-value" id="cm-driver">—</div></div>
+        <div class="field"><label>Team</label><div class="readonly-value" id="cm-team">—</div></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>From year (locked)</label><div class="readonly-value" id="cm-from">—</div></div>
+        <div class="field"><label for="cm-till">New end year</label><input type="text" id="cm-till" placeholder="2027"></div>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label for="cm-salary">New salary</label>
+        <input type="text" id="cm-salary" placeholder="8,000,000">
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label for="cm-message">Message</label>
+        <input type="text" id="cm-message" placeholder="Optional note to your driver…">
+      </div>
+      <p class="muted" style="margin-top:8px;">The start year is locked. If the driver accepts, the contract's salary and end year update.</p>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+        <button class="action action-quiet action-compact" onclick="closeContractModify()"><span>Cancel</span></button>
+        <button class="action action-lead action-compact" id="cm-send-btn" onclick="submitContractModify()"><span>Send change</span></button>
+      </div>
+      <div class="result-line" id="cm-result" style="margin-top:12px;"></div>
+    </div>
+  </div>
+</div>
+
 <script src="js/common.js"></script>
 <script src="teams/f1.js"></script>
 <script src="js/roster.js"></script>
@@ -1630,9 +1665,14 @@ function renderContracts() {
 
   const sorted = contracts.slice().sort(function (a, b) { return (Number(a.seat) || 0) - (Number(b.seat) || 0); });
   const rows = sorted.map(function (c) {
+    var actions = '';
+    if (role === 'tp') {
+      actions = '<td><button class="action action-quiet action-compact" onclick="openContractModify(\'' + String(c.row) + '\')"><span>Modify</span></button></td>';
+    }
     return '<tr><td class="strong">' + BTG.esc(c.driver) + '</td><td>' + BTG.esc(c.team) + '</td>'
       + '<td>' + fmtMoney(c.salary) + '</td><td>' + BTG.esc(c.from || '—') + '–' + BTG.esc(c.till || '—') + '</td>'
-      + '<td>' + BTG.esc(c.seat || '—') + '</td><td><span class="tag-pill">' + BTG.esc(seatCategoryLabel_(c.seat, c.team)) + '</span></td></tr>';
+      + '<td>' + BTG.esc(c.seat || '—') + '</td><td><span class="tag-pill">' + BTG.esc(seatCategoryLabel_(c.seat, c.team)) + '</span></td>'
+      + actions + '</tr>';
   }).join('');
 
   var offers = (DASH.offers || []);
@@ -1643,15 +1683,16 @@ function renderContracts() {
     const st = offerStatus(o);
     const offerClass = st === 'Rejected' ? 'denied' : (st === 'On Hold' ? 'warn' : '');
     offerHtml += '<div class="offer ' + offerClass + '">'
-      + '<div class="offer-top"><span class="strong">' + BTG.esc(o.team) + ' → ' + BTG.esc(o.target) + '</span>'
+      + '<div class="offer-top"><span class="strong">' + BTG.esc(o.team) + ' → ' + BTG.esc(o.target) + '</span>' + (o.modify ? '<span class="tag-pill warn">Contract change</span>' : '')
       + '<span class="stamp">' + fmtMoney(o.salary) + ' · ' + BTG.esc(o.from || '—') + '–' + BTG.esc(o.till || '—') + (o.role ? ' · ' + BTG.esc(o.role) : '') + '</span></div>'
       + (o.message ? '<div class="offer-body">' + BTG.esc(o.message) + '</div>' : '')
       + offerActionsHtml(o, i, role)
       + '</div>';
   });
 
+  var actionsHead = (role === 'tp') ? '<th>Actions</th>' : '';
   var html = '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Active contracts</div>'
-    + (rows ? '<table class="contract-table"><thead><tr><th>Driver</th><th>Team</th><th>Salary</th><th>Period</th><th>Seat</th><th>Role</th></tr></thead><tbody>' + rows + '</tbody></table>' : '<div class="muted">No contracts.</div>')
+    + (rows ? '<table class="contract-table"><thead><tr><th>Driver</th><th>Team</th><th>Salary</th><th>Period</th><th>Seat</th><th>Role</th>' + actionsHead + '</tr></thead><tbody>' + rows + '</tbody></table>' : '<div class="muted">No contracts.</div>')
     + '</div>'
     + '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Pending offers</div>'
     + (offerHtml || '<div class="muted">No pending offers.</div>')
@@ -1669,6 +1710,7 @@ function renderContracts() {
           : contractDriverOptions(''))
       + '</select></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="8,000,000"></div></div>'
       + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div><div class="field"><label for="c-role">Role</label><select id="c-role">' + ROLE_OPTIONS + '</select></div></div>'
+      + '<p class="muted" style="margin-bottom:10px;">Only drivers on a Reserve contract can be used as reserves in races.</p>'
       + '<div class="field"><label for="c-terms">Extra terms</label><input type="text" id="c-terms"></div>'
       + '<div class="field"><label for="c-message">Message</label><input type="text" id="c-message"></div>'
       + '<button class="action action-lead" id="c-send-btn"><span>Send offer</span></button><div class="result-line" id="c-result"></div></div>';
@@ -2829,7 +2871,7 @@ function renderMailbox() {
       idx: i, kind: 'offer', open: open, status: st,
       hasCounter: !!o.hasCounter,
       from: o.team || '?', to: o.target || '?',
-      subject: 'Contract offer — ' + fmtMoney(o.salary) + (o.role ? ' · ' + o.role : ''),
+      subject: (o.modify ? 'Contract change — ' : 'Contract offer — ') + fmtMoney(o.salary) + (o.role ? ' · ' + o.role : ''),
       body: body
     };
   });
@@ -3016,6 +3058,45 @@ function replyMailTo(to) {
 }
 function closeMailCompose() {
   document.getElementById('compose-modal').classList.remove('open');
+}
+let CONTRACT_MODIFY_ROW = null;
+function openContractModify(contractRow) {
+  CONTRACT_MODIFY_ROW = contractRow;
+  var c = (DASH.contracts || []).filter(function (x) { return String(x.row) === String(contractRow); })[0];
+  if (!c) return;
+  document.getElementById('cm-driver').textContent = c.driver;
+  document.getElementById('cm-team').textContent = c.team || '—';
+  document.getElementById('cm-from').textContent = c.from || '—';
+  document.getElementById('cm-salary').value = c.salary;
+  document.getElementById('cm-till').value = c.till || '';
+  document.getElementById('cm-message').value = '';
+  document.getElementById('cm-result').style.display = 'none';
+  document.getElementById('contract-modify-modal').classList.add('open');
+}
+function closeContractModify() {
+  document.getElementById('contract-modify-modal').classList.remove('open');
+}
+async function submitContractModify() {
+  const resultEl = document.getElementById('cm-result');
+  const btn = document.getElementById('cm-send-btn');
+  const salary = document.getElementById('cm-salary').value.trim();
+  const till = document.getElementById('cm-till').value.trim();
+  const message = document.getElementById('cm-message').value.trim();
+  resultEl.style.display = 'none';
+  if (!salary || !till) { showResult(resultEl, false, 'Enter a salary and end year.'); return; }
+  btn.disabled = true;
+  try {
+    const data = await callGateway('sendContractChange', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      contractRow: CONTRACT_MODIFY_ROW, salary: salary, till: till, message: message
+    });
+    if (data.ok) { showResult(resultEl, true, '✓ Contract change sent to the driver.'); closeContractModify(); }
+    else { showResult(resultEl, false, '✗ ' + data.error); }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
+  }
 }
 async function sendMailCompose() {
   const to = document.getElementById('compose-to').value.trim();
