@@ -300,6 +300,13 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 .mail-row.unread .mail-subj{color:var(--copy); font-weight:600;}
 .unread-dot{display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--team-accent); margin-right:7px; flex:0 0 auto; vertical-align:middle;}
 .mail-body{font-size:12px; color:var(--copy-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.mail-toolbar{display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:10px 12px; border-bottom:1px solid var(--edge);}
+.mail-toolbar select,.mail-toolbar input[type=search]{background:var(--card-high); border:1px solid var(--edge-strong); color:var(--copy); border-radius:8px; font-family:var(--data-face); font-size:12px; padding:6px 10px; min-width:0;}
+.mail-toolbar select{flex:0 0 auto; max-width:170px;}
+.mail-toolbar input[type=search]{flex:1 1 120px;}
+.mail-important-only{display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--copy-soft); white-space:nowrap; cursor:pointer;}
+.mail-important-only input{accent-color:var(--team-accent);}
+.mail-star{color:var(--brass); margin-right:6px; display:inline-block;}
 .mail-read{padding:24px; overflow-y:auto;}
 .read-subj{font-family:var(--head-face); font-size:17px; font-weight:700; margin-bottom:10px; line-height:1.3; color:var(--copy);}
 .read-meta{display:flex; align-items:center; gap:12px; margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid var(--edge);}
@@ -533,6 +540,23 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
         <button class="action action-compact" id="create-login-btn"><span>Create Login</span></button>
       </div>
       <div class="result-line" id="create-login-result"></div>
+    </div>
+
+    <div class="tool-card">
+      <h3>Reset password</h3>
+      <p class="muted" style="margin-bottom:12px;">Set a new password for a user's login (password recovery). Passwords are stored as one-way hashes and can't be viewed — this replaces the old password.</p>
+      <div class="field-row">
+        <div class="field">
+          <label for="reset-user-select">User</label>
+          <select id="reset-user-select"><option value="">— choose a user —</option></select>
+        </div>
+        <div class="field">
+          <label for="reset-password">New password</label>
+          <input type="text" id="reset-password" placeholder="new password" autocomplete="off">
+        </div>
+        <button class="action action-compact" id="reset-password-btn"><span>Set Password</span></button>
+      </div>
+      <div class="result-line" id="reset-password-result"></div>
     </div>
   </section>
 
@@ -1697,6 +1721,30 @@ function contractDriverOptions(selected, excludeName) {
   return opts;
 }
 
+let MINPAY_TIMER = null;
+function refreshMinPayFor(teamId, driverId, roleId, resultId) {
+  var teamEl = document.getElementById(teamId);
+  var resEl = document.getElementById(resultId);
+  if (!teamEl || !resEl) return;
+  var teamKey = String(teamEl.value || '');
+  var driverName = '';
+  if (driverId) { var dEl = document.getElementById(driverId); if (dEl) driverName = String(dEl.value || ''); }
+  else if (CURRENT_USER && CURRENT_USER.role === 'driver') driverName = (DASH && DASH.driver && DASH.driver.driver) || '';
+  var roleEl = document.getElementById(roleId);
+  var roleVal = roleEl ? String(roleEl.value || 'Driving') : 'Driving';
+  if (!teamKey || !driverName) { resEl.textContent = ''; return; }
+  clearTimeout(MINPAY_TIMER);
+  MINPAY_TIMER = setTimeout(async function () {
+    try {
+      const data = await callGateway('contractMinPay', {
+        username: CURRENT_USER.username, password: CURRENT_USER.password,
+        team: teamKey, driver: driverName, role: roleVal
+      });
+      resEl.textContent = (data.ok && data.minPay > 0) ? 'Minimum salary: ' + fmtMoney(data.minPay) : '';
+    } catch (e) { resEl.textContent = ''; }
+  }, 250);
+}
+
 function renderContracts() {
   const el = document.getElementById('contracts-content');
   const role = CURRENT_USER && CURRENT_USER.role;
@@ -1750,6 +1798,7 @@ function renderContracts() {
           ? '<option value="">— choose a driver —</option>' + DASH.allDrivers.map(function (d) { return '<option>' + BTG.esc(d) + '</option>'; }).join('')
           : contractDriverOptions(''))
       + '</select></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="8,000,000"></div></div>'
+      + '<div class="muted" id="tp-minpay" style="margin-bottom:10px;"></div>'
       + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div><div class="field"><label for="c-role">Role</label><select id="c-role">' + ROLE_OPTIONS + '</select></div></div>'
       + '<p class="muted" style="margin-bottom:10px;">Only drivers on a Reserve contract can be used as reserves in races.</p>'
       + '<div class="field"><label for="c-terms">Extra terms</label><input type="text" id="c-terms"></div>'
@@ -1759,6 +1808,7 @@ function renderContracts() {
     html += '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Initiate a contract offer</div>'
       + '<p class="muted" style="margin-bottom:10px;">Offer yourself to a team. Salary can be negative — a pay driver pays the team.</p>'
       + '<div class="field-row"><div class="field"><label for="c-team">Team</label><select id="c-team">' + contractTeamOptions('') + '</select></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="-2,000,000"></div></div>'
+      + '<div class="muted" id="driver-minpay" style="margin-bottom:10px;"></div>'
       + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div><div class="field"><label for="c-role">Role</label><select id="c-role">' + ROLE_OPTIONS + '</select></div></div>'
       + '<div class="field"><label for="c-terms">Extra terms</label><input type="text" id="c-terms"></div>'
       + '<div class="field"><label for="c-message">Message</label><input type="text" id="c-message"></div>'
@@ -1788,6 +1838,23 @@ function renderContracts() {
   }
 
   el.innerHTML = html;
+
+  var tpTeamEl = document.getElementById('c-team-tp');
+  if (tpTeamEl) {
+    ['c-team-tp','c-driver','c-role'].forEach(function (id) {
+      var el0 = document.getElementById(id);
+      if (el0) el0.addEventListener('change', function () { refreshMinPayFor('c-team-tp', 'c-driver', 'c-role', 'tp-minpay'); });
+    });
+    refreshMinPayFor('c-team-tp', 'c-driver', 'c-role', 'tp-minpay');
+  }
+  var cTeamEl = document.getElementById('c-team');
+  if (cTeamEl) {
+    ['c-team','c-role'].forEach(function (id) {
+      var el0 = document.getElementById(id);
+      if (el0) el0.addEventListener('change', function () { refreshMinPayFor('c-team', null, 'c-role', 'driver-minpay'); });
+    });
+    refreshMinPayFor('c-team', null, 'c-role', 'driver-minpay');
+  }
 
   var adBtn = document.getElementById('ad-save-btn');
   if (adBtn) {
@@ -1903,6 +1970,7 @@ function onLoginSuccess(data) {
     contracts: data.contracts || [],
     teamPrincipals: data.teamPrincipals || [],
     chatRooms: data.chatRooms || [],
+    importantSenders: data.importantSenders || [],
     finances: data.finances || null
   };
   if (data.year) CURRENT_YEAR = data.year;
@@ -2009,6 +2077,15 @@ function populateAdminDropdowns() {
   });
   if (driverOpts) loginSel.innerHTML += '<optgroup label="Drivers">' + driverOpts + '</optgroup>';
   if (tpOpts) loginSel.innerHTML += '<optgroup label="Team Principals">' + tpOpts + '</optgroup>';
+  var resetSel = document.getElementById('reset-user-select');
+  if (resetSel) {
+    resetSel.innerHTML = '<option value="">— choose a user —</option>';
+    ((DASH && DASH.usernames) || []).forEach(function (u) {
+      var opt = document.createElement('option');
+      opt.value = u; opt.textContent = u;
+      resetSel.appendChild(opt);
+    });
+  }
   populateNationDropdown();
   populateTpTeamPicker();
   populateLoanPicker();
@@ -2138,6 +2215,33 @@ document.getElementById('create-login-btn').addEventListener('click', async () =
       DRIVERS.forEach(d => { if (d.driver === personName) d.hasAccount = true; });
       ((DASH && DASH.teamPrincipals) || []).forEach(t => { if (t.name === personName) t.hasAccount = true; });
       populateAdminDropdowns();
+    } else {
+      showResult(resultEl, false, '✗ ' + data.error);
+    }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('reset-password-btn').addEventListener('click', async () => {
+  const targetUser = document.getElementById('reset-user-select').value;
+  const newPassword = document.getElementById('reset-password').value;
+  const resultEl = document.getElementById('reset-password-result');
+  const btn = document.getElementById('reset-password-btn');
+  resultEl.style.display = 'none';
+  if (!targetUser || !newPassword) { showResult(resultEl, false, 'Choose a user and enter a new password.'); return; }
+
+  btn.disabled = true;
+  try {
+    const data = await callGateway('adminResetPassword', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      targetUser: targetUser, newPassword: newPassword
+    });
+    if (data.ok) {
+      showResult(resultEl, true, '✓ Password reset for ' + targetUser + '.');
+      document.getElementById('reset-password').value = '';
     } else {
       showResult(resultEl, false, '✗ ' + data.error);
     }
@@ -2798,6 +2902,9 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
 
 var MAIL_FOLDER = 'offers';
 var MAIL_SEL = {};
+var MAIL_SENDER_FILTER = '';
+var MAIL_SEARCH = '';
+var MAIL_IMPORTANT_ONLY = false;
 
 var ROLE_OPTIONS = '<option value="Driving">Driving</option><option value="Reserve">Reserve</option><option value="Junior">Junior</option><option value="Affiliate">Affiliate</option>';
 
@@ -2889,6 +2996,37 @@ function offerActionsHtml(o, i, role) {
   return '<div class="offer-actions">' + pill + '</div>';
 }
 
+function isImportant(name) { return name && ((DASH && DASH.importantSenders) || []).indexOf(name) !== -1; }
+async function toggleImportant(name) {
+  if (!name || !CURRENT_USER) return;
+  var on = !isImportant(name);
+  try {
+    const data = await callGateway('setImportantSender', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      senderName: name, important: on
+    });
+    if (data.ok) {
+      var list = (DASH && DASH.importantSenders) || [];
+      var i = list.indexOf(name);
+      if (on) { if (i === -1) list = list.concat([name]); }
+      else { if (i !== -1) list = list.slice(0, i).concat(list.slice(i + 1)); }
+      DASH.importantSenders = list;
+      renderMailbox();
+    } else {
+      alert('✗ ' + data.error);
+    }
+  } catch (e) { alert('✗ Could not reach the gateway script.'); }
+}
+function onMailSearch(el) {
+  MAIL_SEARCH = el.value;
+  renderMailbox();
+  var inp = document.getElementById('mail-search');
+  if (inp) {
+    inp.focus();
+    try { inp.setSelectionRange(el.value.length, el.value.length); } catch (e) {}
+  }
+}
+
 function renderMailbox() {
   const root = document.getElementById('mailbox-offers');
   const mailEl = document.getElementById('mailbox-mail');
@@ -2912,7 +3050,7 @@ function renderMailbox() {
           ? '\n' + (role === 'tp' ? 'Driver counter: ' : 'Your counter: ') + fmtMoney(o.counter.salary) + (o.counter.role ? ' · ' + o.counter.role : '')
           : '');
     return {
-      idx: i, kind: 'offer', open: open, status: st,
+      idx: i, kind: 'offer', open: open, status: st, row: o.row,
       hasCounter: !!o.hasCounter,
       from: o.team || '?', to: o.target || '?',
       subject: (o.modify ? 'Contract change — ' : 'Contract offer — ') + fmtMoney(o.salary) + (o.role ? ' · ' + o.role : ''),
@@ -2945,6 +3083,9 @@ function renderMailbox() {
   }
   const mailItems = mail.filter(isForMe).map(function (m) { return toMailItem(m, 'mail'); });
   const sentItems = mail.filter(isFromMe).map(function (m) { return toMailItem(m, 'sent'); });
+  mailItems.sort(function (a, b) { return (b.row || 0) - (a.row || 0); });
+  sentItems.sort(function (a, b) { return (b.row || 0) - (a.row || 0); });
+  offerItems.sort(function (a, b) { return (b.row || 0) - (a.row || 0); });
 
   const folders = [
     { id: 'offers', label: 'Offers', count: offerItems.filter(function (o) { return o.open; }).length },
@@ -2953,7 +3094,27 @@ function renderMailbox() {
   ];
   if (MAIL_FOLDER !== 'mail' && MAIL_FOLDER !== 'sent') MAIL_FOLDER = 'offers';
 
-  const items = MAIL_FOLDER === 'mail' ? mailItems : MAIL_FOLDER === 'sent' ? sentItems : offerItems;
+  var folderItems = MAIL_FOLDER === 'mail' ? mailItems : MAIL_FOLDER === 'sent' ? sentItems : offerItems;
+  folderItems.forEach(function (it) {
+    it.party = it.kind === 'sent' ? (it.to || it.from) : (it.from || it.to);
+    it.important = isImportant(it.from);
+  });
+  var mailSenders = [];
+  folderItems.forEach(function (it) { if (it.party && mailSenders.indexOf(it.party) === -1) mailSenders.push(it.party); });
+  mailSenders.sort();
+
+  const items = folderItems.filter(function (it) {
+    if (MAIL_SENDER_FILTER && it.party !== MAIL_SENDER_FILTER) return false;
+    if (MAIL_IMPORTANT_ONLY && !it.important) return false;
+    if (MAIL_SEARCH) {
+      var q = MAIL_SEARCH.toLowerCase();
+      if ((it.from || '').toLowerCase().indexOf(q) === -1
+          && (it.to || '').toLowerCase().indexOf(q) === -1
+          && (it.subject || '').toLowerCase().indexOf(q) === -1
+          && (it.body || '').toLowerCase().indexOf(q) === -1) return false;
+    }
+    return true;
+  });
   if (MAIL_SEL[MAIL_FOLDER] == null || MAIL_SEL[MAIL_FOLDER] >= items.length) MAIL_SEL[MAIL_FOLDER] = items.length ? 0 : -1;
   const sel = MAIL_SEL[MAIL_FOLDER] >= 0 ? items[MAIL_SEL[MAIL_FOLDER]] : null;
 
@@ -3002,12 +3163,21 @@ function renderMailbox() {
   }
   html += '</div>';
 
-  html += '<div class="mail-list"><div class="mail-list-head">' + (MAIL_FOLDER === 'mail' ? 'Mail' : MAIL_FOLDER === 'sent' ? 'Sent' : 'Contract offers') + '</div>';
+  html += '<div class="mail-list">'
+    + '<div class="mail-toolbar">'
+    + '<select id="mail-sender-filter" onchange="MAIL_SENDER_FILTER=this.value;renderMailbox();">'
+    + '<option value="">All senders</option>'
+    + mailSenders.map(function (s) { return '<option value="' + BTG.esc(s) + '"' + (MAIL_SENDER_FILTER === s ? ' selected' : '') + '>' + BTG.esc(s) + '</option>'; }).join('')
+    + '</select>'
+    + '<input type="search" id="mail-search" placeholder="Search sender or message…" value="' + BTG.esc(MAIL_SEARCH) + '" oninput="onMailSearch(this)">'
+    + '<label class="mail-important-only"><input type="checkbox" ' + (MAIL_IMPORTANT_ONLY ? 'checked ' : '') + 'onchange="MAIL_IMPORTANT_ONLY=this.checked;renderMailbox()"> ★ only</label>'
+    + '</div>'
+    + '<div class="mail-list-head">' + (MAIL_FOLDER === 'mail' ? 'Mail' : MAIL_FOLDER === 'sent' ? 'Sent' : 'Contract offers') + '</div>';
   if (!items.length) html += '<div class="mail-empty">' + (MAIL_FOLDER === 'mail' ? 'No mail.' : MAIL_FOLDER === 'sent' ? 'Nothing sent.' : 'No contract offers.') + '</div>';
   items.forEach(function (it, i) {
     var isUnread = it.kind === 'mail' && !it.read;
     html += '<div class="mail-row ' + (i === MAIL_SEL[MAIL_FOLDER] ? 'active' : '') + (isUnread ? ' unread' : '') + '" onclick="selectMailItem(' + i + ')">'
-      + '<div class="mail-row-top"><span class="mail-sender">' + (isUnread ? '<span class="unread-dot"></span>' : '') + BTG.esc(it.from) + (it.kind === 'offer' ? ' → ' + BTG.esc(it.to) : '') + '</span>'
+      + '<div class="mail-row-top"><span class="mail-sender">' + (it.important ? '<span class="mail-star">★</span>' : '') + (isUnread ? '<span class="unread-dot"></span>' : '') + BTG.esc(it.from) + (it.kind === 'offer' ? ' → ' + BTG.esc(it.to) : '') + '</span>'
       + (it.status ? '<span class="mail-date">' + BTG.esc(it.status) + '</span>' : '') + '</div>'
       + '<div class="mail-subj">' + BTG.esc(it.subject) + '</div>'
       + '<div class="mail-body">' + BTG.esc((it.body || '').slice(0, 80)) + '</div>'
@@ -3032,6 +3202,9 @@ function renderMailbox() {
         + (replyTo ? '<button class="action action-lead action-compact" data-to="' + BTG.esc(replyTo) + '" onclick="replyMailTo(this.dataset.to)"><span>Reply</span></button>' : '')
         + (sel.kind === 'mail' && !sel.read
             ? '<button class="action action-quiet action-compact" onclick="markMailReadItem(' + sel.row + ')"><span>Mark as read</span></button>'
+            : '')
+        + (sel.kind === 'mail' && sel.from && sel.from !== 'BTG Officials'
+            ? '<button class="action action-quiet action-compact" data-from="' + BTG.esc(sel.from) + '" onclick="toggleImportant(this.dataset.from)"><span>' + (isImportant(sel.from) ? '★ Important' : '☆ Important') + '</span></button>'
             : '')
         + '<button class="action action-quiet action-compact" onclick="deleteMailItem(' + sel.row + ')"><span>Delete</span></button>'
         + (canBlock
