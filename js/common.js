@@ -29,7 +29,36 @@ BTG.renderNav = function(activePage) {
     var cls = 'nav-tab' + (t.id === activePage ? ' active' : '');
     html += '<a class="' + cls + '" href="' + t.href + '">' + t.label + '</a>';
   });
+  html += '<button class="nav-donate" type="button" onclick="BTG.openDonate()">'
+    + '<span class="nav-donate-heart">♥</span><span>Support this site\'s development</span>'
+    + '</button>';
   nav.innerHTML = html;
+};
+
+/* ── Donate modal (global) ─────────────────────────────────────────────── */
+BTG.ensureDonateModal = function() {
+  if (document.getElementById('donate-modal')) return;
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'donate-modal';
+  overlay.innerHTML =
+    '<div class="modal donate-modal">'
+    + '<div class="modal-header"><div class="modal-title">Support this site\'s development</div>'
+    + '<button class="modal-close" type="button" onclick="BTG.closeDonate()">✕</button></div>'
+    + '<div class="modal-body">'
+    + '<iframe src="https://paypal.me/ThatOneEd" title="Donate via PayPal" loading="lazy"></iframe>'
+    + '<div class="donate-fallback">Can\'t see the box? <a href="https://paypal.me/ThatOneEd" target="_blank" rel="noopener">Open PayPal.me in a new tab</a></div>'
+    + '</div></div>';
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) BTG.closeDonate(); });
+  document.body.appendChild(overlay);
+};
+BTG.openDonate = function() {
+  BTG.ensureDonateModal();
+  document.getElementById('donate-modal').classList.add('open');
+};
+BTG.closeDonate = function() {
+  var m = document.getElementById('donate-modal');
+  if (m) m.classList.remove('open');
 };
 
 // Auto-render the nav on every page that includes this script.
@@ -38,6 +67,7 @@ BTG.renderNav = function(activePage) {
     var page = document.body && document.body.dataset ? document.body.dataset.page : null;
     if (!page && location.hash) page = location.hash.replace('#','');
     BTG.renderNav(page);
+    BTG.ensureDonateModal();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();

@@ -146,6 +146,25 @@ h1, h2, h3, h4, h5, h6 {
 .nav-tab:hover { color: var(--copy); }
 .nav-tab.active { color: var(--copy); border-bottom-color: var(--team-accent); }
 
+/* ── Donate (top bar) ── */
+.nav-donate{margin-left:auto; display:flex; align-items:center; gap:3px; height:15px; padding:0 8px; border-radius:5px; background:color-mix(in oklab, var(--team-accent) 14%, transparent); border:1px solid var(--team-edge); color:var(--copy-soft); font-family:var(--head-face); font-size:6px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; cursor:pointer; white-space:nowrap; flex-shrink:0; transition:.15s ease;}
+.nav-donate:hover{background:color-mix(in oklab, var(--team-accent) 22%, transparent); border-color:var(--team-accent); color:var(--copy);}
+.nav-donate .nav-donate-heart{color:var(--team-accent-hot); font-size:8px; line-height:1;}
+
+/* ── Modal (donate) ── */
+.modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000; display:none; align-items:center; justify-content:center; padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--card); border:1px solid var(--edge); border-top:3px solid var(--team-accent); border-radius:12px; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,.4);}
+.modal-header{padding:18px 22px; border-bottom:1px solid var(--edge); display:flex; align-items:center; justify-content:space-between;}
+.modal-title{font-family:var(--head-face); font-size:16px; font-weight:700; text-transform:uppercase; color:var(--copy);}
+.modal-close{background:none; border:none; color:var(--copy-faint); cursor:pointer; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:8px; font-size:16px; transition:.15s;}
+.modal-close:hover{background:var(--card-high); color:var(--copy);}
+.modal-body{padding:22px;}
+.donate-modal{max-width:580px;}
+.donate-modal iframe{display:block; width:100%; height:520px; border:1px solid var(--edge); border-radius:8px; background:#fff;}
+.donate-fallback{display:block; margin-top:12px; text-align:center; font-size:13px; color:var(--copy-soft);}
+.donate-fallback a{color:var(--team-accent-hot); font-weight:600;}
+
 /* ── Series Bar ── */
 .series-bar {
   background: var(--card);

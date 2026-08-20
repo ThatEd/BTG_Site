@@ -33,6 +33,8 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 .status-pill.locked{color:var(--team-accent-hot); border-color:var(--team-edge);}
 .status-pill.driver{color:var(--moss); border-color:color-mix(in oklab, var(--moss) 40%, var(--edge));}
 .status-pill.admin{color:var(--brass); border-color:color-mix(in oklab, var(--brass) 40%, var(--edge));}
+.team-switch{background:var(--card-high); color:var(--copy); border:1px solid var(--edge-strong); border-radius:8px; font-family:var(--data-face); font-size:12px; padding:6px 10px; cursor:pointer; max-width:240px;}
+.team-switch:focus-visible{outline:none; box-shadow:var(--focus-ring);}
 .logout-link{font-family:var(--data-face); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--copy-faint); background:none; border:none; cursor:pointer; text-decoration:underline; text-underline-offset:3px;}
 .logout-link:hover{color:var(--copy);}
 
@@ -375,6 +377,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
       <div class="role">Dashboard</div>
     </div>
     <div class="masthead-right">
+      <select id="tp-team-switch" class="team-switch hidden"></select>
       <div id="finances-pill" class="status-pill hidden" style="color:var(--moss);border-color:color-mix(in oklab, var(--moss) 40%, var(--edge));"><span class="mark"></span><span id="finances-pill-label">—</span></div>
       <div id="month-pill" class="status-pill hidden" style="color:var(--copy-soft);border-color:var(--edge);"><span class="mark"></span><span id="month-pill-label">—</span></div>
       <button class="logout-link hidden" id="refresh-btn">Refresh</button>
@@ -702,6 +705,18 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
       </div>
     </div>
     <p class="muted">Car orders for GT3 / GT4 are coming soon — GT teams can run GT3 and/or GT4.</p>
+  </section>
+
+  <!-- 02L · MANUFACTURER CONTRACTS (stub) -->
+  <section id="manufacturercontracts-section" class="hidden">
+    <div class="section-head">
+      <div class="section-head-mark"></div>
+      <div class="section-head-body">
+        <span class="section-head-num">02L — Manufacturer Contracts</span>
+        <h2>Manufacturer contracts</h2>
+      </div>
+    </div>
+    <p class="muted">Manufacturer contracts for XGT are coming soon.</p>
   </section>
 
   <!-- 02J · SEASON (admin) -->
@@ -1258,6 +1273,7 @@ let PENDING = {};
 let DASH = null;        // dashboard payload: {month, salary, offers, mail, sponsors, tp, teamDrivers}
 let CURRENT_YEAR = null;
 let MAIL_FILTER = null; // admin: which driver/TP's mail to view
+let TP_TEAM_SEL = null; // TP: which of their teams is currently shown
 
 /* ---------- season year (from race data, fallback 2024) ---------- */
 async function currentYear() {
@@ -1349,7 +1365,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 });
 
 /* ---------- dashboard sidebar / tabs ---------- */
-const ALL_DASH_SECTIONS = ['overview-section','mailbox-section','chat-section','salary-section','driver-section','attr-section','aggr-section','submit-section','admin-section','admin-override-section','tp-section','contracts-section','partorders-section','carorders-section','sponsors-section','season-section','account-section'];
+const ALL_DASH_SECTIONS = ['overview-section','mailbox-section','chat-section','salary-section','driver-section','attr-section','aggr-section','submit-section','admin-section','admin-override-section','tp-section','contracts-section','partorders-section','carorders-section','manufacturercontracts-section','sponsors-section','season-section','account-section'];
 
 const DASH_TABS = {
   driver: [
@@ -1367,6 +1383,7 @@ const DASH_TABS = {
     { id: 'contracts', label: 'Contracts', sections: ['contracts-section'] },
     { id: 'partorders', label: 'Part Orders', sections: ['partorders-section'] },
     { id: 'carorders', label: 'Car Orders', sections: ['carorders-section'] },
+    { id: 'manufacturercontracts', label: 'Manufacturer Contracts', sections: ['manufacturercontracts-section'] },
     { id: 'sponsors', label: 'Sponsors', sections: ['sponsors-section'] },
     { id: 'account', label: 'Account', sections: ['account-section'] }
   ],
@@ -1378,6 +1395,7 @@ const DASH_TABS = {
     { id: 'season', label: 'Season', sections: ['season-section'] },
     { id: 'partorders', label: 'Part Orders', sections: ['partorders-section'] },
     { id: 'carorders', label: 'Car Orders', sections: ['carorders-section'] },
+    { id: 'manufacturercontracts', label: 'Manufacturer Contracts', sections: ['manufacturercontracts-section'] },
     { id: 'account', label: 'Account', sections: ['account-section'] }
   ]
 };
@@ -1391,6 +1409,7 @@ const TAB_ICONS = {
   sponsors: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>',
   partorders: '<path d="M6 9l6-6 6 6v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9z"/><path d="M10 22V12h4v10"/>',
   carorders: '<path d="M5 17h14l-1.5-8.5A2 2 0 0 0 15.5 7h-7a2 2 0 0 0-2 1.5L5 17z"/><path d="M3 17h18"/><path d="M7.5 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/><path d="M16.5 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>',
+  manufacturercontracts: '<path d="M12 3v3"/><path d="M8 5h8"/><path d="M7 18h10"/><path d="M8 18v3M16 18v3"/><path d="M9 9h6l-1 5h-4z"/>',
   season: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
   chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
   account: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
@@ -1408,7 +1427,8 @@ function navBadgeCount(tabId) {
 
 const ORDER_TAB_SERIES = {
   partorders: ['F1', 'XGT'],
-  carorders: ['GT3', 'GT4']
+  carorders: ['GT3', 'GT4'],
+  manufacturercontracts: ['XGT']
 };
 
 function tpSeriesList() {
@@ -1423,6 +1443,39 @@ function tabVisibleForRole(tabId, role) {
   var series = tpSeriesList();
   if (!series.length) return false;
   return need.some(function (s) { return series.indexOf(s) !== -1; });
+}
+
+function tpTeams() {
+  return (DASH && DASH.tp && DASH.tp.teams) || [];
+}
+
+function selectedTpTeam() {
+  var teams = tpTeams();
+  if (!teams.length) return (DASH && DASH.tp && DASH.tp.team) || '';
+  if (TP_TEAM_SEL && teams.some(function (t) { return t.key === TP_TEAM_SEL; })) return TP_TEAM_SEL;
+  return teams[0].key || '';
+}
+
+function tpDriversForTeam(teamKey) {
+  return (DASH.contracts || []).filter(function (c) { return c.team === teamKey; }).map(function (c) { return c.driver; });
+}
+
+function populateTpTeamSwitch() {
+  var sel = document.getElementById('tp-team-switch');
+  if (!sel) return;
+  var teams = tpTeams();
+  sel.innerHTML = teams.map(function (t) { return '<option value="' + BTG.esc(t.key) + '">' + BTG.esc(t.key) + '</option>'; }).join('');
+  if (teams.length > 1) {
+    sel.classList.remove('hidden');
+    if (sel.value !== selectedTpTeam()) sel.value = selectedTpTeam();
+  } else {
+    sel.classList.add('hidden');
+  }
+  sel.onchange = function () {
+    TP_TEAM_SEL = sel.value;
+    renderRoleContent('tp');
+    setFinancesPill();
+  };
 }
 
 function buildDashSidebar(role) {
@@ -1499,9 +1552,14 @@ function renderTpOverview() {
   const el = document.getElementById('overview-content');
   const tp = DASH && DASH.tp;
   if (!tp) { el.innerHTML = '<div class="muted">No team.</div>'; return; }
+  const teamKey = selectedTpTeam();
   const fin = DASH && DASH.finances;
+  var budget = 0;
+  if (fin && fin.teamBudgets && fin.teamBudgets[teamKey] != null) budget = fin.teamBudgets[teamKey];
+  else if (fin) budget = fin.budget || 0;
+  var sponsorAnnual = (DASH.sponsors || []).filter(function (s) { return s.team === teamKey; }).reduce(function (a, s) { return a + (s.amount || 0) * 1000000; }, 0);
   var pts = 0;
-  const driverRows = (DASH.teamDrivers || []).map(function (dn) {
+  const driverRows = tpDriversForTeam(teamKey).map(function (dn) {
     const rec = driverSeasonRecord(dn);
     const p = (rec && rec.standings && rec.standings.pts) || 0;
     pts += p;
@@ -1514,11 +1572,11 @@ function renderTpOverview() {
   }).join('');
   el.innerHTML =
     '<div class="ov-hero">'
-    + '<div class="ov-hero__photo" style="background:color-mix(in oklab, var(--team-accent) 22%, transparent);"><span style="font-family:var(--head-face);font-size:26px;font-weight:700;color:var(--team-accent-hot)">' + BTG.esc((tp.team || '?').charAt(0)) + '</span></div>'
-    + '<div><div class="ov-hero__name">' + BTG.esc((tp.team || '—') + (tp.team2 ? ' · ' + tp.team2 : '')) + '</div><div class="ov-hero__meta"><span class="ov-tag">Team Principal</span>' + (tp.team2 ? '<span class="ov-tag">' + BTG.esc(tp.team2) + '</span>' : '') + '</div></div></div>'
+    + '<div class="ov-hero__photo" style="background:color-mix(in oklab, var(--team-accent) 22%, transparent);"><span style="font-family:var(--head-face);font-size:26px;font-weight:700;color:var(--team-accent-hot)">' + BTG.esc((teamKey || '?').charAt(0)) + '</span></div>'
+    + '<div><div class="ov-hero__name">' + BTG.esc(teamKey || '—') + '</div><div class="ov-hero__meta"><span class="ov-tag">Team Principal</span></div></div></div>'
     + '<div class="ov-stats">'
-    + '<div class="ov-stat-card"><div class="v">' + fmtMoney(fin ? fin.budget : 0) + '</div><div class="k">Team budget</div></div>'
-    + '<div class="ov-stat-card"><div class="v">' + fmtMoney(fin && fin.sponsors ? fin.sponsors.annual : 0) + '</div><div class="k">Sponsor income</div></div>'
+    + '<div class="ov-stat-card"><div class="v">' + fmtMoney(budget) + '</div><div class="k">Team budget</div></div>'
+    + '<div class="ov-stat-card"><div class="v">' + fmtMoney(sponsorAnnual) + '</div><div class="k">Sponsor income</div></div>'
     + '<div class="ov-stat-card"><div class="v">' + pts + '</div><div class="k">Team points</div></div>'
     + '</div>'
     + '<div class="ov-card"><div class="ov-card-title">Drivers</div>'
@@ -1567,18 +1625,18 @@ function renderContracts() {
   const el = document.getElementById('contracts-content');
   const role = CURRENT_USER && CURRENT_USER.role;
   var contracts = (DASH.contracts || []);
-  if (role === 'tp') contracts = contracts.filter(function (c) { var a = DASH.tp && DASH.tp.team, b = DASH.tp && DASH.tp.team2; return c.team === a || c.team === b; });
+  if (role === 'tp') { var stk = selectedTpTeam(); contracts = contracts.filter(function (c) { return c.team === stk; }); }
   else if (role === 'driver') contracts = contracts.filter(function (c) { return c.driver === (SELECTED && SELECTED.driver); });
 
   const sorted = contracts.slice().sort(function (a, b) { return (Number(a.seat) || 0) - (Number(b.seat) || 0); });
   const rows = sorted.map(function (c) {
     return '<tr><td class="strong">' + BTG.esc(c.driver) + '</td><td>' + BTG.esc(c.team) + '</td>'
       + '<td>' + fmtMoney(c.salary) + '</td><td>' + BTG.esc(c.from || '—') + '–' + BTG.esc(c.till || '—') + '</td>'
-      + '<td>' + BTG.esc(c.seat || '—') + '</td><td><span class="tag-pill">' + BTG.esc(seatCategoryLabel_(c.seat)) + '</span></td></tr>';
+      + '<td>' + BTG.esc(c.seat || '—') + '</td><td><span class="tag-pill">' + BTG.esc(seatCategoryLabel_(c.seat, c.team)) + '</span></td></tr>';
   }).join('');
 
   var offers = (DASH.offers || []);
-  if (role === 'tp') offers = offers.filter(function (o) { var a = DASH.tp && DASH.tp.team, b = DASH.tp && DASH.tp.team2; return o.team === a || o.target === a || o.team === b || o.target === b; });
+  if (role === 'tp') { var stk2 = selectedTpTeam(); offers = offers.filter(function (o) { return o.team === stk2 || o.target === stk2; }); }
   else if (role === 'admin') offers = offers.filter(function (o) { return offerStatus(o) === 'On Hold'; });
   var offerHtml = '';
   offers.forEach(function (o, i) {
@@ -1601,9 +1659,10 @@ function renderContracts() {
 
   if (role === 'tp') {
     var tpTeams = [DASH.tp.team, DASH.tp.team2].filter(function (k) { return k; });
+    var tpTeamSel = selectedTpTeam();
     html += '<div class="ov-card"><div class="ov-card-title">Send a contract offer</div>'
       + '<div class="field-row"><div class="field"><label for="c-team-tp">Team</label><select id="c-team-tp">'
-      + (tpTeams.length ? tpTeams.map(function (k) { return '<option value="' + BTG.esc(k) + '">' + BTG.esc(k) + '</option>'; }).join('') : '<option value="">— no team —</option>')
+      + (tpTeams.length ? tpTeams.map(function (k) { return '<option value="' + BTG.esc(k) + '"' + (k === tpTeamSel ? ' selected' : '') + '>' + BTG.esc(k) + '</option>'; }).join('') : '<option value="">— no team —</option>')
       + '</select></div><div class="field"><label for="c-driver">Driver</label><select id="c-driver">'
       + ((DASH.allDrivers && DASH.allDrivers.length)
           ? '<option value="">— choose a driver —</option>' + DASH.allDrivers.map(function (d) { return '<option>' + BTG.esc(d) + '</option>'; }).join('')
@@ -1721,7 +1780,9 @@ function setFinancesPill() {
   if (CURRENT_USER && CURRENT_USER.role === 'driver' && DASH && DASH.salary) {
     txt = fmtMoney(DASH.salary.annual) + ' salary';
   } else if (CURRENT_USER && CURRENT_USER.role === 'tp' && DASH && DASH.tp && DASH.tp.salary) {
-    txt = fmtMoney(DASH.tp.salary.annual) + ' salary · ' + fmtMoney(DASH.finances ? DASH.finances.budget : 0) + ' budget';
+    var tbSel = selectedTpTeam();
+    var tbAmt = (DASH.finances && DASH.finances.teamBudgets && DASH.finances.teamBudgets[tbSel] != null) ? DASH.finances.teamBudgets[tbSel] : (DASH.finances ? DASH.finances.budget : 0);
+    txt = fmtMoney(DASH.tp.salary.annual) + ' salary · ' + fmtMoney(tbAmt) + ' budget';
   }
   if (txt) { pill.classList.remove('hidden'); label.textContent = txt; }
   else { pill.classList.add('hidden'); }
@@ -1771,6 +1832,8 @@ function onLoginSuccess(data) {
   } else if (data.role === 'tp') {
     setStatus('driver', 'Team Principal — ' + data.username);
     document.getElementById('driver-select-wrap').classList.add('hidden');
+    TP_TEAM_SEL = null;
+    populateTpTeamSwitch();
   } else {
     setStatus('driver', 'Driver — ' + data.username);
     DRIVERS = [data.driver];
@@ -1792,7 +1855,7 @@ function onLoginSuccess(data) {
 
 document.getElementById('logout-btn').addEventListener('click', () => {
   stopLive();
-  CURRENT_USER = null; DRIVERS = []; TEAMS = []; SELECTED = null; PENDING = {}; DASH = null; MAIL_FILTER = null;
+  CURRENT_USER = null; DRIVERS = []; TEAMS = []; SELECTED = null; PENDING = {}; DASH = null; MAIL_FILTER = null; TP_TEAM_SEL = null;
   document.getElementById('gate-username').value = '';
   document.getElementById('gate-password').value = '';
   document.getElementById('gate-section').classList.remove('hidden');
@@ -2652,9 +2715,29 @@ var MAIL_SEL = {};
 
 var ROLE_OPTIONS = '<option value="Driving">Driving</option><option value="Reserve">Reserve</option><option value="Junior">Junior</option><option value="Affiliate">Affiliate</option>';
 
-function seatCategoryLabel_(seat) {
+function isGtTeamKey(teamKey) {
+  if (!teamKey) return false;
+  var tps = (DASH && DASH.tp && DASH.tp.teams) || [];
+  for (var i = 0; i < tps.length; i++) {
+    if (tps[i].key === teamKey) {
+      var s0 = String(tps[i].series || '').toUpperCase();
+      return s0 === 'GT3' || s0 === 'GT4';
+    }
+  }
+  var all = TEAMS || [];
+  for (var j = 0; j < all.length; j++) {
+    if ((all[j].team || '') === teamKey) {
+      var s1 = String(all[j].series || '').toUpperCase();
+      return s1 === 'GT3' || s1 === 'GT4';
+    }
+  }
+  return false;
+}
+
+function seatCategoryLabel_(seat, teamKey) {
   var s = Number(seat);
   if (isNaN(s)) return '—';
+  if (s <= 8 && isGtTeamKey(teamKey)) return 'Driving';
   if (s <= 2) return 'Driving';
   if (s <= 5) return 'Reserve';
   if (s <= 16) return 'Junior';
@@ -3005,7 +3088,7 @@ function renderSalary(salary, bank) {
 function renderSponsors(sponsors) {
   const sec = document.getElementById('sponsors-section');
   const role = CURRENT_USER && CURRENT_USER.role;
-  const list = (role === 'tp') ? (sponsors || []).filter(function (s) { return s.season !== 'next'; }) : (sponsors || []);
+  const list = (role === 'tp') ? (sponsors || []).filter(function (s) { return s.season !== 'next' && s.team === selectedTpTeam(); }) : (sponsors || []);
   if (!list.length && role !== 'admin') { sec.classList.add('hidden'); return; }
   sec.classList.remove('hidden');
 
@@ -3071,10 +3154,14 @@ function renderSponsors(sponsors) {
 function renderTp() {
   const tp = DASH && DASH.tp;
   if (!tp) return;
-  document.getElementById('tp-team-heading').textContent = (tp.team || 'Team') + (tp.team2 ? ' · ' + tp.team2 : '');
-  document.getElementById('tp-team-name').textContent = tp.team || '—';
+  var selTeam = selectedTpTeam();
+  document.getElementById('tp-team-heading').textContent = selTeam || 'Team';
+  document.getElementById('tp-team-name').textContent = selTeam || '—';
   const t2 = document.getElementById('tp-team2-name');
-  if (t2) t2.textContent = tp.team2 || '—';
+  if (t2) {
+    var otherT = (tp.teams || []).filter(function (t) { return t.key !== selTeam; })[0];
+    t2.textContent = otherT ? otherT.key : '—';
+  }
   document.getElementById('tp-salary').textContent = fmtMoney(tp.salary ? tp.salary.annual : 0);
   document.getElementById('tp-salary-paid').textContent = fmtMoney(tp.salary ? tp.salary.paidToDate : 0);
 
