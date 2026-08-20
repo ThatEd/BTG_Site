@@ -1393,6 +1393,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
       err.style.display = 'block';
     } else {
       CURRENT_USER = { username: data.username, password: password, role: data.role };
+      persistSession();
       onLoginSuccess(data);
     }
   } catch (e) {
@@ -1402,6 +1403,31 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     btn.disabled = false; btn.querySelector('span').textContent = 'Log in →';
   }
 });
+
+/* ---------- persistent session (login survives a refresh) ---------- */
+function persistSession() {
+  if (CURRENT_USER) {
+    try { localStorage.setItem('btg_session', JSON.stringify(CURRENT_USER)); } catch (e) {}
+  }
+}
+function clearSession() {
+  try { localStorage.removeItem('btg_session'); } catch (e) {}
+}
+async function tryAutoLogin() {
+  var saved = null;
+  try { saved = JSON.parse(localStorage.getItem('btg_session') || 'null'); } catch (e) { saved = null; }
+  if (!saved || !saved.username || !saved.password) return;
+  try {
+    const data = await callGateway('login', { username: saved.username, password: saved.password });
+    if (data.ok) {
+      CURRENT_USER = { username: data.username, password: saved.password, role: data.role };
+      persistSession();
+      onLoginSuccess(data);
+    } else {
+      clearSession();
+    }
+  } catch (e) { /* offline or transient — leave the gate visible */ }
+}
 
 /* ---------- dashboard sidebar / tabs ---------- */
 const ALL_DASH_SECTIONS = ['overview-section','mailbox-section','chat-section','salary-section','driver-section','attr-section','aggr-section','submit-section','admin-section','admin-override-section','tp-section','contracts-section','partorders-section','carorders-section','manufacturercontracts-section','sponsors-section','season-section','account-section'];
@@ -1853,6 +1879,7 @@ function renderRoleContent(role) {
 }
 
 function onLoginSuccess(data) {
+  persistSession();
   document.getElementById('gate-section').classList.add('hidden');
   document.getElementById('logout-btn').classList.remove('hidden');
   document.getElementById('refresh-btn').classList.remove('hidden');
@@ -1913,6 +1940,7 @@ function onLoginSuccess(data) {
 
 document.getElementById('logout-btn').addEventListener('click', () => {
   stopLive();
+  clearSession();
   CURRENT_USER = null; DRIVERS = []; TEAMS = []; SELECTED = null; PENDING = {}; DASH = null; MAIL_FILTER = null; TP_TEAM_SEL = null;
   document.getElementById('gate-username').value = '';
   document.getElementById('gate-password').value = '';
@@ -3130,6 +3158,7 @@ async function sendMailCompose() {
     if (data.ok) {
       showResult(resultEl, true, '✓ Message sent to ' + to + '.');
       closeMailCompose();
+      pollMailOnce();
     } else {
       showResult(resultEl, false, '✗ ' + data.error);
     }
@@ -3613,7 +3642,8 @@ function startLive() {
   stopLive();
   if (!CURRENT_USER) return;
   MAIL_MAX_ID = mailMaxIdFrom(DASH && DASH.mail);
-  MAIL_POLL_INTERVAL = setInterval(pollMailOnce, 30000);
+  MAIL_POLL_INTERVAL = setInterval(pollMailOnce, 8000);
+  pollMailOnce();
   var rooms = (DASH && DASH.chatRooms) || [];
   if (rooms.length && (CURRENT_USER.role === 'driver' || CURRENT_USER.role === 'tp')) {
     var state = {};
@@ -3664,6 +3694,7 @@ function stopLive() {
     }
   });
 })();
+tryAutoLogin();
 </script>
 </body>
 </html>
