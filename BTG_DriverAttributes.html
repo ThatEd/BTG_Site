@@ -463,6 +463,49 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     </div>
 
     <div class="tool-card">
+      <h3>Set team principal's team</h3>
+      <p class="muted" style="margin-bottom:12px;">Assign a team to a team principal so their login shows the right team.</p>
+      <div class="field-row">
+        <div class="field">
+          <label for="set-tp-select">Team principal</label>
+          <select id="set-tp-select"><option value="">— choose a TP —</option></select>
+        </div>
+        <div class="field">
+          <label for="set-tp-team-select">Team</label>
+          <select id="set-tp-team-select"><option value="">— no team —</option></select>
+        </div>
+        <button class="action action-compact" id="set-tp-team-btn"><span>Set Team</span></button>
+      </div>
+      <div class="result-line" id="set-tp-team-result"></div>
+    </div>
+
+    <div class="tool-card">
+      <h3>Loan driver</h3>
+      <p class="muted" style="margin-bottom:12px;">Loan a driver to another team in a driving seat while they stay contracted to their parent team.</p>
+      <div class="field-row">
+        <div class="field">
+          <label for="loan-driver-select">Driver</label>
+          <select id="loan-driver-select"><option value="">— choose a driver —</option></select>
+        </div>
+        <div class="field">
+          <label for="loan-parent-select">Parent team</label>
+          <select id="loan-parent-select"><option value="">— parent team —</option></select>
+        </div>
+        <div class="field">
+          <label for="loan-team-select">Loan to</label>
+          <select id="loan-team-select"><option value="">— loan team —</option></select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="loan-from-year">From season</label><input type="number" id="loan-from-year" placeholder="2024"></div>
+        <div class="field"><label for="loan-till-year">To season</label><input type="number" id="loan-till-year" placeholder="2025"></div>
+        <div class="field"><label for="loan-salary">Salary</label><input type="number" id="loan-salary" placeholder="0"></div>
+        <button class="action action-compact" id="loan-driver-btn"><span>Loan Driver</span></button>
+      </div>
+      <div class="result-line" id="loan-driver-result"></div>
+    </div>
+
+    <div class="tool-card">
       <h3>Create login</h3>
       <div class="field-row">
         <div class="field">
@@ -1773,6 +1816,53 @@ function populateAdminDropdowns() {
   if (driverOpts) loginSel.innerHTML += '<optgroup label="Drivers">' + driverOpts + '</optgroup>';
   if (tpOpts) loginSel.innerHTML += '<optgroup label="Team Principals">' + tpOpts + '</optgroup>';
   populateNationDropdown();
+  populateTpTeamPicker();
+  populateLoanPicker();
+}
+
+function populateTpTeamPicker() {
+  var tpSel = document.getElementById('set-tp-select');
+  var teamSel = document.getElementById('set-tp-team-select');
+  if (!tpSel || !teamSel) return;
+  var currentTp = tpSel.value;
+  tpSel.innerHTML = '<option value="">— choose a TP —</option>';
+  ((DASH && DASH.teamPrincipals) || []).forEach(function (t) {
+    var opt = document.createElement('option');
+    opt.value = t.name;
+    opt.textContent = t.name + (t.team ? ' (' + t.team + ')' : '');
+    tpSel.appendChild(opt);
+  });
+  if (currentTp) tpSel.value = currentTp;
+  teamSel.innerHTML = '<option value="">— no team —</option>';
+  var teams = (TEAMS && TEAMS.length) ? TEAMS : TEAM_LIST;
+  teams.forEach(function (t) {
+    var opt = document.createElement('option');
+    opt.value = t.team || t.name;
+    opt.textContent = t.teamName || t.name;
+    teamSel.appendChild(opt);
+  });
+}
+
+function populateLoanPicker() {
+  var dSel = document.getElementById('loan-driver-select');
+  var pSel = document.getElementById('loan-parent-select');
+  var tSel = document.getElementById('loan-team-select');
+  if (!dSel || !pSel || !tSel) return;
+  dSel.innerHTML = '<option value="">— choose a driver —</option>';
+  DRIVERS.forEach(function (d) {
+    var opt = document.createElement('option');
+    opt.value = d.driver;
+    opt.textContent = d.driver + (d.team ? ' (' + d.team + ')' : '');
+    dSel.appendChild(opt);
+  });
+  var teams = (TEAMS && TEAMS.length) ? TEAMS : TEAM_LIST;
+  pSel.innerHTML = '<option value="">— parent team —</option>';
+  tSel.innerHTML = '<option value="">— loan team —</option>';
+  teams.forEach(function (t) {
+    var k = t.team || t.name, n = t.teamName || t.name;
+    var o1 = document.createElement('option'); o1.value = k; o1.textContent = n; pSel.appendChild(o1);
+    var o2 = document.createElement('option'); o2.value = k; o2.textContent = n; tSel.appendChild(o2);
+  });
 }
 
 document.getElementById('driver-select').addEventListener('change', (e) => {
@@ -1873,6 +1963,79 @@ document.getElementById('create-tp-btn').addEventListener('click', async () => {
       DASH.teamPrincipals.push({ name: tpName, team: '', nation: nation, salary: 1500000, hasAccount: false });
       populateAdminDropdowns();
       ['new-tp-name','new-tp-nation'].forEach(id => document.getElementById(id).value = '');
+    } else {
+      showResult(resultEl, false, '✗ ' + data.error);
+    }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('set-tp-select').addEventListener('change', function() {
+  var teamSel = document.getElementById('set-tp-team-select');
+  var tps = (DASH && DASH.teamPrincipals) || [];
+  var tp = tps.filter(function (t) { return t.name === this.value; })[0];
+  if (tp && tp.team) {
+    for (var i = 0; i < teamSel.options.length; i++) { if (teamSel.options[i].value === tp.team) { teamSel.selectedIndex = i; break; } }
+  } else {
+    teamSel.selectedIndex = 0;
+  }
+});
+
+document.getElementById('set-tp-team-btn').addEventListener('click', async () => {
+  var tpName = document.getElementById('set-tp-select').value;
+  var teamKey = document.getElementById('set-tp-team-select').value;
+  var resultEl = document.getElementById('set-tp-team-result');
+  var btn = document.getElementById('set-tp-team-btn');
+  resultEl.style.display = 'none';
+  if (!tpName) { showResult(resultEl, false, 'Choose a team principal.'); return; }
+
+  btn.disabled = true;
+  try {
+    var data = await callGateway('adminSetTpTeam', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      tpName: tpName, teamKey: teamKey
+    });
+    if (data.ok) {
+      var tps = DASH.teamPrincipals || [];
+      tps.forEach(function (t) { if (t.name === tpName) t.team = data.team || ''; });
+      DASH.teamPrincipals = tps;
+      populateTpTeamPicker();
+      showResult(resultEl, true, '✓ Team set for ' + tpName + '.');
+    } else {
+      showResult(resultEl, false, '✗ ' + data.error);
+    }
+  } catch (e) {
+    showResult(resultEl, false, '✗ Could not reach the gateway script.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('loan-driver-btn').addEventListener('click', async () => {
+  var driver = document.getElementById('loan-driver-select').value;
+  var parent = document.getElementById('loan-parent-select').value;
+  var loan = document.getElementById('loan-team-select').value;
+  var from = document.getElementById('loan-from-year').value;
+  var till = document.getElementById('loan-till-year').value;
+  var salary = document.getElementById('loan-salary').value;
+  var resultEl = document.getElementById('loan-driver-result');
+  var btn = document.getElementById('loan-driver-btn');
+  resultEl.style.display = 'none';
+  if (!driver || !parent || !loan) { showResult(resultEl, false, 'Choose driver, parent team and loan team.'); return; }
+
+  btn.disabled = true;
+  try {
+    var data = await callGateway('adminLoanDriver', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      driver: driver, parentTeam: parent, loanTeam: loan,
+      from: from, till: till, salary: salary
+    });
+    if (data.ok) {
+      showResult(resultEl, true, '✓ ' + driver + ' loaned to ' + loan + ' (seat ' + data.seat + ').');
+      ['loan-from-year','loan-till-year','loan-salary'].forEach(id => document.getElementById(id).value = '');
     } else {
       showResult(resultEl, false, '✗ ' + data.error);
     }
@@ -2639,11 +2802,13 @@ function renderMailbox() {
     if (sel.kind === 'offer') {
       html += offerActionsHtml(offers[sel.idx], sel.idx, role);
     } else if (sel.kind === 'mail' || sel.kind === 'sent') {
+      var replyTo = sel.kind === 'mail' ? sel.from : sel.to;
       var canBlock = sel.kind === 'mail' && role !== 'admin' && sel.from && sel.from !== 'BTG Officials';
       var isBlocked = canBlock && (DASH.blocked || []).indexOf(sel.from) !== -1;
       html += '<div class="read-actions">'
+        + (replyTo ? '<button class="action action-lead action-compact" data-to="' + BTG.esc(replyTo) + '" onclick="replyMailTo(this.dataset.to)"><span>Reply</span></button>' : '')
         + (sel.kind === 'mail' && !sel.read
-            ? '<button class="action action-lead action-compact" onclick="markMailReadItem(' + sel.row + ')"><span>Mark as read</span></button>'
+            ? '<button class="action action-quiet action-compact" onclick="markMailReadItem(' + sel.row + ')"><span>Mark as read</span></button>'
             : '')
         + '<button class="action action-quiet action-compact" onclick="deleteMailItem(' + sel.row + ')"><span>Delete</span></button>'
         + (canBlock
@@ -2697,6 +2862,20 @@ function openMailCompose() {
   document.getElementById('compose-body').value = '';
   const res = document.getElementById('compose-result');
   res.style.display = 'none';
+}
+function replyMailTo(to) {
+  openMailCompose();
+  var sel = document.getElementById('compose-to');
+  var found = false;
+  for (var i = 0; i < sel.options.length; i++) { if (sel.options[i].value === to) { found = true; break; } }
+  if (!found && to) {
+    var opt = document.createElement('option');
+    opt.value = to; opt.textContent = to;
+    sel.appendChild(opt);
+  }
+  sel.value = to;
+  document.getElementById('compose-body').value = '';
+  document.getElementById('compose-body').focus();
 }
 function closeMailCompose() {
   document.getElementById('compose-modal').classList.remove('open');
