@@ -1841,6 +1841,7 @@ function renderContracts() {
       + '<td>' + fmtMoney(c.salary) + '</td><td>' + BTG.esc(c.from || '—') + '–' + BTG.esc(c.till || '—') + '</td>'
       + '<td>' + BTG.esc(c.seat || '—') + '</td><td><span class="tag-pill">' + BTG.esc(seatCategoryLabel_(c.seat, c.team)) + '</span></td>'
       + '<td>' + (c.promise ? BTG.esc(c.promise.series + (c.promise.by ? ' by ' + c.promise.by : '')) : '—') + '</td>'
+      + '<td>' + (c.bonus > 0 ? fmtMoney(c.bonus) : '—') + '</td>'
       + actions + '</tr>';
   }).join('');
 
@@ -1856,13 +1857,14 @@ function renderContracts() {
       + '<span class="stamp">' + fmtMoney(o.salary) + ' · ' + BTG.esc(o.from || '—') + '–' + BTG.esc(o.till || '—') + (o.role ? ' · ' + BTG.esc(o.role) : '') + '</span></div>'
       + (o.message ? '<div class="offer-body">' + BTG.esc(o.message) + '</div>' : '')
       + (o.promise ? '<div class="offer-body">Promise: seat in <b>' + BTG.esc(o.promise.series) + '</b>' + (o.promise.by ? ' by <b>' + BTG.esc(o.promise.by) + '</b>' : '') + '</div>' : '')
+      + (o.bonus > 0 ? '<div class="offer-body">Signing bonus: <b>' + fmtMoney(o.bonus) + '</b></div>' : '')
       + offerActionsHtml(o, i, role)
       + '</div>';
   });
 
   var actionsHead = (role === 'tp') ? '<th>Actions</th>' : '';
   var html = '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Active contracts</div>'
-    + (rows ? '<table class="contract-table"><thead><tr><th>Driver</th><th>Team</th><th>Salary</th><th>Period</th><th>Seat</th><th>Role</th><th>Promise</th>' + actionsHead + '</tr></thead><tbody>' + rows + '</tbody></table>' : '<div class="muted">No contracts.</div>')
+    + (rows ? '<table class="contract-table"><thead><tr><th>Driver</th><th>Team</th><th>Salary</th><th>Period</th><th>Seat</th><th>Role</th><th>Promise</th><th>Bonus</th>' + actionsHead + '</tr></thead><tbody>' + rows + '</tbody></table>' : '<div class="muted">No contracts.</div>')
     + '</div>'
     + '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Pending offers</div>'
     + (offerHtml || '<div class="muted">No pending offers.</div>')
@@ -1880,6 +1882,7 @@ function renderContracts() {
           : contractDriverOptions(''))
       + '</select></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="8,000,000"></div></div>'
       + '<div class="muted" id="tp-minpay" style="margin-bottom:10px;"></div>'
+      + '<div class="field-row"><div class="field"><label for="c-bonus">Signing bonus</label><input type="text" id="c-bonus" placeholder="500,000"></div></div>'
       + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div><div class="field"><label for="c-role">Role</label><select id="c-role">' + ROLE_OPTIONS + '</select></div></div>'
       + '<div class="field-row"><div class="field"><label for="c-promise-series">Promise seat in</label><select id="c-promise-series">' + PROMISE_SERIES_OPTIONS + '</select></div><div class="field"><label for="c-promise-by">By (year)</label><input type="text" id="c-promise-by" placeholder="2027"></div></div>'
       + '<p class="muted" style="margin-bottom:10px;">Only drivers on a Reserve contract can be used as reserves in races.</p>'
@@ -1892,6 +1895,7 @@ function renderContracts() {
       + '<div class="muted" id="driver-minsum" style="margin-bottom:10px;"></div>'
       + '<div class="field-row"><div class="field"><label for="c-team">Team</label><select id="c-team">' + contractTeamOptions('') + '</select></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="-2,000,000"></div></div>'
       + '<div class="muted" id="driver-minpay" style="margin-bottom:10px;"></div>'
+      + '<div class="field-row"><div class="field"><label for="c-bonus">Request signing bonus</label><input type="text" id="c-bonus" placeholder="500,000"></div></div>'
       + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div><div class="field"><label for="c-role">Role</label><select id="c-role">' + ROLE_OPTIONS + '</select></div></div>'
       + '<div class="field-row"><div class="field"><label for="c-promise-series">Ask for promise: seat in</label><select id="c-promise-series">' + PROMISE_SERIES_OPTIONS + '</select></div><div class="field"><label for="c-promise-by">By (year)</label><input type="text" id="c-promise-by" placeholder="2027"></div></div>'
       + '<div class="field"><label for="c-terms">Extra terms</label><input type="text" id="c-terms"></div>'
@@ -1974,8 +1978,8 @@ function renderContracts() {
       sendBtn.disabled = true;
       try {
         const payload = role === 'tp'
-          ? { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team-tp').value, target: document.getElementById('c-driver').value, salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim(), promiseSeries: document.getElementById('c-promise-series').value, promiseBy: document.getElementById('c-promise-by').value.trim() }
-          : { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team').value.trim(), salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim(), promiseSeries: document.getElementById('c-promise-series').value, promiseBy: document.getElementById('c-promise-by').value.trim() };
+          ? { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team-tp').value, target: document.getElementById('c-driver').value, salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim(), promiseSeries: document.getElementById('c-promise-series').value, promiseBy: document.getElementById('c-promise-by').value.trim(), signingBonus: document.getElementById('c-bonus').value.trim() }
+          : { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team').value.trim(), salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim(), promiseSeries: document.getElementById('c-promise-series').value, promiseBy: document.getElementById('c-promise-by').value.trim(), signingBonus: document.getElementById('c-bonus').value.trim() };
         const data = await callGateway(role === 'tp' ? 'sendContractOffer' : 'sendDriverOffer', payload);
         if (data.ok) { showResult(resultEl, true, '✓ Offer sent.'); }
         else { showResult(resultEl, false, '✗ ' + data.error); }
