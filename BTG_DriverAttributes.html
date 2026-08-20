@@ -712,7 +712,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     <div id="contracts-content"></div>
   </section>
 
-  <!-- 02I · PART ORDERS (stub) -->
+  <!-- 02I · PART ORDERS (Parts Design Console for F1 teams) -->
   <section id="partorders-section" class="hidden">
     <div class="section-head">
       <div class="section-head-mark"></div>
@@ -721,7 +721,11 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
         <h2>Part orders</h2>
       </div>
     </div>
-    <p class="muted">Part orders for F1 and XGT are coming soon.</p>
+    <div class="parts-toolbar" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+      <span class="muted" id="parts-team-label" style="display:none;">Team</span>
+      <select id="parts-team-switch" class="team-switch hidden"></select>
+    </div>
+    <div id="partorders-console"></div>
   </section>
 
   <!-- 02K · CAR ORDERS (stub) -->
@@ -1078,6 +1082,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 <script src="js/roster.js"></script>
 <script src="js/data-loader.js"></script>
 <script src="js/notification-sounds.js"></script>
+<script src="js/parts-design.js"></script>
 <script>
 /* ============================================================
    CONFIG
@@ -1337,6 +1342,7 @@ let DASH = null;        // dashboard payload: {month, salary, offers, mail, spon
 let CURRENT_YEAR = null;
 let MAIL_FILTER = null; // admin: which driver/TP's mail to view
 let TP_TEAM_SEL = null; // TP: which of their teams is currently shown
+let PARTS_TEAM_SEL = null; // admin: which team the Parts Design console is showing
 
 /* ---------- season year (from race data, fallback 2024) ---------- */
 async function currentYear() {
@@ -1519,7 +1525,7 @@ function navBadgeCount(tabId) {
   if (tabId !== 'mail') return null;
   if (CURRENT_USER && CURRENT_USER.role === 'admin') return null; // admins aren't pinged about others' mail
   const offers = (DASH && DASH.offers) || [];
-  const open = offers.filter(function (o) { return o.status !== 'Denied' && o._status !== 'accepted' && o._status !== 'declined'; });
+  const open = offers.filter(function (o) { var st = String(o.status || ''); return st === '' || st === 'On Hold'; });
   const unread = (DASH && DASH.mail) ? DASH.mail.filter(mailIsInboxUnread).length : 0;
   const total = open.length + unread;
   return total || null;
@@ -1578,6 +1584,66 @@ function populateTpTeamSwitch() {
   };
 }
 
+/* ---------- parts design console (Part Orders) ---------- */
+function partsTeamSeries(teamKey) {
+  const role = CURRENT_USER && CURRENT_USER.role;
+  if (!teamKey) return '';
+  if (role === 'tp') {
+    const t = tpTeams().find(function (x) { return x.key === teamKey; });
+    return t ? String(t.series).toUpperCase() : '';
+  }
+  if (role === 'admin') {
+    const t = (TEAMS || []).find(function (x) { return x.team === teamKey; });
+    return t ? String(t.series).toUpperCase() : '';
+  }
+  return '';
+}
+
+function partsConsoleTeam() {
+  const role = CURRENT_USER && CURRENT_USER.role;
+  if (role === 'tp') return selectedTpTeam();
+  if (role === 'admin') return PARTS_TEAM_SEL || '';
+  return '';
+}
+
+function populatePartsTeamSwitch() {
+  const sel = document.getElementById('parts-team-switch');
+  const label = document.getElementById('parts-team-label');
+  if (!sel) return;
+  const role = CURRENT_USER && CURRENT_USER.role;
+  if (role !== 'admin') { sel.classList.add('hidden'); if (label) label.style.display = 'none'; return; }
+  const f1 = (TEAMS || []).filter(function (t) { return String(t.series).toUpperCase() === 'F1'; });
+  sel.innerHTML = f1.map(function (t) { return '<option value="' + BTG.esc(t.team) + '">' + BTG.esc(t.team) + '</option>'; }).join('');
+  if (f1.length > 1) {
+    sel.classList.remove('hidden'); if (label) label.style.display = '';
+    if (!PARTS_TEAM_SEL || !f1.some(function (t) { return t.team === PARTS_TEAM_SEL; })) PARTS_TEAM_SEL = f1[0].team;
+    sel.value = PARTS_TEAM_SEL;
+  } else if (f1.length === 1) {
+    PARTS_TEAM_SEL = f1[0].team;
+    sel.classList.add('hidden'); if (label) label.style.display = 'none';
+  } else {
+    PARTS_TEAM_SEL = '';
+    sel.classList.add('hidden'); if (label) label.style.display = 'none';
+  }
+  sel.onchange = function () { PARTS_TEAM_SEL = sel.value; renderPartOrders(); };
+}
+
+async function renderPartOrders() {
+  const wrap = document.getElementById('partorders-console');
+  if (!wrap) return;
+  const role = CURRENT_USER && CURRENT_USER.role;
+  if (role === 'driver') { wrap.innerHTML = '<p class="muted">Parts design is managed by your team principal — no action needed on your side.</p>'; return; }
+  if (typeof window.PartsDesign === 'undefined') { wrap.innerHTML = '<p class="muted">The Parts Design console is not loaded on this device.</p>'; return; }
+  const teamKey = partsConsoleTeam();
+  if (!teamKey) { wrap.innerHTML = '<p class="muted">Select a team to view its parts design.</p>'; return; }
+  const series = partsTeamSeries(teamKey);
+  if (series && series !== 'F1') { wrap.innerHTML = '<p class="muted">Parts design is currently only available to F1 teams — ' + BTG.esc(teamKey) + ' runs ' + BTG.esc(series) + '.</p>'; return; }
+  if (wrap.dataset.mountedTeam === teamKey) return; // already mounted for this team
+  wrap.dataset.mountedTeam = teamKey;
+  wrap.innerHTML = '<div class="pd-locked-notice">Loading parts design…</div>';
+  await window.PartsDesign.mount(wrap, { team: teamKey });
+}
+
 function buildDashSidebar(role) {
   const nav = document.getElementById('dash-nav');
   nav.innerHTML = '';
@@ -1599,6 +1665,7 @@ function showDashTab(tabId) {
   const tab = (DASH_TABS[role] || []).find(function (t) { return t.id === tabId; });
   if (tab) tab.sections.forEach(function (id) { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
   document.querySelectorAll('#dash-nav button').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === tabId); });
+  if (tabId === 'partorders') renderPartOrders();
 }
 
 /* ---------- overview data (race data may be empty → "—") ---------- */
@@ -1722,6 +1789,18 @@ function contractDriverOptions(selected, excludeName) {
 }
 
 let MINPAY_TIMER = null;
+async function refreshDriverMinSums() {
+  const resEl = document.getElementById('driver-minsum');
+  if (!resEl || !CURRENT_USER || CURRENT_USER.role !== 'driver') return;
+  try {
+    const data = await callGateway('driverMinPays', { username: CURRENT_USER.username, password: CURRENT_USER.password });
+    if (data.ok && data.minimums) {
+      const parts = data.minimums.filter(function (m) { return m.minPay > 0; }).map(function (m) { return '<b>' + BTG.esc(m.series) + '</b> ' + fmtMoney(m.minPay); });
+      resEl.innerHTML = parts.length ? 'Your minimum salary (Driving): ' + parts.join(' · ') : '';
+    }
+  } catch (e) { resEl.textContent = ''; }
+}
+
 function refreshMinPayFor(teamId, driverId, roleId, resultId) {
   var teamEl = document.getElementById(teamId);
   var resEl = document.getElementById(resultId);
@@ -1761,6 +1840,7 @@ function renderContracts() {
     return '<tr><td class="strong">' + BTG.esc(c.driver) + '</td><td>' + BTG.esc(c.team) + '</td>'
       + '<td>' + fmtMoney(c.salary) + '</td><td>' + BTG.esc(c.from || '—') + '–' + BTG.esc(c.till || '—') + '</td>'
       + '<td>' + BTG.esc(c.seat || '—') + '</td><td><span class="tag-pill">' + BTG.esc(seatCategoryLabel_(c.seat, c.team)) + '</span></td>'
+      + '<td>' + (c.promise ? BTG.esc(c.promise.series + (c.promise.by ? ' by ' + c.promise.by : '')) : '—') + '</td>'
       + actions + '</tr>';
   }).join('');
 
@@ -1775,13 +1855,14 @@ function renderContracts() {
       + '<div class="offer-top"><span class="strong">' + BTG.esc(o.team) + ' → ' + BTG.esc(o.target) + '</span>' + (o.modify ? '<span class="tag-pill warn">Contract change</span>' : '')
       + '<span class="stamp">' + fmtMoney(o.salary) + ' · ' + BTG.esc(o.from || '—') + '–' + BTG.esc(o.till || '—') + (o.role ? ' · ' + BTG.esc(o.role) : '') + '</span></div>'
       + (o.message ? '<div class="offer-body">' + BTG.esc(o.message) + '</div>' : '')
+      + (o.promise ? '<div class="offer-body">Promise: seat in <b>' + BTG.esc(o.promise.series) + '</b>' + (o.promise.by ? ' by <b>' + BTG.esc(o.promise.by) + '</b>' : '') + '</div>' : '')
       + offerActionsHtml(o, i, role)
       + '</div>';
   });
 
   var actionsHead = (role === 'tp') ? '<th>Actions</th>' : '';
   var html = '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Active contracts</div>'
-    + (rows ? '<table class="contract-table"><thead><tr><th>Driver</th><th>Team</th><th>Salary</th><th>Period</th><th>Seat</th><th>Role</th>' + actionsHead + '</tr></thead><tbody>' + rows + '</tbody></table>' : '<div class="muted">No contracts.</div>')
+    + (rows ? '<table class="contract-table"><thead><tr><th>Driver</th><th>Team</th><th>Salary</th><th>Period</th><th>Seat</th><th>Role</th><th>Promise</th>' + actionsHead + '</tr></thead><tbody>' + rows + '</tbody></table>' : '<div class="muted">No contracts.</div>')
     + '</div>'
     + '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Pending offers</div>'
     + (offerHtml || '<div class="muted">No pending offers.</div>')
@@ -1800,6 +1881,7 @@ function renderContracts() {
       + '</select></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="8,000,000"></div></div>'
       + '<div class="muted" id="tp-minpay" style="margin-bottom:10px;"></div>'
       + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div><div class="field"><label for="c-role">Role</label><select id="c-role">' + ROLE_OPTIONS + '</select></div></div>'
+      + '<div class="field-row"><div class="field"><label for="c-promise-series">Promise seat in</label><select id="c-promise-series">' + PROMISE_SERIES_OPTIONS + '</select></div><div class="field"><label for="c-promise-by">By (year)</label><input type="text" id="c-promise-by" placeholder="2027"></div></div>'
       + '<p class="muted" style="margin-bottom:10px;">Only drivers on a Reserve contract can be used as reserves in races.</p>'
       + '<div class="field"><label for="c-terms">Extra terms</label><input type="text" id="c-terms"></div>'
       + '<div class="field"><label for="c-message">Message</label><input type="text" id="c-message"></div>'
@@ -1807,9 +1889,11 @@ function renderContracts() {
   } else if (role === 'driver') {
     html += '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Initiate a contract offer</div>'
       + '<p class="muted" style="margin-bottom:10px;">Offer yourself to a team. Salary can be negative — a pay driver pays the team.</p>'
+      + '<div class="muted" id="driver-minsum" style="margin-bottom:10px;"></div>'
       + '<div class="field-row"><div class="field"><label for="c-team">Team</label><select id="c-team">' + contractTeamOptions('') + '</select></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="-2,000,000"></div></div>'
       + '<div class="muted" id="driver-minpay" style="margin-bottom:10px;"></div>'
       + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div><div class="field"><label for="c-role">Role</label><select id="c-role">' + ROLE_OPTIONS + '</select></div></div>'
+      + '<div class="field-row"><div class="field"><label for="c-promise-series">Ask for promise: seat in</label><select id="c-promise-series">' + PROMISE_SERIES_OPTIONS + '</select></div><div class="field"><label for="c-promise-by">By (year)</label><input type="text" id="c-promise-by" placeholder="2027"></div></div>'
       + '<div class="field"><label for="c-terms">Extra terms</label><input type="text" id="c-terms"></div>'
       + '<div class="field"><label for="c-message">Message</label><input type="text" id="c-message"></div>'
       + '<button class="action action-lead" id="c-send-btn"><span>Send offer</span></button><div class="result-line" id="c-result"></div></div>'
@@ -1855,6 +1939,7 @@ function renderContracts() {
     });
     refreshMinPayFor('c-team', null, 'c-role', 'driver-minpay');
   }
+  if (role === 'driver') refreshDriverMinSums();
 
   var adBtn = document.getElementById('ad-save-btn');
   if (adBtn) {
@@ -1889,8 +1974,8 @@ function renderContracts() {
       sendBtn.disabled = true;
       try {
         const payload = role === 'tp'
-          ? { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team-tp').value, target: document.getElementById('c-driver').value, salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim() }
-          : { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team').value.trim(), salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim() };
+          ? { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team-tp').value, target: document.getElementById('c-driver').value, salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim(), promiseSeries: document.getElementById('c-promise-series').value, promiseBy: document.getElementById('c-promise-by').value.trim() }
+          : { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team').value.trim(), salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim(), promiseSeries: document.getElementById('c-promise-series').value, promiseBy: document.getElementById('c-promise-by').value.trim() };
         const data = await callGateway(role === 'tp' ? 'sendContractOffer' : 'sendDriverOffer', payload);
         if (data.ok) { showResult(resultEl, true, '✓ Offer sent.'); }
         else { showResult(resultEl, false, '✗ ' + data.error); }
@@ -1994,6 +2079,8 @@ function onLoginSuccess(data) {
     selectDriverByIndex(0);
   }
 
+  PARTS_TEAM_SEL = null;
+  populatePartsTeamSwitch();
   buildDashSidebar(data.role);
   renderRoleContent(data.role);
   showDashTab((DASH_TABS[data.role] || [{}])[0].id);
@@ -2009,7 +2096,9 @@ function onLoginSuccess(data) {
 document.getElementById('logout-btn').addEventListener('click', () => {
   stopLive();
   clearSession();
-  CURRENT_USER = null; DRIVERS = []; TEAMS = []; SELECTED = null; PENDING = {}; DASH = null; MAIL_FILTER = null; TP_TEAM_SEL = null;
+  CURRENT_USER = null; DRIVERS = []; TEAMS = []; SELECTED = null; PENDING = {}; DASH = null; MAIL_FILTER = null; TP_TEAM_SEL = null; PARTS_TEAM_SEL = null;
+  const pc = document.getElementById('partorders-console');
+  if (pc) { pc.innerHTML = ''; delete pc.dataset.mountedTeam; }
   document.getElementById('gate-username').value = '';
   document.getElementById('gate-password').value = '';
   document.getElementById('gate-section').classList.remove('hidden');
@@ -2907,6 +2996,7 @@ var MAIL_SEARCH = '';
 var MAIL_IMPORTANT_ONLY = false;
 
 var ROLE_OPTIONS = '<option value="Driving">Driving</option><option value="Reserve">Reserve</option><option value="Junior">Junior</option><option value="Affiliate">Affiliate</option>';
+var PROMISE_SERIES_OPTIONS = '<option value="">— none —</option><option value="F1">F1</option><option value="XGT">XGT</option><option value="GT3">GT3</option><option value="GT4">GT4</option>';
 
 function isGtTeamKey(teamKey) {
   if (!teamKey) return false;
@@ -3497,6 +3587,7 @@ async function respondOffer(index, response) {
       o.status = data.result || '';
       renderMailbox();
       renderContracts();
+      if (CURRENT_USER) buildDashSidebar(CURRENT_USER.role);
     } else {
       alert('✗ ' + data.error);
     }
@@ -3517,6 +3608,7 @@ async function adminResolveOffer(index, approve) {
       o.status = data.result || '';
       renderMailbox();
       renderContracts();
+      if (CURRENT_USER) buildDashSidebar(CURRENT_USER.role);
     } else {
       alert('✗ ' + data.error);
     }
@@ -3538,6 +3630,7 @@ async function respondCounter(index, accept) {
       if (!accept) { o.counter = null; }
       renderMailbox();
       renderContracts();
+      if (CURRENT_USER) buildDashSidebar(CURRENT_USER.role);
     } else {
       alert('✗ ' + data.error);
     }
