@@ -398,15 +398,17 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
           <div class="login-title">Be The Grid</div>
         </div>
         <p class="login-sub">Driver and team principal portal</p>
+        <form id="login-form" autocomplete="on">
         <div class="field">
           <label for="gate-username">Username</label>
-          <input type="text" id="gate-username" placeholder="username" autocomplete="username">
+          <input type="text" id="gate-username" name="username" placeholder="username" autocomplete="username">
         </div>
         <div class="field">
           <label for="gate-password">Password</label>
-          <input type="password" id="gate-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') document.getElementById('unlock-btn').click();">
+          <input type="password" id="gate-password" name="password" placeholder="••••••••" autocomplete="current-password">
         </div>
-        <button class="action action-lead btn-login" id="unlock-btn"><span>Log in →</span></button>
+        <button type="submit" class="action action-lead btn-login" id="unlock-btn"><span>Log in →</span></button>
+        </form>
         <div class="error-line" id="gate-error" style="margin-top:12px;"></div>
       </div>
     </div>
@@ -518,7 +520,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
         </div>
         <div class="field">
           <label for="new-login-password">Password</label>
-          <input type="text" id="new-login-password" placeholder="password" autocomplete="off">
+          <input type="password" id="new-login-password" name="new-password" placeholder="password" autocomplete="new-password">
         </div>
         <button class="action action-compact" id="create-login-btn"><span>Create Login</span></button>
       </div>
@@ -939,7 +941,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
         </div>
         <div class="field">
           <label for="acct-password">New password</label>
-          <input type="text" id="acct-password" autocomplete="off">
+          <input type="password" id="acct-password" name="new-password" autocomplete="new-password">
         </div>
         <button class="action action-quiet action-compact" id="acct-save-btn"><span>Update Login</span></button>
       </div>
@@ -1300,7 +1302,8 @@ function setStatus(state, label) {
 
 /* ---------- login ---------- */
 
-document.getElementById('unlock-btn').addEventListener('click', async () => {
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
   const username = document.getElementById('gate-username').value.trim();
   const password = document.getElementById('gate-password').value;
   const err = document.getElementById('gate-error');
