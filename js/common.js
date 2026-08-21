@@ -46,8 +46,10 @@ BTG.ensureDonateModal = function() {
     + '<div class="modal-header"><div class="modal-title">Support this site\'s development</div>'
     + '<button class="modal-close" type="button" onclick="BTG.closeDonate()">✕</button></div>'
     + '<div class="modal-body">'
-    + '<iframe src="https://paypal.me/ThatOneEd" title="Donate via PayPal" loading="lazy"></iframe>'
-    + '<div class="donate-fallback">Can\'t see the box? <a href="https://paypal.me/ThatOneEd" target="_blank" rel="noopener">Open PayPal.me in a new tab</a></div>'
+    + '<a class="donate-btn" href="https://paypal.me/ThatOneEd" target="_blank" rel="noopener">'
+    + '<span class="donate-btn-icon">♥</span>Donate via PayPal'
+    + '</a>'
+    + '<div class="donate-note">Opens PayPal.me in a new tab — you don\'t need a PayPal account to send a donation.</div>'
     + '</div></div>';
   overlay.addEventListener('click', function(e) { if (e.target === overlay) BTG.closeDonate(); });
   document.body.appendChild(overlay);

@@ -302,6 +302,8 @@ body::before {
 <script src="js/common.js"></script>
 <script src="js/border-glow.js"></script>
 <script src="teams/f1.js"></script>
+<script src="js/roster.js"></script>
+<script src="js/db-cache.js"></script>
 <script src="js/data-loader.js"></script>
 <script>
 (function() {
@@ -309,15 +311,26 @@ body::before {
   var seasons = [], activeSeason = null;
   var selectedDriverId = null;
 
-  // Load from cache (fast) — init() resolves immediately and auto-discovery
-  // runs in the background, re-triggering load() via onUpdate when it lands.
-  BTG.Data.init().then(load).catch(function() {
-    drivers = [];
-    seriesList = ['F1']; activeSeries = 'F1';
-    seasons = [2026]; activeSeason = 2026;
-    build();
+  // Prefer the DB public cache (built daily from Supabase): if it loads,
+  // swap the driver-data source to DB-backed methods so the page runs purely
+  // off DB data (race results, standings, driver names/teams). Otherwise fall
+  // back to the legacy static data-loader.
+  BTG.DBCache.init().then(function(dbData) {
+    if (dbData && dbData.races && dbData.races.length) {
+      BTG.Data.getSeriesList = BTG.DBCache.getSeriesList;
+      BTG.Data.getSeasons = BTG.DBCache.getSeasons;
+      BTG.Data.buildDriverList = BTG.DBCache.buildDriverList;
+    }
+    // Load from cache (fast) — init() resolves immediately and auto-discovery
+    // runs in the background, re-triggering load() via onUpdate when it lands.
+    BTG.Data.init().then(load).catch(function() {
+      drivers = [];
+      seriesList = ['F1']; activeSeries = 'F1';
+      seasons = [2026]; activeSeason = 2026;
+      build();
+    });
+    BTG.Data.onUpdate(load);
   });
-  BTG.Data.onUpdate(load);
 
   function load() {
     // Build series list from discovered data, preserving selection if possible
