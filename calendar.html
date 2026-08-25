@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BeTheGrid — Calendar</title>
+<link rel="icon" type="image/x-icon" href="logos/BTG.ico">
+<link rel="stylesheet" href="style.css">
+<style>
+/* ── Calendar ─────────────────────────────────────────────────────────────── */
+:root {
+  --bg-base: #18181b;
+  --bg-card: #0e0e12;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --border-subtle: rgba(255,255,255,0.06);
+}
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.cal-wrap { max-width: 1400px; margin: 0 auto; padding: 0 16px 80px; }
+.cal-controls {
+  display: flex; align-items: center; gap: 12px; padding: 14px 0 4px;
+  border-bottom: 1px solid var(--border-subtle); margin-bottom: 16px;
+}
+.cal-controls select {
+  background: #3a3a3a; color: #fff;
+  border: 1px solid #4d4d4d; border-radius: 4px;
+  padding: 6px 10px; font-size: 12px;
+}
+.cal-controls select option { background: #3a3a3a; color: #fff; }
+.cal-spacer { flex: 1; }
+.cal-label { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); }
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+.cal-card {
+  border-radius: 10px; overflow: hidden; background: #101014;
+  box-shadow: 0 0 0 2px #52525b;
+}
+.cal-media {
+  position: relative; width: 100%; padding-bottom: 50%; border-radius: 8px;
+  overflow: hidden; background-size: cover; background-position: center;
+}
+.cal-media .cal-shade {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.15) 100%);
+}
+.cal-pill {
+  background: rgba(0,0,0,0.65); border-radius: 6px; padding: 6px 10px;
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+.cal-name { position: absolute; top: 12px; left: 14px; z-index: 1; display: flex; align-items: center; gap: 8px; }
+.cal-name .cal-pill { font-size: 15px; font-weight: 800; color: #fff; line-height: 1.15; }
+.cal-name img { width: 24px; height: 16px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.15); object-fit: cover; }
+.cal-bottom { position: absolute; bottom: 14px; left: 14px; right: 14px; z-index: 1; display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+.cal-raceinfo { display: flex; align-items: center; gap: 8px; }
+.cal-raceinfo .cal-pill {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 700; color: #fff;
+}
+.cal-raceinfo .cal-pill img { width: 14px; height: 14px; }
+.cal-live {
+  font-size: 9px; font-weight: 700; color: #38bdf8;
+  background: rgba(56,189,248,0.2); border: 1px solid rgba(56,189,248,0.3);
+  padding: 1px 7px; border-radius: 3px;
+}
+.cal-date .cal-pill { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.85); }
+.cal-empty { padding: 32px; color: var(--text-muted); }
+.cal-foot { margin-top: 10px; font-size: 11px; color: var(--text-muted); }
+.tfg-attrib { position: fixed; bottom: 12px; right: 16px; font-size: 9px; color: #52525b; z-index: 60; font-family: ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', monospace; }
+.tfg-attrib a { color: #52525b; text-decoration: underline; }
+.tfg-attrib a:hover { color: #71717a; }
+</style>
+</head>
+<body data-page="calendar">
+
+<nav class="btg-nav" id="btg-nav"></nav>
+
+<div class="cal-wrap">
+  <div class="cal-controls">
+    <div class="series-bar" id="series-bar" style="border:none;background:none;padding:0;"></div>
+    <span class="cal-spacer"></span>
+    <span class="cal-label">Season</span>
+    <select id="cal-season"></select>
+  </div>
+  <div class="cal-grid" id="cal-grid">
+    <div class="cal-empty">Loading calendar…</div>
+  </div>
+</div>
+
+<div class="tfg-attrib">UI by <a href="https://www.patreon.com/c/TFGTools" target="_blank" rel="noopener">TFGTools</a></div>
+
+<script src="js/common.js"></script>
+<script src="teams/f1.js"></script>
+<script src="js/db-cache.js"></script>
+<script src="js/circuits.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var SERIES_COLORS = { F1: '#E10600', F2: '#0090FF' };
+  var D = null;
+  var seriesList = [];       // [{ id, name }]
+  var activeSeries = 'F1';
+  var seasons = [];          // [year, ...]
+  var activeSeason = null;
+
+  function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
+  function str(v) { return v == null ? '' : String(v); }
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function colorFor(s) { return SERIES_COLORS[s] || '#8a8a8a'; }
+  function seriesColor(s) {
+    var row = (D && D.series || []).filter(function (x) { return str(x.series_id) === s; })[0];
+    return (row && row.color) || colorFor(s);
+  }
+  function seriesGlow(s) {
+    var row = (D && D.series || []).filter(function (x) { return str(x.series_id) === s; })[0];
+    return (row && row.glow_color) || '#38bdf8';
+  }
+  function seriesName(id) {
+    var s = (D && D.series || []).filter(function (x) { return str(x.series_id) === id; })[0];
+    return (s && s.name) || id;
+  }
+  function dateStr(y, m, d) { return num(y) + '-' + pad(num(m)) + '-' + pad(num(d)); }
+  function shift(dateStr, days) {
+    var p = String(dateStr).split('-').map(Number);
+    var dt = new Date(Date.UTC(p[0], p[1] - 1, p[2] + days));
+    return dateStrFmt(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate());
+  }
+  function dateStrFmt(y, m, d) { return num(y) + '-' + pad(num(m)) + '-' + pad(num(d)); }
+  function formatDate(dateStr) {
+    var p = String(dateStr).split('-').map(Number);
+    if (p.length !== 3 || !p[0]) return dateStr;
+    var names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return p[2] + ' ' + names[p[1] - 1] + ' ' + p[0];
+  }
+  function todayFor(series) {
+    var rows = (D && D.app_state || []).filter(function (s) { return str(s.series) === series; });
+    if (!rows.length) rows = (D && D.app_state || []).filter(function (s) { return str(s.series) === 'F1'; });
+    if (!rows.length) return null;
+    var r = rows[0];
+    if (num(r.year) > 0) return dateStr(r.year, r.month, r.day);
+    return null;
+  }
+  function trackImg(circuit) {
+    var c = BTG.circuitBySlug(circuit);
+    return c && c.img ? 'tracks/' + c.img + '.webp' : null;
+  }
+  function flagUrl(circuit) {
+    var c = BTG.circuitBySlug(circuit);
+    return c && c.flag ? 'Flags/' + c.flag + '.svg' : '';
+  }
+
+  function build() {
+    // Series that actually have a season + races in the DB.
+    var bySeries = {};
+    (D.races || []).forEach(function (r) { bySeries[str(r.season_id)] = true; });
+    var seen = {};
+    seriesList = [];
+    (D.race_seasons || []).forEach(function (s) {
+      if (!bySeries[str(s.season_id)]) return;
+      if (seen[s.series_id]) return;
+      seen[s.series_id] = true;
+      seriesList.push({ id: str(s.series_id), name: seriesName(str(s.series_id)) });
+    });
+    if (!seriesList.length) seriesList = [{ id: 'F1', name: seriesName('F1') }];
+    if (!seriesList.some(function (s) { return s.id === activeSeries; })) activeSeries = seriesList[0].id;
+
+    var bar = document.getElementById('series-bar');
+    bar.innerHTML = '';
+    seriesList.forEach(function (s) {
+      var t = document.createElement('div');
+      t.className = 'series-tab' + (s.id === activeSeries ? ' active' : '');
+      t.style.setProperty('--series-color', seriesColor(s.id));
+      t.setAttribute('data-series', s.id);
+      t.innerHTML = BTG.seriesLogoImg(s.id, 26);
+      t.title = s.name || s.id;
+      t.onclick = function () {
+        activeSeries = s.id;
+        rebuildSeasons();
+        render();
+        bar.querySelectorAll('.series-tab').forEach(function (x) {
+          x.classList.toggle('active', x.getAttribute('data-series') === s.id);
+        });
+      };
+      bar.appendChild(t);
+    });
+
+    rebuildSeasons();
+    render();
+  }
+
+  function rebuildSeasons() {
+    var set = {};
+    var sidOf = {};
+    (D.race_seasons || []).forEach(function (s) {
+      if (str(s.series_id) !== activeSeries) return;
+      set[num(s.year)] = true;
+      sidOf[num(s.year)] = str(s.season_id);
+    });
+    seasons = Object.keys(set).map(Number).sort(function (a, b) { return b - a; });
+    if (!seasons.length) seasons = [2024];
+    if (!seasons.some(function (y) { return y === activeSeason; })) activeSeason = seasons[0];
+    var sel = document.getElementById('cal-season');
+    sel.innerHTML = seasons.map(function (y) { return '<option value="' + y + '">' + y + '</option>'; }).join('');
+    sel.value = activeSeason;
+  }
+
+  function racesFor() {
+    var sid = null;
+    (D.race_seasons || []).forEach(function (s) {
+      if (str(s.series_id) === activeSeries && num(s.year) === num(activeSeason)) sid = str(s.season_id);
+    });
+    if (sid == null) return [];
+    return (D.races || []).filter(function (r) { return str(r.season_id) === sid; })
+      .slice().sort(function (a, b) { return num(a.round_number) - num(b.round_number); });
+  }
+
+  function render() {
+    var grid = document.getElementById('cal-grid');
+    var races = racesFor();
+    if (!races.length) {
+      grid.innerHTML = '<div class="cal-empty">No races on the calendar for this series/season yet.</div>';
+      return;
+    }
+    var today = todayFor(activeSeries);
+    var firstUpcomingIdx = -1;
+
+    var cards = races.map(function (r, i) {
+      var raceDate = str(r.race_date).slice(0, 10);
+      var isCompleted = false, isCurrent = false;
+      if (today) {
+        var weekendStart = shift(raceDate, -2);
+        isCompleted = today > raceDate;
+        isCurrent = today >= weekendStart && today <= raceDate;
+      }
+      if (!isCompleted && firstUpcomingIdx === -1) firstUpcomingIdx = i;
+      var isNext = firstUpcomingIdx === i;
+
+      var color = seriesColor(activeSeries);
+      var glow = seriesGlow(activeSeries);
+      var boxShadow, live;
+      if (isCompleted) { boxShadow = '0 0 0 2px #52525b'; live = false; }
+      else if (isCurrent || isNext) { boxShadow = '0 0 16px 4px ' + glow + '44, 0 0 0 2px ' + glow; live = isCurrent; }
+      else { boxShadow = '0 0 16px 4px ' + color + '44, 0 0 0 2px ' + color; live = false; }
+
+      var circuit = str(r.circuit);
+      var gpName = circuit ? BTG.gpNameFor(circuit) : (str(r.name) || '');
+      var img = trackImg(circuit);
+      var flag = flagUrl(circuit);
+      var bg = img ? 'background-image:url(' + img + ')' : '';
+
+      var html = '<div class="cal-card" style="box-shadow:' + boxShadow + ';">'
+        + '<div class="cal-media" style="' + bg + '">'
+        + '<div class="cal-shade"></div>'
+        + '<div class="cal-name">'
+        + '<div class="cal-pill">' + BTG.esc(gpName) + '</div>'
+        + (flag ? '<img src="' + flag + '" alt="" onerror="this.style.display=\'none\'">' : '')
+        + '</div>'
+        + '<div class="cal-bottom">'
+        + '<div class="cal-raceinfo">'
+        + '<div class="cal-pill">Race ' + (i + 1) + '/' + races.length
+        + (num(r.weekend_type) === 1 ? '<img src="tracks/Sprint.png" alt="Sprint">' : '')
+        + '</div>'
+        + (live ? '<span class="cal-live">LIVE</span>' : '')
+        + '</div>'
+        + '<div class="cal-date"><div class="cal-pill">' + formatDate(raceDate) + '</div></div>'
+        + '</div>'
+        + '</div>'
+        + '</div>';
+      return html;
+    });
+
+    grid.innerHTML = cards.join('');
+  }
+
+  BTG.DBCache.init().then(function (data) {
+    if (!data || !data.races || !data.races.length) {
+      document.getElementById('cal-grid').innerHTML = '<div class="cal-empty">Calendar unavailable — no cached race data.</div>';
+      return;
+    }
+    D = data;
+    build();
+  });
+
+  document.getElementById('cal-season').addEventListener('change', function () {
+    activeSeason = Number(this.value);
+    render();
+  });
+})();
+</script>
+</body>
+</html>

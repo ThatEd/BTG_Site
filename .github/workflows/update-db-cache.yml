@@ -1,0 +1,33 @@
+name: Update DB Public Cache (daily)
+
+on:
+  schedule:
+    # Daily at 03:15 UTC
+    - cron: '15 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  build-db-cache:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build DB public cache
+        env:
+          # Repo layout: scripts/ and cache/ are both at the repo root.
+          BTG_SITE_ROOT: ${{ github.workspace }}
+        run: node scripts/build-db-cache.js
+
+      - name: Commit updated cache
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "cache/public-data.json"
+          git diff --cached --quiet || git commit -m "chore: daily DB public-data cache"
+          git push

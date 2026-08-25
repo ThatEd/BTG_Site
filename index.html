@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BeTheGrid — Standings</title>
+<link rel="icon" type="image/x-icon" href="logos/BTG.ico">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="standings">
+
+<nav class="btg-nav" id="btg-nav"></nav>
+
+<div style="max-width:1200px;margin:0 auto;padding:0 16px;">
+  <div class="dp-controls" style="margin-top:12px;">
+    <div class="series-bar" id="series-bar" style="border:none;background:none;padding:0;"></div>
+    <span style="flex:1"></span>
+    <span class="label">Season</span>
+    <select id="season-select"></select>
+  </div>
+  <div class="page-section" id="content" style="padding:12px 0 80px;">
+    <div class="muted" style="padding:24px">Loading standings…</div>
+  </div>
+</div>
+
+<!-- Driver Modal -->
+<div id="driver-modal" class="modal-overlay" onclick="BTG.bgClose(event,'driver-modal')">
+  <div class="modal">
+    <button class="modal-close" onclick="BTG.closeModal('driver-modal')">&#10005;</button>
+    <div class="modal-driver-team" id="modal-team"></div>
+    <div class="modal-driver-name">
+      <span class="modal-driver-flag" id="modal-flag"></span>
+      <span id="modal-name"></span>
+    </div>
+    <div class="modal-overall" id="modal-overall"></div>
+    <div class="modal-history-title">Lifetime by series</div>
+    <div id="modal-lifetime" class="modal-scroll"></div>
+    <div class="modal-history-title">Contract history</div>
+    <div id="modal-contracts" class="modal-scroll"></div>
+  </div>
+</div>
+
+<script src="js/common.js"></script>
+<script src="js/border-glow.js"></script>
+<script src="teams/f1.js"></script>
+<script src="js/db-cache.js"></script>
+<script src="js/data-loader.js"></script>
+<script>
+(function() {
+  var drivers = [], activeSeries = null, seriesList = [], activeSeason = null, seasons = [];
+
+  // Prefer the DB public cache (built daily from Supabase): if it loads, swap
+  // the driver-data source to DB-backed methods so the page runs purely off
+  // DB data (logos, standings). Otherwise fall back to the static data-loader.
+  BTG.DBCache.init().then(function(dbData) {
+    if (dbData && dbData.races && dbData.races.length) {
+      BTG.Data.getSeriesList = BTG.DBCache.getSeriesList;
+      BTG.Data.getSeasons = BTG.DBCache.getSeasons;
+      BTG.Data.buildDriverList = BTG.DBCache.buildDriverList;
+    }
+    // Load from cache (fast) — init() resolves immediately and auto-discovery
+    // runs in the background, re-triggering load() via onUpdate when it lands.
+    BTG.Data.init().then(load).catch(function() {
+      drivers = [];
+      seriesList = ['F1']; activeSeries = 'F1'; seasons = [2026]; activeSeason = 2026;
+      build();
+    });
+    BTG.Data.onUpdate(load);
+  });
+
+  function load() {
+    seriesList = BTG.Data.getSeriesList().map(function(s){return s.id;});
+    if (seriesList.indexOf(activeSeries) === -1) activeSeries = seriesList[0] || 'F1';
+    seasons = BTG.Data.getSeasons(activeSeries);
+    if (seasons.indexOf(activeSeason) === -1) activeSeason = seasons[0] || 2026;
+    // includeAll → show the full grid in team order even before race results
+    // exist (drivers without a finish show — until the season produces them).
+    drivers = BTG.Data.buildDriverList(activeSeries, activeSeason, { includeAll: true });
+    build();
+  }
+
+  function build() {
+    var bar = document.getElementById('series-bar');
+    bar.innerHTML = ''; // clear so re-renders (onUpdate) don't duplicate tabs
+    seriesList.forEach(function(s) {
+      var t = document.createElement('div');
+      t.className = 'series-tab' + (s === activeSeries ? ' active' : '');
+      // Accent color derived from the series data — never hardcoded per series name.
+      t.style.setProperty('--series-color', BTG.seriesAccent(s));
+      t.setAttribute('data-series', s);
+      // Clickable series logo (auto-discovered from logos/{series}.png, clamped)
+      t.innerHTML = BTG.seriesLogoImg(s, 26);
+      t.title = s;
+      t.onclick = function() {
+        activeSeries = s;
+        seasons = BTG.Data.getSeasons(s);
+        activeSeason = seasons[0] || 2026;
+        rebuildSeasonSelect();
+        drivers = BTG.Data.buildDriverList(s, activeSeason, { includeAll: true });
+        bar.querySelectorAll('.series-tab').forEach(function(x){x.classList.toggle('active',x.getAttribute('data-series')===s);});
+        render();
+      };
+      bar.appendChild(t);
+    });
+    rebuildSeasonSelect();
+    render();
+  }
+
+  function rebuildSeasonSelect() {
+    var sel = document.getElementById('season-select');
+    sel.innerHTML = '';
+    seasons.forEach(function(s) { var o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o); });
+    sel.value = activeSeason;
+    sel.onchange = function() {
+      activeSeason = Number(this.value);
+      drivers = BTG.Data.buildDriverList(activeSeries, activeSeason, { includeAll: true });
+      render();
+    };
+  }
+
+  function render() {
+    // Standings are sorted by championship position (points), then by team order.
+    var list = drivers.slice().sort(function(a,b){
+      var pa = (a.standings&&a.standings.pos!=='—') ? Number(a.standings.pos) : 999;
+      var pb = (b.standings&&b.standings.pos!=='—') ? Number(b.standings.pos) : 999;
+      if (pa !== pb) return pa - pb;
+      var ta = a.teamOrder != null ? a.teamOrder : 99, tb = b.teamOrder != null ? b.teamOrder : 99;
+      if (ta !== tb) return ta - tb;
+      return (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+    });
+    var c = document.getElementById('content');
+    if (!list.length) { c.innerHTML = '<div class="muted" style="padding:24px">No standings for ' + BTG.esc(activeSeries) + '.</div>'; return; }
+    // Separate columns per entry field (Team and/or Car), derived from the data only.
+    var entryCols = BTG.entryColumns(list, 'team', 'car');
+    var headerCells = entryCols.map(function(col) { return '<th>'+col+'</th>'; }).join('');
+    c.innerHTML = '<table class="btg-table"><thead><tr><th>Pos</th><th></th><th>Driver</th>'+headerCells+'<th>Wins</th><th title="Sprint wins">Sprint</th><th style="text-align:right">Pts</th></tr></thead><tbody>'
+      + list.map(function(d) {
+        var ss = d.seasonStats || {};
+        var entryCells = entryCols.map(function(col) {
+          var label = BTG.entryColLabel(d, col, 'team', 'car');
+          return '<td class="team-cell">'+BTG.entryColLogo(d, col, activeSeries, 14, 'team', 'car')+' '+BTG.esc(label)+'</td>';
+        }).join('');
+        return '<tr><td class="col-pos">'+(d.standings&&d.standings.pos!=='—'?d.standings.pos:'—')+'</td>'
+          + '<td class="flag-cell">'+BTG.flagImg(d.nation,24,18)+'</td>'
+          + '<td><span class="driver-link" data-id="'+BTG.esc(d.id)+'" style="display:inline-flex;align-items:center;gap:8px;">'+BTG.driverPhotoImg(d.fullName || d.name,26)+BTG.esc(d.fullName || d.name)+'</span></td>'
+          + entryCells
+          + '<td class="col-ovr">'+(ss.wins||'—')+'</td>'
+          + '<td class="col-ovr">'+(ss.sprintWins||'—')+'</td>'
+          + '<td class="col-pts">'+(d.standings?d.standings.pts:'—')+'</td></tr>';
+      }).join('') + '</tbody></table>';
+    c._drivers = list;
+    c.querySelectorAll('.driver-link').forEach(function(el) {
+      el.onclick = function() { showModal(this.dataset.id); };
+    });
+  }
+
+  function showModal(id) {
+    var d = (document.getElementById('content')._drivers||drivers).find(function(x){return x.id===id;});
+    if (!d) return;
+    if (d.teamColor) {
+      var _t = BTG.teamByName(d.team);
+      BTG.setTeamColors(d.teamColor, _t && _t.colorSecondary);
+    }
+    document.getElementById('modal-name').textContent = d.name;
+    document.getElementById('modal-team').textContent = (d.team||'Privateer')+' · '+(d.series||activeSeries);
+    document.getElementById('modal-overall').textContent = (d.careerRecord&&d.careerRecord.avgFinish!=='—') ? d.careerRecord.avgFinish : '—';
+    document.getElementById('modal-flag').innerHTML = BTG.driverPhotoImg(d.fullName || d.name, 48) + ' ' + BTG.flagImg(d.nation,48,36);
+    // Lifetime stats per series — only the series where this driver has raced
+    // or holds a driving seat. Built from the cached DB (aggregates seasons).
+    var career = (BTG.DBCache && BTG.DBCache.driverCareer) ? BTG.DBCache.driverCareer(d.name) : [];
+    document.getElementById('modal-lifetime').innerHTML = career.length
+      ? career.map(function (c) {
+          return '<div class="ml-series"><div class="ml-head"><span class="ml-series-logo">' + BTG.seriesLogoImg(c.series, 14) + '</span>'
+            + (c.teamKeys.length ? '<span class="ml-teams">' + c.teamKeys.map(function (t) { return BTG.esc(t); }).join(' · ') + '</span>' : '')
+            + '</div><div class="ml-stats">'
+            + '<span>Seasons <b>' + (c.years || '—') + '</b></span>'
+            + '<span>Starts <b>' + c.starts + '</b></span>'
+            + '<span>Wins <b>' + c.wins + '</b></span>'
+            + '<span>Sprint <b>' + (c.sprintWins || '—') + '</b></span>'
+            + '<span>Podiums <b>' + c.podiums + '</b></span>'
+            + '<span>Points <b>' + c.points + '</b></span>'
+            + '<span>Best <b>' + (c.bestPos ? 'P' + c.bestPos : '—') + '</b></span>'
+            + '</div></div>';
+        }).join('')
+      : '<div class="muted">No series yet.</div>';
+    // Contract history timeline (drivers + TPs, from the cached DB).
+    var contracts = (BTG.DBCache && BTG.DBCache.contractHistory) ? BTG.DBCache.contractHistory(d.name) : [];
+    document.getElementById('modal-contracts').innerHTML = contracts.length
+      ? contracts.map(function (h) {
+          var roleLabel = (str0(h.entity_type) === 'tp' ? 'Team Principal' : str0(h.role));
+          return '<div class="mc-row' + (h.is_current ? ' current' : '') + '">'
+            + '<div class="mc-team">' + BTG.esc(str0(h.team_key) || '—') + (h.is_current ? ' <span class="tag-pill">current</span>' : '') + '</div>'
+            + '<div class="mc-meta">' + BTG.esc(roleLabel) + ' · ' + (h.from_year || '—') + '–' + (h.till_year || '—') + '</div>'
+            + '</div>';
+        }).join('')
+      : '<div class="muted">No contract history.</div>';
+    function str0(v) { return v == null ? '' : String(v); }
+    BTG.openModal('driver-modal');
+  }
+})();
+</script>
+</body>
+</html>

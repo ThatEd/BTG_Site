@@ -1,0 +1,16 @@
+# ── OS junk ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+*.log
+
+# ── Node / local dev ────────────────────────────────────────────────────
+node_modules/
+
+# ── Editor ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+
+# NOTE: cache/public-data.json and data-cache.json are deliberately tracked —
+# the site renders from them and the update-db-cache workflow commits them.
