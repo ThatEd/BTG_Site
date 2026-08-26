@@ -146,8 +146,14 @@ h1, h2, h3, h4, h5, h6 {
 .nav-tab:hover { color: var(--copy); }
 .nav-tab.active { color: var(--copy); border-bottom-color: var(--team-accent); }
 
+/* ── Social links + donate (top bar) ── */
+.nav-right{margin-left:auto; display:flex; align-items:center; flex-shrink:0;}
+.nav-social{display:flex; align-items:center; height:19.5px; margin-right:8px; flex-shrink:0; line-height:0; text-decoration:none; opacity:.92; transition:opacity .15s;}
+.nav-social:hover{opacity:1;}
+.nav-social-img{display:block; height:19.5px; width:auto; object-fit:contain;}
+
 /* ── Donate (top bar) ── */
-.nav-donate{margin-left:auto; display:flex; align-items:center; gap:3px; height:15px; padding:0 8px; border-radius:5px; background:color-mix(in oklab, var(--team-accent) 14%, transparent); border:1px solid var(--team-edge); color:var(--copy-soft); font-family:var(--head-face); font-size:6px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; cursor:pointer; white-space:nowrap; flex-shrink:0; transition:.15s ease;}
+.nav-donate{display:flex; align-items:center; gap:3px; height:15px; padding:0 8px; border-radius:5px; background:color-mix(in oklab, var(--team-accent) 14%, transparent); border:1px solid var(--team-edge); color:var(--copy-soft); font-family:var(--head-face); font-size:6px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; cursor:pointer; white-space:nowrap; flex-shrink:0; transition:.15s ease;}
 .nav-donate:hover{background:color-mix(in oklab, var(--team-accent) 22%, transparent); border-color:var(--team-accent); color:var(--copy);}
 .nav-donate .nav-donate-heart{color:var(--team-accent-hot); font-size:8px; line-height:1;}
 

@@ -1659,6 +1659,10 @@ function setMonthPill() {
 }
 
 async function callGateway(action, payload) {
+  payload = payload || {};
+  if (action !== 'login' && CURRENT_USER && CURRENT_USER.token) {
+    payload = Object.assign({}, payload, { token: CURRENT_USER.token });
+  }
   const res = await fetch(EDGE_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1698,7 +1702,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         : 'Backend error: ' + data.error;
       err.style.display = 'block';
     } else {
-      CURRENT_USER = { username: data.username, password: password, role: data.role };
+      CURRENT_USER = { username: data.username, token: data.token, role: data.role };
       persistSession();
       onLoginSuccess(data);
     }
@@ -1722,11 +1726,11 @@ function clearSession() {
 async function tryAutoLogin() {
   var saved = null;
   try { saved = JSON.parse(localStorage.getItem('btg_session') || 'null'); } catch (e) { saved = null; }
-  if (!saved || !saved.username || !saved.password) return;
+  if (!saved || !saved.token) { if (saved) clearSession(); return; }
   try {
-    const data = await callGateway('login', { username: saved.username, password: saved.password });
+    const data = await callGateway('session', { token: saved.token });
     if (data.ok) {
-      CURRENT_USER = { username: data.username, password: saved.password, role: data.role };
+      CURRENT_USER = { username: data.username, token: saved.token, role: data.role };
       persistSession();
       onLoginSuccess(data);
     } else {
@@ -1860,12 +1864,14 @@ function populateTpTeamSwitch() {
   var sel = document.getElementById('tp-team-switch');
   if (!sel) return;
   var teams = tpTeams();
+  var isTp = CURRENT_USER && CURRENT_USER.role === 'tp';
   sel.innerHTML = teams.map(function (t) { return '<option value="' + BTG.esc(t.key) + '">' + BTG.esc(t.key) + '</option>'; }).join('');
-  if (teams.length > 1) {
+  if (isTp && teams.length > 1) {
     sel.classList.remove('hidden');
     if (sel.value !== selectedTpTeam()) sel.value = selectedTpTeam();
   } else {
     sel.classList.add('hidden');
+    sel.value = '';
   }
   sel.onchange = function () {
     TP_TEAM_SEL = sel.value;
@@ -2581,6 +2587,7 @@ function onLoginSuccess(data) {
 }
 
 document.getElementById('logout-btn').addEventListener('click', () => {
+  if (CURRENT_USER && CURRENT_USER.token) { try { callGateway('logout', {}); } catch (e) {} }
   stopLive();
   clearSession();
   CURRENT_USER = null; DRIVERS = []; TEAMS = []; SELECTED = null; PENDING = {}; DASH = null; MAIL_FILTER = null; TP_TEAM_SEL = null; PARTS_TEAM_SEL = null;
@@ -2590,8 +2597,10 @@ document.getElementById('logout-btn').addEventListener('click', () => {
   document.getElementById('gate-password').value = '';
   document.getElementById('gate-section').classList.remove('hidden');
   document.getElementById('dash-side').classList.add('hidden');
-  ALL_DASH_SECTIONS.concat(['driver-hero','driver-meta-row','driver-select-wrap','logout-btn','refresh-btn','month-pill','finances-pill'])
+  ALL_DASH_SECTIONS.concat(['driver-hero','driver-meta-row','driver-select-wrap','logout-btn','refresh-btn','month-pill','finances-pill','tp-team-switch'])
     .forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
+  const tsw = document.getElementById('tp-team-switch');
+  if (tsw) { tsw.value = ''; tsw.innerHTML = ''; }
   setTeamColors(null); // reset to default ember tones
   setStatus('locked', 'Locked');
 });
@@ -2601,7 +2610,7 @@ document.getElementById('logout-btn').addEventListener('click', () => {
 async function refreshMail() {
   if (!CURRENT_USER) return;
   try {
-    const data = await callGateway('login', { username: CURRENT_USER.username, password: CURRENT_USER.password });
+    const data = await callGateway('session', {});
     if (data.ok) {
       if (data.offers !== undefined) DASH.offers = data.offers || [];
       if (data.mail !== undefined) DASH.mail = data.mail || [];
@@ -2623,7 +2632,7 @@ async function refreshMail() {
 async function refreshDashboard() {
   if (!CURRENT_USER) return;
   try {
-    const data = await callGateway('login', { username: CURRENT_USER.username, password: CURRENT_USER.password });
+    const data = await callGateway('session', {});
     if (data.ok) onLoginSuccess(data);
     else alert('✗ ' + data.error);
   } catch (e) {
@@ -3668,12 +3677,12 @@ document.getElementById('acct-save-btn').addEventListener('click', async () => {
   btn.disabled = true;
   try {
     const data = await callGateway('changeCredentials', {
-      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      username: CURRENT_USER.username,
       newUsername: newUsername, newPassword: newPassword
     });
     if (data.ok) {
       CURRENT_USER.username = data.username;
-      CURRENT_USER.password = newPassword;
+      if (data.token) CURRENT_USER.token = data.token;
       setStatus(CURRENT_USER.role, (CURRENT_USER.role === 'admin' ? 'Admin — ' : 'Driver — ') + data.username);
       showResult(resultEl, true, '✓ Login updated.');
       document.getElementById('acct-username').value = '';

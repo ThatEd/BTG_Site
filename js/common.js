@@ -30,9 +30,13 @@ BTG.renderNav = function(activePage) {
     var cls = 'nav-tab' + (t.id === activePage ? ' active' : '');
     html += '<a class="' + cls + '" href="' + t.href + '">' + t.label + '</a>';
   });
-  html += '<button class="nav-donate" type="button" onclick="BTG.openDonate()">'
+  html += '<div class="nav-right">'
+    + '<a class="nav-social" href="https://www.youtube.com/@Bethegrid" target="_blank" rel="noopener" title="YouTube" aria-label="YouTube"><img class="nav-social-img" src="logos/Youtube.png" alt=""></a>'
+    + '<a class="nav-social" href="https://discord.gg/bethegrid" target="_blank" rel="noopener" title="Discord" aria-label="Discord"><img class="nav-social-img" src="logos/Discord.webp" alt=""></a>'
+    + '<button class="nav-donate" type="button" onclick="BTG.openDonate()">'
     + '<span class="nav-donate-heart">♥</span><span>Support this site\'s development</span>'
-    + '</button>';
+    + '</button>'
+    + '</div>';
   nav.innerHTML = html;
 };
 
@@ -169,7 +173,12 @@ BTG.fmtOvr = function(v) { return (v || 0).toFixed(1); };
 
 BTG.esc = function(str) {
   if (!str) return '';
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
 };
 
 /** Group drivers by series. Returns { seriesId: [drivers] }. */
