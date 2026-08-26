@@ -438,8 +438,8 @@
       + '<div class="tb-group"><span class="tb-label">Championship</span><span class="tb-resource">Position <b id="pd-position">—</b></span></div>'
       + '<div class="tb-divider"></div>'
       + '<div class="tb-group">'
-      + '<span class="tb-resource">CFD <b id="cfd-total">0</b> MAu · used <b class="used" id="cfd-used">0</b></span>'
-      + '<span class="tb-resource">WTH <b id="wth-total">0</b> h · used <b class="used" id="wth-used">0</b></span>'
+      + '<span class="tb-resource">CFD <b id="cfd-total">0</b> MAu</span>'
+      + '<span class="tb-resource">WTH <b id="wth-total">0</b> h</span>'
       + '</div>'
       + '</div>'
       + '<div class="pd-maintabs" id="pd-maintabs">'
@@ -483,8 +483,6 @@
   function renderTopbar() {
     var r = getResources();
     el('cfd-total').textContent = r.cfd; el('wth-total').textContent = r.wth;
-    var used = (S && S.resourceUsed) || { cfd: 0, wth: 0 };
-    el('cfd-used').textContent = used.cfd; el('wth-used').textContent = used.wth;
     el('pd-position').textContent = S && S.position ? 'P' + S.position : '—';
   }
   function el(id) { return document.getElementById(id); }
