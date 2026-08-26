@@ -37,6 +37,12 @@
     var t = (D && D.teams || []).filter(function (x) { return String(x.team_key) === k || String(x.team_id) === k; })[0];
     return t ? str(t.series) : '';
   }
+  // DB team colour (hex) by team_key / team_id — the site-wide source of truth.
+  function teamColorHex(key) {
+    var k = String(key);
+    var t = (D && D.teams || []).filter(function (x) { return String(x.team_key) === k || String(x.team_id) === k; })[0];
+    return (t && t.color_primary) ? str(t.color_primary) : '';
+  }
 
   // Logo filename (under logos/teams/) for a team, from the cached DB — the
   // site-wide source of truth (admin-changed logos land here after a cache
@@ -241,6 +247,18 @@
       return (rd && rd.nation) || '';
     } catch (e) { return ''; }
   }
+  function dbNation(name) {
+    // DB (cache drivers) is the fallback source of truth when the roster CSV
+    // has no match (e.g. name encoding mismatches).
+    try {
+      var rows = (D && D.drivers) || [];
+      for (var i = 0; i < rows.length; i++) {
+        var x = rows[i];
+        if (str(x.full_name) === name || str(x.driver_name) === name) return str(x.nation) || '';
+      }
+    } catch (e) {}
+    return '';
+  }
   function rosterTeamOrder(series, team) {
     try {
       if (window.BTG && BTG.Roster && BTG.Roster.teamOrderIndexOf) return BTG.Roster.teamOrderIndexOf(series, team);
@@ -321,7 +339,7 @@
             name: d.name,
             fullName: d.fullName || d.name,
             team: d.team,
-            nation: d.nation || '',
+            nation: d.nation || dbNation(d.name || d.fullName || ''),
             number: d.number != null ? d.number : null
           };
         });
@@ -391,6 +409,9 @@
       var wins = mine.filter(function (r) { return num(r.finish_position) === 1; }).length;
       var podiums = mine.filter(function (r) { var p = num(r.finish_position); return p >= 1 && p <= 3; }).length;
       var sprintWins = sprints.filter(function (s) { return str(s.driver_name) === name && num(s.finish_position) === 1; }).length;
+      var mySprints = sprints.filter(function (s) { return str(s.driver_name) === name; });
+      var sprintPodiums = mySprints.filter(function (s) { var p = num(s.finish_position); return p >= 1 && p <= 3; }).length;
+      var sprintPts = mySprints.reduce(function (a, s) { return a + num(s.points); }, 0);
       var dnfs = mine.filter(function (r) { return num(r.dnf) === 1 || /dnf/i.test(str(r.status)); }).length;
       var finishes = mine.filter(function (r) { return num(r.finish_position) > 0; }).map(function (r) { return num(r.finish_position); });
       var bestFinish = finishes.length ? Math.min.apply(null, finishes) : 99;
@@ -403,7 +424,34 @@
       var teamKey = lastResult ? str(lastResult.team_id) : '';
       var teamNameStr = teamKey ? teamName(teamKey) : '';
       var teamSeries = teamKey ? seriesOfTeam(teamKey) : series;
-      var nation = rosterNation(name);
+      var nation = rosterNation(name) || dbNation(name);
+
+      // Junior/feeder academy + reserve stints: the current academy team (Junior /
+      // Affiliate / Reserve) plus the full per-team season ranges from
+      // contract_history (Junior/Affiliate → academy row, Reserve → reserve row).
+      var academy = '';
+      var academyRole = ''; // 'Junior' | 'Affiliate' | 'Reserve' — for the label
+      var acadStints = [], resStints = [];
+      var acadByTeam = {}, resByTeam = {};
+      (D && D.contract_history || []).forEach(function (h) {
+        if (str(h.entity_type) !== 'driver' || str(h.entity_name) !== name) return;
+        var r = str(h.role);
+        var isRes = r === 'Reserve';
+        if (r !== 'Junior' && r !== 'Affiliate' && r !== 'Reserve') return;
+        var tk = str(h.team_key);
+        if (!tk) return;
+        // Current feeder tag: Junior/Affiliate → Academy, Reserve → Reserve.
+        if (h.is_current) { academy = tk; academyRole = r; }
+        var fy = num(h.from_year) || num(year);
+        var ty = num(h.till_year) || fy;
+        if (ty > num(year)) ty = num(year); // only current/past seasons, not future
+        var map = isRes ? resByTeam : acadByTeam;
+        if (!map[tk]) map[tk] = [];
+        for (var sy = fy; sy <= ty; sy++) { if (map[tk].indexOf(sy) === -1) map[tk].push(sy); }
+      });
+      Object.keys(acadByTeam).forEach(function (tk) { acadStints.push({ team: tk, seasons: acadByTeam[tk].slice().sort(function (a, b) { return a - b; }), color: teamColorHex(tk) }); });
+      Object.keys(resByTeam).forEach(function (tk) { resStints.push({ team: tk, seasons: resByTeam[tk].slice().sort(function (a, b) { return a - b; }), color: teamColorHex(tk) }); });
+      var academyColor = academy ? teamColorHex(academy) : '';
 
       // Median lap pace (seconds→ms) from fastest-lap data, median quali time
       // (seconds) from race_qualifying best session per race.
@@ -441,6 +489,17 @@
           avgFinish: racesCount ? (finishSum / racesCount).toFixed(1) : '—'
         });
       }
+      // Reserve contracts appear in the career history (Past Seasons) too, but are
+      // kept out of the main timeline year blocks (they don't split a season).
+      resStints.forEach(function (st) {
+        st.seasons.forEach(function (sy) {
+          var rteam = normTeam(st.team);
+          var hs = seriesOfTeam(st.team) || '';
+          var dup = history.some(function (x) { return x.team === rteam && x.season === sy && x.role === 'Reserve'; });
+          if (dup) return;
+          history.push({ season: sy, series: hs, team: rteam, car: null, className: null, role: 'Reserve', races: 0, points: 0, pos: '—', wins: 0, podiums: 0, dnfs: 0, avgFinish: '—' });
+        });
+      });
 
       return {
         id: name.toLowerCase().replace(/\s+/g, '-'),
@@ -451,10 +510,16 @@
         car: null, className: null, carNumber: null,
         series: series,
         nation: nation,
+        academy: academy,
+        academyRole: academyRole,
+        academyColor: academyColor,
+        academyStints: acadStints,
+        reserveStints: resStints,
         ovr: 0, targetOvr: 0, teamColor: null, skills: {},
         standings: sd ? { pos: sd.position != null ? num(sd.position) : '—', pts: num(sd.points) } : null,
         seasonStats: {
-          races: racesCount, wins: wins, podiums: podiums, sprintWins: sprintWins, dnfs: dnfs,
+          races: racesCount, wins: wins, podiums: podiums, sprints: mySprints.length,
+          sprintWins: sprintWins, sprintPodiums: sprintPodiums, sprintPts: sprintPts, dnfs: dnfs,
           bestFinish: bestFinish < 99 ? bestFinish : '—',
           avgFinish: racesCount ? (finishSum / racesCount).toFixed(1) : '—',
           avgGrid: avgGrid != null ? avgGrid.toFixed(1) : '—',

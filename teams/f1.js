@@ -570,6 +570,11 @@ BTG.driverPhotoImg = function(fullName, size, className) {
     return '<span class="dp-hero__placeholder">?</span>';
   }
   var urls = [];
+  // Fast path: 256px webp thumbs (logos/drivers/thumbs/) first — the source
+  // PNGs are ~1254px / ~1.5MB and are only ever shown small.
+  bases.forEach(function (b) {
+    urls.push(b.replace('logos/drivers/', 'logos/drivers/thumbs/') + '.webp');
+  });
   bases.forEach(function (b) { urls.push(b + '.webp'); urls.push(b + '.png'); });
   var chain = urls.map(function (u) { return u.replace(/"/g, '&quot;'); }).join('|');
   return '<img class="' + cls + '" src="' + urls[0] + '" width="' + sizePx + '" height="' + sizePx + '" alt="' + BTG.esc(fullName || '') + '" '

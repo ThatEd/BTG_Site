@@ -174,7 +174,17 @@ window.BTG = window.BTG || {};
       if (state.selectedRaceId) render();
     });
 
-    BTG.Data.init().then(function() {
+    // Prefer the DB cache (Supabase) for series/season metadata so DB-backed
+    // series (F2) show the right seasons; race data still comes from Data/
+    // first, with the DB cache as the fallback in loadRaces().
+    var dataInit = BTG.Data.init();
+    var cacheInit = window.BTG.DBCache ? BTG.DBCache.init() : Promise.resolve(null);
+    Promise.all([dataInit, cacheInit]).then(function(results) {
+      var db = results[1];
+      if (db && db.races && db.races.length) {
+        BTG.Data.getSeriesList = BTG.DBCache.getSeriesList;
+        BTG.Data.getSeasons = BTG.DBCache.getSeasons;
+      }
       state.seriesList = BTG.Data.getSeriesList();
       state.activeSeries = state.seriesList[0] ? state.seriesList[0].id : 'F1';
       state.seasons = BTG.Data.getSeasons(state.activeSeries);
@@ -261,6 +271,12 @@ window.BTG = window.BTG || {};
           }
         }
       }
+
+      // 5. DB cache (Supabase) — series whose race data lives in the DB, not in
+      //    the Data/ folder (F2 results/sprints imported by the admin tool).
+      if (!state.races.length && window.BTG.DBCache) {
+        state.races = await cacheRacesFor(seriesId, year);
+      }
     } catch(e) {}
 
     finalizeRaceLoad();
@@ -317,13 +333,130 @@ window.BTG = window.BTG || {};
   function finalizeRaceLoad() {
     var completed = state.races;
     if (!state.selectedRaceId || !state.races.some(function(r) { return r.id === state.selectedRaceId; })) {
-      state.selectedRace = completed[completed.length - 1] || null;
+      // Default to the most recent race that actually has data; otherwise the
+      // most recent round in the calendar.
+      var withData = completed.filter(function (r) { return r.hasResults; });
+      var pickList = withData.length ? withData : completed;
+      state.selectedRace = pickList[pickList.length - 1] || null;
       state.selectedRaceId = state.selectedRace ? state.selectedRace.id : null;
     } else {
       state.selectedRace = state.races.filter(function(r) { return r.id === state.selectedRaceId; })[0] || null;
     }
     if (state.selectedRace) loadSelectedRaceData();
     else render();
+  }
+
+  /* ── DB cache race data (Supabase) — F2 results/sprints → TFG-style rows ── */
+  function cacheTeamNameMap(cache) {
+    var m = {};
+    (cache && cache.teams || []).forEach(function (t) { m[String(t.team_id)] = t.team_name || t.team_key || ''; });
+    return m;
+  }
+  function cacheTimeToSeconds(v) {
+    if (v == null) return 0;
+    var s = String(v).trim();
+    if (!s || s.indexOf('+') === 0) return 0;
+    var parts = s.split(':');
+    if (parts.length >= 2) {
+      var h = Number(parts[0]), m = Number(parts[1]), sec = Number(parts[2] || '0');
+      if (Number.isFinite(h) && Number.isFinite(m) && Number.isFinite(sec)) return h * 3600 + m * 60 + sec;
+    }
+    var n = Number(s);
+    return Number.isFinite(n) ? n : 0;
+  }
+  function rowFromCacheResult(r, teamNameOf) {
+    var pos = Number(r.finish_position || 0);
+    var grid = Number(r.grid_position || 0);
+    var dnf = !!r.dnf || /dnf|dns|retired/i.test(String(r.status || ''));
+    var fl = Number(r.fastest_lap_seconds || 0);
+    var laps = Number(r.laps || 0);
+    var finishTime = cacheTimeToSeconds(r.time_or_gap);
+    var overtakes = null;
+    if (r.successful_overtakes != null || r.failed_overtakes != null) {
+      overtakes = Number(r.successful_overtakes || 0) + Number(r.failed_overtakes || 0);
+    }
+    return {
+      driverId: r.driver_name || '',
+      teamName: teamNameOf(r.team_id) || String(r.entry_key || '').replace(/^F2\s*/i, ''),
+      teamId: r.team_id,
+      finishingPos: pos,
+      startingPos: grid,
+      fastestLap: fl,
+      points: Number(r.points || 0),
+      dnf: dnf,
+      laps: laps,
+      finishTime: finishTime,
+      pitStops: Number(r.pit_stops || 0),
+      pitTotal: Number(r.total_pit_time_seconds || 0),
+      pitBest: Number(r.fastest_pit_time_seconds || 0),
+      overtakes: overtakes,
+      positionsGained: grid > 0 && pos > 0 && pos < 99 ? grid - pos : null,
+      avgLap: laps > 0 && finishTime > 0 ? finishTime / laps : 0
+    };
+  }
+  function rowFromCacheSprint(s, teamNameOf) {
+    var pos = Number(s.finish_position || 0);
+    var grid = Number(s.grid_position || 0);
+    return {
+      driverId: s.driver_name || '',
+      teamName: teamNameOf(s.team_id) || '',
+      teamId: s.team_id,
+      finishingPos: pos,
+      startingPos: grid,
+      fastestLap: Number(s.fastest_lap_seconds || 0),
+      points: Number(s.points || 0),
+      dnf: !!s.dnf,
+      finishTime: 0,
+      positionsGained: grid > 0 && pos > 0 && pos < 99 ? grid - pos : null
+    };
+  }
+  async function cacheRacesFor(seriesId, year) {
+    var cache = await BTG.DBCache.init();
+    if (!cache || !cache.races) return [];
+    var seasonRows = (cache.race_seasons || []).filter(function (s) { return String(s.series_id) === String(seriesId); });
+    var sid = null;
+    seasonRows.forEach(function (s) { if (Number(s.year) === Number(year)) sid = String(s.season_id); });
+    if (sid == null && seasonRows.length) sid = String(seasonRows[seasonRows.length - 1].season_id);
+    if (sid == null) return [];
+    var out = [];
+    (cache.races || []).filter(function (r) { return String(r.season_id) === sid; })
+      .slice().sort(function (a, b) { return Number(a.round_number) - Number(b.round_number); })
+      .forEach(function (r, i) {
+        var circuit = String(r.circuit || r.name || '');
+        var c = (window.BTG && BTG.circuitBySlug) ? BTG.circuitBySlug(circuit) : null;
+        var name = c ? BTG.gpNameFor(circuit) : circuit.replace(/([a-z])([A-Z])/g, '$1 $2');
+        var hasResults = (cache.race_results || []).some(function (x) { return String(x.race_id) === String(r.race_id); })
+          || (cache.race_sprints || []).some(function (x) { return String(x.race_id) === String(r.race_id); });
+        out.push({
+          id: String(r.race_id),
+          slug: String(r.race_id),
+          name: name,
+          flag: c ? c.flag : '',
+          tag: (c && c.img) ? c.img.slice(0, 3).toUpperCase() : circuit.slice(0, 3).toUpperCase(),
+          day: i,
+          isSprintWeekend: true,
+          cacheRace: true,
+          hasResults: hasResults
+        });
+      });
+    return out;
+  }
+  async function loadCacheRaceData(raceId) {
+    var cache = await BTG.DBCache.init();
+    state.raceResult = [];
+    state.sprintResult = [];
+    state.qualiQ1 = []; state.qualiQ2 = []; state.qualiQ3 = [];
+    state.sprintQualiQ1 = []; state.sprintQualiQ2 = []; state.sprintQualiQ3 = [];
+    state.practiceP1 = []; state.practiceP2 = []; state.practiceP3 = [];
+    if (!cache) return;
+    var teamNames = cacheTeamNameMap(cache);
+    var teamNameOf = function (id) { return teamNames[String(id)] || ''; };
+    state.raceResult = (cache.race_results || []).filter(function (r) { return String(r.race_id) === String(raceId); })
+      .map(function (r) { return rowFromCacheResult(r, teamNameOf); })
+      .sort(function (a, b) { return (a.finishingPos || 99) - (b.finishingPos || 99); });
+    state.sprintResult = (cache.race_sprints || []).filter(function (s) { return String(s.race_id) === String(raceId); })
+      .map(function (s) { return rowFromCacheSprint(s, teamNameOf); })
+      .sort(function (a, b) { return (a.finishingPos || 99) - (b.finishingPos || 99); });
   }
 
   function fileSlug(file) {
@@ -342,6 +475,16 @@ window.BTG = window.BTG || {};
     var slug = state.selectedRace.slug;
     state.loading = true;
     render();
+
+    // DB-cache race (F2 and friends): read results/sprints straight from the
+    // Supabase public cache instead of the Data/ folder.
+    if (state.selectedRace.cacheRace) {
+      loadCacheRaceData(state.selectedRace.id).then(function () {
+        state.loading = false;
+        render();
+      });
+      return;
+    }
 
     // 1. F1-style race file
     var racePromise = fetch(raceFileUrl(slug, 'race')).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
@@ -1348,11 +1491,16 @@ window.BTG = window.BTG || {};
   }
 
   function photoHtml(driverName, teamName, size) {
-    var base = BTG.driverPhoto(driverName);
-    if (!base) {
+    var bases = (window.BTG && BTG.driverPhotoCandidates) ? BTG.driverPhotoCandidates(driverName) : [];
+    if (!bases.length) {
       return '<span class="rw-photo" style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);flex-shrink:0;font-size:' + Math.round(size * 0.4) + 'px;color:#71717a;">?</span>';
     }
-    return '<span class="rw-photo" style="width:' + size + 'px;height:' + size + 'px;"><img src="' + base + '.webp" onerror="this.onerror=null;this.src=\'' + base + '.png\';" onload="this.style.opacity=1" style="opacity:0;"></span>';
+    // Dot-name photos (e.g. kaj.ten.voorde) + underscore fallback, thumbs first.
+    var urls = [];
+    bases.forEach(function (b) { urls.push(b.replace('logos/drivers/', 'logos/drivers/thumbs/') + '.webp'); });
+    bases.forEach(function (b) { urls.push(b + '.webp'); urls.push(b + '.png'); });
+    var chain = urls.map(function (u) { return u.replace(/"/g, '&quot;'); }).join('|');
+    return '<span class="rw-photo" style="width:' + size + 'px;height:' + size + 'px;"><img src="' + urls[0] + '" onload="this.style.opacity=1" style="opacity:0;width:100%;height:100%;object-fit:cover;" data-logos="' + chain + '" data-logo-idx="0" onerror="BTG.driverPhotoStep(this)"></span>';
   }
 
   function teamLogoHtml(teamName, size) {

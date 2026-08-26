@@ -1,0 +1,13 @@
+{
+  "name": "btg-site-db",
+  "private": true,
+  "version": "1.0.0",
+  "description": "BeTheGrid site (Site DB) build tools",
+  "scripts": {
+    "thumbs": "node scripts/build-driver-thumbs.js",
+    "cache": "node scripts/build-db-cache.js"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.5"
+  }
+}

@@ -161,10 +161,27 @@
     return name ? 'parts/' + name + '.svg' : '';
   }
   function progFor(id) {
-    var p = S && S.dev && S.dev[id];
-    if (p) return p;
+    // Setup programmes (not yet committed) are keyed by part_id client-side.
     if (!progCache[id]) progCache[id] = defaultSetup(id);
     return progCache[id];
+  }
+  function programsForPart(partId) {
+    var out = [];
+    (S && S.devList || []).forEach(function (p) {
+      if (num(p.part_id) === num(partId)) out.push(p);
+    });
+    return out;
+  }
+  function activeDevList() {
+    return (S && S.devList || []).filter(function (p) {
+      return ['developing', 'delayed', 'tested', 'introduced'].indexOf(str(p.status)) !== -1;
+    });
+  }
+  function focusMulFor(prog) {
+    var list = activeDevList();
+    var n = list.length || 1;
+    var share = prog && prog.focus_share != null ? num(prog.focus_share) : (100 / n);
+    return clamp(share / 100, 0, 1);
   }
   function baselineFor(id) {
     var st = S && S.teamState && S.teamState[id];
@@ -186,12 +203,12 @@
   var MIN_DESIGN_DAYS = 21; // 3 weeks minimum design time
   // Real F1M24 per-part build times (days) for manufacture orders. Building
   // does not take engineers — only the Factory level speeds it up.
-  var PART_BUILD_DAYS = { 3: 30, 4: 45, 5: 43, 6: 35, 7: 43, 8: 40 };
+  var PART_BUILD_DAYS = { 3: 20, 4: 7, 5: 4, 6: 7, 7: 14, 8: 14 };
   function buildDaysFor(partId) {
     var base = num(PART_BUILD_DAYS[num(partId)]);
     if (!base) return 0;
-    var speed = 1 + 0.1 * (factoryLevel() - 1);
-    return Math.max(1, Math.round(base / speed));
+    var factor = 1 - 0.2 * (factoryLevel() - 1) / 4; // level 1 = base, level 5 = −20%
+    return Math.max(1, Math.round(base * factor));
   }
   function daysBetween(dateA, dateB) {
     if (!dateA || !dateB) return 0;
@@ -236,11 +253,13 @@
     if (prog && prog.laps_completed != null) return num(prog.laps_completed);
     return 0;
   }
-  /** Knowledge gained from laps on this part (0..1). Full knowledge at
-   *  S.lapsFullKnowledge laps (default 100). */
+  /** Knowledge gained from laps on this part (0..1), bell-shaped: 4 GPs ×
+   *  2 cars ≈ 456 team-laps → ~90%, and 100% is only approached asymptotically
+   *  (never within a season). */
+  var KNOWLEDGE_HALF_LAPS = 50;
   function lapsKnowledge(part) {
-    var full = num(S && S.lapsFullKnowledge) || 500;
-    return clamp(lapsCompleted(part) / Math.max(1, full), 0, 1);
+    var l = Math.max(0, lapsCompleted(part));
+    return l / (l + KNOWLEDGE_HALF_LAPS);
   }
   function resourceScore(cfd, wth) {
     return clamp((clamp(cfd / 70, 0, 1)) * 0.55 + (clamp(wth / 95, 0, 1)) * 0.45, 0, 1);
@@ -308,12 +327,8 @@
 
   function updateResourceUsage() {
     var cfd = 0, wth = 0;
-    Object.keys(S && S.dev || {}).forEach(function (pid) {
-      var p = S.dev[pid];
-      if (['developing', 'delayed', 'tested', 'introduced'].indexOf(str(p.status)) !== -1) { cfd += num(p.cfd_alloc); wth += num(p.wth_alloc); }
-    });
-    // Include pending (not yet committed) setup allocations so the topbar
-    // reflects what is effectively reserved across all parts.
+    // Only count pending (not yet committed) setup allocations. Committed
+    // programmes have already SPENT their CFD/WTH from the running balance.
     Object.keys(progCache).forEach(function (pid) {
       var p = progCache[pid];
       cfd += num(p.cfd_alloc); wth += num(p.wth_alloc);
@@ -329,15 +344,16 @@
      CFD/WTH. Slider changes are evaluated LOCALLY (instant, no round-trip). */
   function devEffortFor(prog, m) {
     var effort = num(prog.cfd_alloc) + num(prog.wth_alloc) / (m.wthPerCfd || 10) + num(prog.target_weeks) / (m.weeksPerCfd || 4);
-    return Math.pow(Math.max(0, effort), m.devDiminish != null ? m.devDiminish : 0.5);
+    // Concurrency dilution + focus share: fewer focus / more parts → worse results.
+    return Math.pow(Math.max(0, effort), m.devDiminish != null ? m.devDiminish : 0.5) * focusMulFor(prog);
   }
-  function designImpactFor(part) {
+  function designImpactFor(part, progOverride) {
     if (!part) return null;
     var d = S && S.designs && S.designs[part.part_id];
     if (!d) return null;
     var m = d.model;
     if (!m) return d.car || null;
-    var prog = progFor(part.part_id);
+    var prog = progOverride || progFor(part.part_id);
     var dev = devEffortFor(prog, m);
     var out = {};
     Object.keys(d.car || {}).forEach(function (rowKey) {
@@ -356,11 +372,11 @@
   }
 
   /* ── stat model (REAL: fitted part stat in display units + focus/dev) ──── */
-  function statRealView(part, statId) {
+  function statRealView(part, statId, progOverride) {
     var d = S && S.designs && S.designs[part.part_id];
     var m = d && d.model, sv = m && m.stats && m.stats[statId];
     if (!sv) return null;
-    var prog = progFor(part.part_id);
+    var prog = progOverride || progFor(part.part_id);
     var dev = devEffortFor(prog, m);
     var focusShift = 0;
     Object.keys(sv.focusShift || {}).forEach(function (sid) {
@@ -368,7 +384,7 @@
       focusShift += (sv.focusShift[sid] || 0) * (f - 0.5);
     });
     var devCont = (sv.devShift || 0) * dev;
-    return { fitted: sv.fitted, focusShift: focusShift, devCont: devCont, delta: focusShift + devCont };
+    return { fitted: sv.fitted, lo: sv.lo, hi: sv.hi, focusShift: focusShift, devCont: devCont, delta: focusShift + devCont };
   }
 
   /* ── modal (no browser alerts) ─────────────────────────────────────── */
@@ -396,6 +412,25 @@
   }
   function alertModal(message, title) { return showModal(title || 'Parts Design', message, [{ label: 'OK', value: true, primary: true }]); }
   function confirmModal(message, title) { return showModal(title || 'Parts Design', message, [{ label: 'Cancel', value: false }, { label: 'Confirm', value: true, primary: true, danger: true }]); }
+  function promptModal(message, title, initial) {
+    return new Promise(function (resolve) {
+      var root = modalRoot();
+      root.innerHTML = '<div class="pd-overlay"><div class="pd-modal"><div class="pd-modal-head"><span>' + (title || 'Note') + '</span><button class="pd-modal-x" type="button">&times;</button></div><div class="pd-modal-body"><p class="pd-modal-text">' + message + '</p><input type="text" id="pd-prompt-input" class="pd-modal-input" maxlength="200" value=""></div><div class="pd-modal-actions"></div></div></div>';
+      var input = root.querySelector('#pd-prompt-input');
+      input.value = initial || '';
+      var close = function (val) { root.innerHTML = ''; resolve(val); };
+      root.querySelector('.pd-modal-x').addEventListener('click', function () { close(null); });
+      root.addEventListener('click', function (e) { if (e.target === root.firstChild) close(null); });
+      var actions = root.querySelector('.pd-modal-actions');
+      var cancelBtn = document.createElement('button'); cancelBtn.className = 'btn btn-compact btn-ghost'; cancelBtn.innerHTML = '<span>Cancel</span>';
+      cancelBtn.addEventListener('click', function () { close(null); });
+      var okBtn = document.createElement('button'); okBtn.className = 'btn btn-compact btn-primary'; okBtn.innerHTML = '<span>Save</span>';
+      okBtn.addEventListener('click', function () { close(input.value); });
+      actions.appendChild(cancelBtn); actions.appendChild(okBtn);
+      input.addEventListener('keydown', function (e) { if (e.key === 'Enter') close(input.value); if (e.key === 'Escape') close(null); });
+      input.focus();
+    });
+  }
 
   /* ── shell ─────────────────────────────────────────────────────────── */
   function shellHtml() {
@@ -408,7 +443,7 @@
       + '</div>'
       + '</div>'
       + '<div class="pd-maintabs" id="pd-maintabs">'
-      + '<div class="pd-maintab active" data-tab="design" id="tab-design">Design Focus</div>'
+      + '<div class="pd-maintab active" data-tab="design" id="tab-design">Design Parts</div>'
       + '<div class="pd-maintab" data-tab="development" id="tab-development">In Development <span id="dev-badge" class="pdo-badge" style="display:none">0</span></div>'
       + '<div class="pd-maintab" data-tab="manufacture" id="tab-manufacture">Manufacture <span id="mfg-badge" class="pdo-badge" style="display:none">0</span></div>'
       + '</div>'
@@ -426,6 +461,7 @@
       + '<div id="pd-left-col">'
       + '<div class="pd-programme" id="pd-programme"></div>'
       + '<div id="pd-categories"></div>'
+      + '<div id="pd-scrapped"></div>'
       + '<div class="pd-actions">'
       + '<button class="btn btn-ghost" id="btn-reset"><span>Reset to balanced</span></button>'
       + '<button class="btn btn-primary" id="btn-commit"><span>Commit design focus</span></button>'
@@ -447,7 +483,8 @@
   function renderTopbar() {
     var r = getResources();
     el('cfd-total').textContent = r.cfd; el('wth-total').textContent = r.wth;
-    el('cfd-used').textContent = usedCfd; el('wth-used').textContent = usedWth;
+    var used = (S && S.resourceUsed) || { cfd: 0, wth: 0 };
+    el('cfd-used').textContent = used.cfd; el('wth-used').textContent = used.wth;
     el('pd-position').textContent = S && S.position ? 'P' + S.position : '—';
   }
   function el(id) { return document.getElementById(id); }
@@ -472,16 +509,20 @@
   function renderPartTabs() {
     var wrap = el('pd-parttabs'); wrap.innerHTML = '';
     (S.catalog || []).forEach(function (p) {
-      var prog = progFor(p.part_id);
+      var progs = programsForPart(p.part_id);
       var tab = document.createElement('div');
       tab.className = 'pd-parttab' + (num(p.part_id) === num(activePartId) ? ' active' : '') + (p.locked ? ' locked' : '');
       var statusText = '', statusCls = '';
-      if (prog.status === 'setup') statusText = 'Not started';
-      else if (prog.status === 'developing') { statusText = 'In dev'; statusCls = 'live'; }
-      else if (prog.status === 'delayed') statusText = 'Delayed';
-      else if (prog.status === 'tested') { statusText = 'Tested'; statusCls = 'testing'; }
-      else if (prog.status === 'introduced') { statusText = 'Introduced'; statusCls = 'live'; }
-      else if (prog.status === 'revealed') { statusText = 'Revealed'; statusCls = 'done'; }
+      if (!progs.length) { statusText = 'Not started'; }
+      else {
+        var fs = progs[0].status;
+        var multi = progs.length > 1 ? ' ×' + progs.length : '';
+        if (fs === 'developing') { statusText = 'In dev' + multi; statusCls = 'live'; }
+        else if (fs === 'delayed') { statusText = 'Delayed' + multi; }
+        else if (fs === 'tested') { statusText = 'Tested' + multi; statusCls = 'testing'; }
+        else if (fs === 'introduced') { statusText = 'Introduced' + multi; statusCls = 'live'; }
+        else if (fs === 'revealed') { statusText = 'Revealed' + multi; statusCls = 'done'; }
+      }
       tab.innerHTML = '<span class="pt-name">' + str(p.name) + '</span><span class="pt-tag">' + str(p.tag) + '</span>'
         + (statusText ? '<span class="pt-status ' + statusCls + '">' + statusText + '</span>' : '');
       tab.addEventListener('click', function () { selectPart(p.part_id); });
@@ -508,15 +549,19 @@
       return;
     }
     var prog = progFor(part.part_id);
-    var stageMap = { setup: ['Setup', ''], developing: ['In development', 'live'], delayed: ['Delayed', 'paused'], tested: ['Testing complete', 'testing'], introduced: ['Introduced — awaiting track run', 'live'], revealed: ['Result revealed', 'done'] };
-    var stage = stageMap[prog.status] || ['Unknown', ''];
+    var active = programsForPart(part.part_id).filter(function (p) { return ['developing', 'delayed', 'tested', 'introduced'].indexOf(str(p.status)) !== -1; });
+    var maxed = active.length >= 2;
     var card = document.createElement('div'); card.className = 'pd-programme';
     var head = document.createElement('div'); head.className = 'pdp-head';
-    head.innerHTML = '<h3>Development Programme</h3><span class="pdp-stage ' + stage[1] + '">' + stage[0] + '</span>';
+    head.innerHTML = '<h3>New design</h3>';
     card.appendChild(head);
     var body = document.createElement('div'); body.className = 'pdp-body';
 
-    if (prog.status === 'setup') {
+    if (maxed) {
+      var noticeMax = document.createElement('div'); noticeMax.className = 'pd-locked-notice';
+      noticeMax.innerHTML = '<strong>' + str(part.name) + ' already has 2 versions in development.</strong><br>Finish or scrap one before designing another version.';
+      body.appendChild(noticeMax);
+    } else {
       // target race
       var rowRace = document.createElement('div'); rowRace.className = 'pdp-row';
       rowRace.innerHTML = '<div class="pdp-row-label">Target race</div><select id="pdp-targetrace"></select><div class="pdp-row-val" id="pdp-targetrace-val"></div>';
@@ -542,35 +587,44 @@
       var btnStart = null;
       var syncStart = function () {
         if (!btnStart) return;
-        btnStart.disabled = !(num(prog.cfd_alloc) > 0 || num(prog.wth_alloc) > 0) || !num(prog.target_race);
+        btnStart.disabled = !num(prog.target_race);
       };
 
       // CFD slider
       var avail = getAvailable();
-      var cfdMax = Math.max(1, Math.min(avail.cfd + num(prog.cfd_alloc), getResources().cfd));
+      var cfdMax = Math.min(avail.cfd + num(prog.cfd_alloc), getResources().cfd);
+      var cfdFill = cfdMax ? Math.round(num(prog.cfd_alloc) / cfdMax * 100) : 0;
       var rowCfd = document.createElement('div'); rowCfd.className = 'pdp-row';
-      rowCfd.innerHTML = '<div class="pdp-row-label">CFD allocation</div><div class="ps-slider-wrap"><input type="range" id="pdp-cfd" min="0" max="' + cfdMax + '" step="1" value="' + (num(prog.cfd_alloc)) + '" class="ps-focus-input" style="--fill:' + Math.round(num(prog.cfd_alloc) / cfdMax * 100) + '%"><span class="ps-focus-pct" id="pdp-cfd-pct">' + Math.round(num(prog.cfd_alloc) / cfdMax * 100) + '%</span></div><div class="pdp-row-val" id="pdp-cfd-val">' + (num(prog.cfd_alloc)) + ' MAu</div>';
+      rowCfd.innerHTML = '<div class="pdp-row-label">CFD allocation</div><div class="ps-slider-wrap"><input type="range" id="pdp-cfd" min="0" max="' + cfdMax + '" step="1" value="' + (num(prog.cfd_alloc)) + '" class="ps-focus-input" style="--fill:' + cfdFill + '%"><span class="ps-focus-pct" id="pdp-cfd-pct">' + cfdFill + '%</span></div><div class="pdp-row-val" id="pdp-cfd-val">' + (num(prog.cfd_alloc)) + ' MAu</div>';
       var cfdSlider = rowCfd.querySelector('#pdp-cfd');
       cfdSlider.addEventListener('input', function () {
         var v = parseInt(cfdSlider.value, 10); prog.cfd_alloc = v;
-        var pct = Math.round(v / cfdMax * 100); cfdSlider.style.setProperty('--fill', pct + '%');
+        var pct = cfdMax ? Math.round(v / cfdMax * 100) : 0; cfdSlider.style.setProperty('--fill', pct + '%');
         rowCfd.querySelector('#pdp-cfd-pct').textContent = pct + '%'; rowCfd.querySelector('#pdp-cfd-val').textContent = v + ' MAu';
         updateResourceUsage(); renderTopbar(); renderCarPerformance(); syncStart(); refreshStatDisplays(part);
       });
       body.appendChild(rowCfd);
 
       // WTH slider
-      var wthMax = Math.max(1, Math.min(avail.wth + num(prog.wth_alloc), getResources().wth));
+      var wthMax = Math.min(avail.wth + num(prog.wth_alloc), getResources().wth);
+      var wthFill = wthMax ? Math.round(num(prog.wth_alloc) / wthMax * 100) : 0;
       var rowWth = document.createElement('div'); rowWth.className = 'pdp-row';
-      rowWth.innerHTML = '<div class="pdp-row-label">WTH allocation</div><div class="ps-slider-wrap"><input type="range" id="pdp-wth" min="0" max="' + wthMax + '" step="1" value="' + (num(prog.wth_alloc)) + '" class="ps-focus-input" style="--fill:' + Math.round(num(prog.wth_alloc) / wthMax * 100) + '%"><span class="ps-focus-pct" id="pdp-wth-pct">' + Math.round(num(prog.wth_alloc) / wthMax * 100) + '%</span></div><div class="pdp-row-val" id="pdp-wth-val">' + (num(prog.wth_alloc)) + ' h</div>';
+      rowWth.innerHTML = '<div class="pdp-row-label">WTH allocation</div><div class="ps-slider-wrap"><input type="range" id="pdp-wth" min="0" max="' + wthMax + '" step="1" value="' + (num(prog.wth_alloc)) + '" class="ps-focus-input" style="--fill:' + wthFill + '%"><span class="ps-focus-pct" id="pdp-wth-pct">' + wthFill + '%</span></div><div class="pdp-row-val" id="pdp-wth-val">' + (num(prog.wth_alloc)) + ' h</div>';
       var wthSlider = rowWth.querySelector('#pdp-wth');
       wthSlider.addEventListener('input', function () {
         var v = parseInt(wthSlider.value, 10); prog.wth_alloc = v;
-        var pct = Math.round(v / wthMax * 100); wthSlider.style.setProperty('--fill', pct + '%');
+        var pct = wthMax ? Math.round(v / wthMax * 100) : 0; wthSlider.style.setProperty('--fill', pct + '%');
         rowWth.querySelector('#pdp-wth-pct').textContent = pct + '%'; rowWth.querySelector('#pdp-wth-val').textContent = v + ' h';
         updateResourceUsage(); renderTopbar(); renderCarPerformance(); syncStart(); refreshStatDisplays(part);
       });
       body.appendChild(rowWth);
+
+      var rowNote = document.createElement('div'); rowNote.className = 'pdp-row';
+      rowNote.innerHTML = '<div class="pdp-row-label">Note</div><input type="text" id="pdp-note" class="pd-note-input" maxlength="200" placeholder="Add note">';
+      var noteInput = rowNote.querySelector('#pdp-note');
+      noteInput.value = prog.note || '';
+      noteInput.addEventListener('input', function () { prog.note = noteInput.value; });
+      body.appendChild(rowNote);
 
       var costNote = document.createElement('div'); costNote.className = 'pdp-caption';
       costNote.innerHTML = 'Design <b>' + prog.target_weeks + ' weeks</b> (min 3) · Manufacturing <b>' + manufacturingDays(part) + ' days</b> at Factory L' + factoryLevel();
@@ -580,22 +634,10 @@
       btnStart = document.createElement('button'); btnStart.className = 'btn btn-primary btn-compact'; btnStart.innerHTML = '<span>Commit & start development</span>';
       syncStart();
       btnStart.addEventListener('click', function () { doCommit(part.part_id); });
-      var btnScrap = document.createElement('button'); btnScrap.className = 'btn btn-ghost btn-compact'; btnScrap.innerHTML = '<span>Scrap</span>';
-      btnScrap.addEventListener('click', function () { doScrap(part.part_id); });
+      var btnScrap = document.createElement('button'); btnScrap.className = 'btn btn-ghost btn-compact'; btnScrap.innerHTML = '<span>Reset</span>';
+      btnScrap.addEventListener('click', function () { delete progCache[part.part_id]; focusState = {}; renderAll(); });
       actions.appendChild(btnStart); actions.appendChild(btnScrap);
       body.appendChild(actions);
-    } else if (prog.status === 'revealed') {
-      var notice = document.createElement('div'); notice.className = 'pd-locked-notice';
-      notice.innerHTML = '<strong>' + str(part.name) + ' — design complete.</strong><br>The track correlation result has been baked into this part. You may start a new development programme.';
-      body.appendChild(notice);
-      var actions2 = document.createElement('div'); actions2.className = 'pdp-actions';
-      var btnNew = document.createElement('button'); btnNew.className = 'btn btn-primary btn-compact'; btnNew.innerHTML = '<span>Start new development</span>';
-      btnNew.addEventListener('click', function () { doStartNew(part.part_id); });
-      actions2.appendChild(btnNew); body.appendChild(actions2);
-    } else {
-      var notice2 = document.createElement('div'); notice2.className = 'pd-locked-notice';
-      notice2.innerHTML = '<strong>' + str(part.name) + ' is currently in development.</strong><br>Switch to the <b>In Development</b> tab to manage this programme, view projections, and continue work.';
-      body.appendChild(notice2);
     }
     card.appendChild(body);
     wrap.appendChild(card);
@@ -618,20 +660,22 @@
     var label = (part.config.labels || {})[statId] || ('Stat ' + statId);
     var row = document.createElement('div'); row.className = 'pd-stat-row'; row.dataset.stat = statId;
     var v = statRealView(part, statId);
-    var val = v ? v.fitted + v.delta : null;
+    var valText = '—';
+    if (v) {
+      if (v.lo != null && v.hi != null) valText = fmtVal(v.lo + v.delta, meta.unit, meta.dec) + ' – ' + fmtVal(v.hi + v.delta, meta.unit, meta.dec);
+      else valText = fmtVal(v.fitted + v.delta, meta.unit, meta.dec);
+    }
     var delta = v ? v.delta : null;
     var allocText = v ? (num(statId) === 15 ? 'Weight focus only' : 'Dev ' + fmtDelta(v.devCont, meta.unit, meta.dec)) : '';
-    row.innerHTML = '<div class="ps-label">' + label + '</div><div class="ps-val" id="val-' + statId + '">' + (val != null ? fmtVal(val, meta.unit, meta.dec) : '—') + '</div><div class="ps-delta ' + deltaClass(delta != null ? delta : 0) + '" id="delta-' + statId + '">' + (delta != null ? fmtDelta(delta, meta.unit, meta.dec) : '') + '</div><div class="ps-slider-wrap"><input type="range" min="0" max="100" value="' + Math.round((focusState[statId] || 0.5) * 100) + '" class="ps-focus-input" id="slider-' + statId + '" style="--fill:' + Math.round((focusState[statId] || 0.5) * 100) + '%"><span class="ps-focus-pct" id="pct-' + statId + '">' + Math.round((focusState[statId] || 0.5) * 100) + '%</span></div><div class="ps-alloc" id="alloc-' + statId + '">' + allocText + '</div>';
+    row.innerHTML = '<div class="ps-label">' + label + '</div><div class="ps-val" id="val-' + statId + '">' + valText + '</div><div class="ps-delta ' + deltaClass(delta != null ? delta : 0) + '" id="delta-' + statId + '">' + (delta != null ? fmtDelta(delta, meta.unit, meta.dec) : '') + '</div><div class="ps-slider-wrap"><input type="range" min="0" max="100" value="' + Math.round((focusState[statId] || 0.5) * 100) + '" class="ps-focus-input" id="slider-' + statId + '" style="--fill:' + Math.round((focusState[statId] || 0.5) * 100) + '%"><span class="ps-focus-pct" id="pct-' + statId + '">' + Math.round((focusState[statId] || 0.5) * 100) + '%</span></div><div class="ps-alloc" id="alloc-' + statId + '">' + allocText + '</div>';
     var slider = row.querySelector('#slider-' + statId);
     slider.addEventListener('input', function (e) {
       var f = parseInt(e.target.value, 10) / 100; focusState[statId] = f;
       e.target.style.setProperty('--fill', Math.round(f * 100) + '%');
       row.querySelector('#pct-' + statId).textContent = Math.round(f * 100) + '%';
       // Keep the setup programme's focus in sync so it survives part switches.
-      if (!(S && S.dev && S.dev[part.part_id])) {
-        var sp = progFor(part.part_id);
-        if (sp) sp.focus = Object.assign({}, focusState);
-      }
+      var sp = progFor(part.part_id);
+      if (sp) sp.focus = Object.assign({}, focusState);
       refreshStatDisplays(part); renderCarPerformance();
     });
     return row;
@@ -643,7 +687,10 @@
       var meta = statMeta(statId);
       var v = statRealView(part, statId);
       var valEl = el('val-' + statId), deltaEl = el('delta-' + statId), allocEl = el('alloc-' + statId);
-      if (v && valEl) valEl.textContent = fmtVal(v.fitted + v.delta, meta.unit, meta.dec);
+      if (v && valEl) {
+        if (v.lo != null && v.hi != null) valEl.textContent = fmtVal(v.lo + v.delta, meta.unit, meta.dec) + ' – ' + fmtVal(v.hi + v.delta, meta.unit, meta.dec);
+        else valEl.textContent = fmtVal(v.fitted + v.delta, meta.unit, meta.dec);
+      }
       if (v && deltaEl) { deltaEl.textContent = fmtDelta(v.delta, meta.unit, meta.dec); deltaEl.className = 'ps-delta ' + deltaClass(v.delta); }
       if (allocEl) allocEl.textContent = v ? (num(statId) === 15 ? 'Weight focus only' : 'Dev ' + fmtDelta(v.devCont, meta.unit, meta.dec)) : '';
     });
@@ -652,7 +699,7 @@
   /** Knowledge of the currently fitted parts, from laps completed with them
    *  (both cars carry identical parts, so 500 team-laps = 2 x 250 laps = full
    *  knowledge). 0 laps = no knowledge → the seeded (widest) range. */
-  var KNOWLEDGE_LAPS = 500;
+  var KNOWLEDGE_HALF_LAPS = 50;
   function knowledgeFactor() {
     var total = 0, count = 0;
     Object.keys(S && S.teamState || {}).forEach(function (pid) {
@@ -661,7 +708,7 @@
       if (laps > 0) { total += laps; count++; }
     });
     var laps = count ? total / count : 0;
-    return clamp(laps / KNOWLEDGE_LAPS, 0, 1);
+    return laps / (laps + KNOWLEDGE_HALF_LAPS);
   }
 
   /* ── Development timeline: today → design (colour 1) → manufacture
@@ -740,7 +787,7 @@
     // Persist the current part's focus before switching so it survives tab changes.
     if (activePartId != null && num(activePartId) !== num(id)) {
       var cur = partById(activePartId);
-      if (cur && !cur.locked && !(S && S.dev && S.dev[cur.part_id])) {
+      if (cur && !cur.locked) {
         var cp = progFor(cur.part_id);
         if (cp) cp.focus = Object.assign({}, focusState);
       }
@@ -752,11 +799,8 @@
 
   function initPartState(part) {
     var b = baselineFor(part.part_id);
-    var saved = null;
-    var dev = S && S.dev && S.dev[part.part_id];
     var prog = progFor(part.part_id);
-    if (dev && dev.focus && Object.keys(dev.focus).length) saved = dev.focus;
-    else if (prog && prog.focus && Object.keys(prog.focus).length) saved = prog.focus;
+    var saved = (prog && prog.focus && Object.keys(prog.focus).length) ? prog.focus : null;
     focusState = {}; baselineState = {};
     Object.keys(b).forEach(function (k) {
       focusState[k] = (saved && saved[k] != null) ? clamp(num(saved[k]), 0, 1) : 0.5;
@@ -767,14 +811,64 @@
   /* ── development view ──────────────────────────────────────────────── */
   function renderDevelopmentView() {
     var wrap = el('pd-dev-list'); wrap.innerHTML = '';
-    var activeIds = [];
-    Object.keys(S && S.dev || {}).forEach(function (pid) {
-      if (['developing', 'delayed', 'tested', 'introduced'].indexOf(str(S.dev[pid].status)) !== -1) activeIds.push(pid);
-    });
-    if (!activeIds.length) { wrap.innerHTML = '<div class="pdo-empty">No parts are currently in development. Switch to <b>Design Focus</b> and select a part to start a new programme.</div>'; return; }
+    var activeProgs = activeDevList();
+    if (!activeProgs.length) { wrap.innerHTML = '<div class="pdo-empty">No parts are currently in development. Switch to <b>Design Parts</b> and select a part to start a new design.</div>'; return; }
     var list = document.createElement('div'); list.className = 'pdo-list';
-    activeIds.forEach(function (pid) { list.appendChild(buildDevelopmentCard(num(pid))); });
+    // Group programmes by part so multiple versions of the same part share one
+    // focus slider, shown at the top of the group.
+    var groups = [];
+    activeProgs.forEach(function (prog) {
+      var g = groups.filter(function (x) { return num(x.part_id) === num(prog.part_id); })[0];
+      if (!g) { g = { part_id: num(prog.part_id), progs: [] }; groups.push(g); }
+      g.progs.push(prog);
+    });
+    groups.forEach(function (g) {
+      if (g.progs.length === 1) { list.appendChild(buildDevelopmentCard(g.progs[0])); return; }
+      var part = partById(g.part_id);
+      var headProg = g.progs[0];
+      var group = document.createElement('div'); group.className = 'pdo-group';
+      var head = document.createElement('div'); head.className = 'pdo-group-head';
+      head.innerHTML = '<div class="pdo-group-title"><h3>' + (part ? str(part.name) : ('Part ' + g.part_id)) + '</h3><span>' + g.progs.length + ' versions</span></div>';
+      if (str(headProg.status) === 'developing' || str(headProg.status) === 'delayed') {
+        var fsl = document.createElement('div'); fsl.className = 'pdo-group-focus';
+        fsl.innerHTML = focusSliderHtml(num(headProg.program_id), num(headProg.focus_share));
+        head.appendChild(fsl);
+        wireFocusSlider(fsl, num(headProg.program_id));
+      }
+      group.appendChild(head);
+      var members = document.createElement('div'); members.className = 'pdo-group-members';
+      g.progs.forEach(function (prog) { members.appendChild(buildDevelopmentCard(prog, { skipFocus: true })); });
+      group.appendChild(members);
+      list.appendChild(group);
+    });
     wrap.appendChild(list);
+  }
+
+  function renderScrapped() {
+    var wrap = el('pd-scrapped');
+    if (!wrap) return;
+    var scrapped = (S && S.devList || []).filter(function (p) { return str(p.status) === 'scrapped'; });
+    wrap.innerHTML = '';
+    if (!scrapped.length) return;
+    var card = document.createElement('div'); card.className = 'pd-programme';
+    var head = document.createElement('div'); head.className = 'pdp-head';
+    head.innerHTML = '<h3>Scrapped designs</h3><span class="pdp-stage paused">' + scrapped.length + '</span>';
+    card.appendChild(head);
+    var body = document.createElement('div'); body.className = 'pdp-body';
+    scrapped.forEach(function (prog) {
+      var part = partById(num(prog.part_id));
+      var label = (prog.name ? str(prog.name) + ' — ' : '') + (part ? str(part.name) : ('Part ' + num(prog.part_id)));
+      var row = document.createElement('div'); row.className = 'pdp-row';
+      row.innerHTML = '<div class="pdp-row-label">' + label + '</div>'
+        + '<div class="pdp-row-val">Week ' + num(prog.weeks_elapsed) + '/' + num(prog.target_weeks) + '</div>'
+        + '<button class="btn btn-ghost btn-compact" data-scrapcontinue="' + num(prog.program_id) + '"><span>Continue</span></button>';
+      body.appendChild(row);
+    });
+    card.appendChild(body);
+    wrap.appendChild(card);
+    wrap.querySelectorAll('[data-scrapcontinue]').forEach(function (b) {
+      b.addEventListener('click', function () { doUpdate(num(b.dataset.scrapcontinue), 'resume'); });
+    });
   }
 
   function renderManufactureView() {
@@ -834,6 +928,7 @@
         cHtml += '<button type="button" class="pd-design-card' + (active ? ' active' : '') + '" data-design="' + d.design_id + '">'
           + (ico ? '<span class="pd-mfg-ico"><img src="' + ico + '" alt=""></span>' : '')
           + '<span class="pd-design-info"><span class="pd-mfg-name">' + mName + '</span>'
+          + (d.note ? '<span class="pd-mfg-note">' + str(d.note) + '</span>' : '')
           + '<span class="pd-mfg-sub">Installed on both cars</span></span>'
           + '<span class="pd-design-meta"><span class="pd-design-stock">' + (num(d.quantity) || 0) + '</span><span class="pd-design-cond">0%</span></span>'
           + '</button>';
@@ -848,7 +943,7 @@
     if (part && design) {
       var APPROACHES = ['Normal', 'Outsource'];
       var baseDays = buildDaysFor(mfgPartId);
-      var days = mfgApproach === 1 ? baseDays : Math.max(1, Math.round(baseDays * 0.5)); // Normal = fast, Outsource = standard
+      var days = mfgApproach === 1 ? baseDays * 2 : baseDays; // Normal = base time, Outsource = 2× slower
       var totalDays = days * mfgQty;
       var baseCost = num(part.build_cost);
       var costMul = mfgApproach === 1 ? 1 : 1.5; // Normal = fast (1.5x), Outsource = base
@@ -871,6 +966,7 @@
         + '<div class="pd-sum-row"><span>Manufacture cost</span><b>$' + Number(buildCost).toLocaleString() + '</b></div>'
         + '<div class="pd-sum-row"><span>Approach cost</span><b>$' + Number(approachCost).toLocaleString() + '</b></div>'
         + '</div>'
+        + '<button class="btn btn-ghost" id="mfg-note-btn"><span>Add note</span></button>'
         + '<button class="btn btn-primary" id="mfg-build-btn"><span>Manufacture</span></button>'
         + '</div>';
       man.innerHTML = mHtml;
@@ -928,10 +1024,35 @@
     if (buildBtn) buildBtn.addEventListener('click', function () {
       if (design) doManufacture(num(design.design_id), num(design.part_id));
     });
+    var noteBtn = el('mfg-note-btn');
+    if (noteBtn) noteBtn.addEventListener('click', function () {
+      if (design) doSetNote({ partId: num(design.part_id), note: design.note });
+    });
   }
 
-  function buildDevelopmentCard(partId) {
-    var part = partById(partId); var prog = progFor(partId);
+  function focusSliderHtml(programId, share) {
+    var v = Math.round(num(share));
+    return '<div class="pdp-row"><div class="pdp-row-label">Focus</div>'
+      + '<div class="ps-slider-wrap"><input type="range" id="focus-' + programId + '" min="0" max="100" step="1" value="' + v + '" class="ps-focus-input" style="--fill:' + v + '%"><span class="ps-focus-pct" id="focus-pct-' + programId + '">' + v + '%</span></div></div>';
+  }
+  function wireFocusSlider(root, programId) {
+    var focusSlider = root.querySelector('#focus-' + programId);
+    if (!focusSlider) return;
+    focusSlider.addEventListener('input', function (e) {
+      var v = parseInt(e.target.value, 10);
+      applyFocusShare(programId, v);
+      e.target.style.setProperty('--fill', v + '%');
+      var pctEl = root.querySelector('#focus-pct-' + programId); if (pctEl) pctEl.textContent = v + '%';
+      syncFocusSliders(programId);
+    });
+    focusSlider.addEventListener('change', function () { saveFocusShares(); renderDevelopmentView(); });
+  }
+
+  function buildDevelopmentCard(prog, opts) {
+    opts = opts || {};
+    var partId = num(prog.part_id);
+    var programId = num(prog.program_id);
+    var part = partById(partId);
     var stageMap = { developing: ['In development', 'live'], delayed: ['Delayed', 'paused'], tested: ['Testing complete', 'testing'], introduced: ['Introduced — awaiting track run', 'live'] };
     var stage = stageMap[prog.status] || ['Unknown', ''];
     var env = (prog.status === 'developing' || prog.status === 'delayed') ? currentEnvelope(part, prog) : finalEnvelope(part, prog);
@@ -941,9 +1062,81 @@
     var expectedVal = env.worst + (env.best - env.worst) * markerFrac;
 
     var card = document.createElement('div'); card.className = 'pdo-card';
-    var html = '<div class="pdo-card-head"><div class="pdo-card-title"><h3>' + str(part.name) + '</h3><span>' + str(part.tag) + '</span></div><span class="pdp-stage ' + stage[1] + '">' + stage[0] + '</span></div>';
-    html += '<div class="pdo-card-body">';
-    html += '<div class="pdo-stats"><span>Target <b>' + (race ? str(race.name) : '—') + '</b></span><span>Week <b>' + num(prog.weeks_elapsed) + ' / ' + num(prog.target_weeks) + '</b></span><span>CFD <b>' + num(prog.cfd_alloc) + ' MAu</b></span><span>WTH <b>' + num(prog.wth_alloc) + ' h</b></span><span>Potential <b>' + pctFmt(env.worst) + ' to ' + pctFmt(env.best) + '</b></span></div>';
+    var html = '<div class="pdo-card-head"><div class="pdo-card-title"><h3>' + str(part.name) + '</h3>'
+      + (prog.name ? '<span class="pdo-card-code">' + str(prog.name) + '</span>' : '')
+      + '<span>' + str(part.tag) + '</span>'
+      + (prog.note ? '<span class="pdo-card-note">' + str(prog.note) + '</span>' : '')
+      + '</div><span class="pdp-stage ' + stage[1] + '">' + stage[0] + '</span></div>';
+    html += '<div class="pdo-card-body pdo-body-layout"><div class="pdo-main">';
+    var weeksLeft = Math.max(0, num(prog.target_weeks) - num(prog.weeks_elapsed));
+    var daysLeft = Math.round(weeksLeft * 7);
+    html += '<div class="pdo-stats">'
+      + '<span>Target <b>' + (race ? str(race.name) : '—') + '</b></span>'
+      + '<span>Week <b>' + num(prog.weeks_elapsed) + ' / ' + num(prog.target_weeks) + '</b></span>'
+      + '<span>Days left <b>' + daysLeft + '</b></span>'
+      + '<span>CFD <b>' + num(prog.cfd_alloc) + ' MAu</b></span>'
+      + '<span>WTH <b>' + num(prog.wth_alloc) + ' h</b></span>'
+      + '<span>Potential <b>' + pctFmt(env.worst) + ' to ' + pctFmt(env.best) + '</b></span></div>';
+    if (!opts.skipFocus && (prog.status === 'developing' || prog.status === 'delayed')) {
+      html += focusSliderHtml(programId, prog.focus_share);
+    }
+    html += '<div class="pdp-row"><div class="pdp-row-label">Note</div><input type="text" id="dev-note-' + programId + '" class="pd-note-input" maxlength="200" placeholder="Add note"></div>';
+
+    if (prog.status === 'developing' || prog.status === 'delayed') {
+      var c1 = (S.teamColors && S.teamColors.primary) || 'var(--team-accent)';
+      var c2 = (S.teamColors && S.teamColors.secondary) || 'var(--team-accent-hot)';
+      var mfgDays = buildDaysFor(partId);
+      var totalDesignDays = num(prog.target_weeks) * 7;
+      var spanDays = Math.max(1, totalDesignDays + mfgDays);
+      var designEndPct = clamp(totalDesignDays / spanDays * 100, 0, 100);
+      var nowPct = clamp(num(prog.weeks_elapsed) * 7 / spanDays * 100, 0, 100);
+      html += '<div class="pd-timeline"><div class="pd-tl-head">'
+        + '<span class="pd-tl-title">Development timeline</span>'
+        + '<span class="pd-tl-legend"><i style="background:' + c1 + '"></i>Development · Week ' + num(prog.weeks_elapsed) + '/' + num(prog.target_weeks) + '</span>'
+        + '<span class="pd-tl-legend"><i style="background:' + c2 + '"></i>Manufacture ' + mfgDays + 'd</span>'
+        + '<span class="pd-tl-legend">' + daysLeft + ' days left</span>'
+        + (race ? '<span class="pd-tl-legend pd-tl-target">➜ ' + str(raceMeta(str(race.name)).short) + ' ' + str(race.race_date).slice(0, 10) + '</span>' : '')
+        + '</div>'
+        + '<div class="pd-tl-track">'
+        + '<div class="pd-tl-bar" style="left:0%; width:' + designEndPct + '%; background:' + c1 + ';"></div>'
+        + '<div class="pd-tl-bar pd-tl-mfg" style="left:' + designEndPct + '%; width:' + Math.max(0, 100 - designEndPct) + '%; background:' + c2 + ';"></div>'
+        + '<div class="pd-tl-bar" style="left:0%; width:' + nowPct + '%; background:rgba(0,0,0,0.6); opacity:1; border-radius:0;"></div>'
+        + '<div class="pd-tl-now" style="left:' + nowPct + '%"></div>'
+        + '<div class="pd-tl-marker" style="left:' + nowPct + '%;"><span class="pd-tl-name">Now</span></div>'
+        + (race ? '<div class="pd-tl-marker target" style="left:100%;"><span class="pd-tl-name">' + str(raceMeta(str(race.name)).short) + '</span></div>' : '')
+        + '</div></div>';
+    }
+
+    var dil = (S && S.devDilution) || {};
+    if (prog.status === 'developing' || prog.status === 'delayed') {
+      html += '<div class="pdp-caption" style="margin-top:10px;">'
+        + (dil.n > 1 ? '<b>' + dil.n + ' parts in development</b> — focus is split between them, so less focus means a worse result. Two copies of the same part share one focus allocation. ' : '')
+        + 'Target race can only be pushed later. More CFD / WTH improves the result.</div>';
+    }
+
+    if (prog.status === 'developing') {
+      var curRace = null; (S.calendar || []).forEach(function (c) { if (num(c.round) === num(prog.target_race)) curRace = c; });
+      var laterRaces = (S.calendar || []).filter(function (c) {
+        return curRace ? String(c.race_date) > String(curRace.race_date) : num(c.round) > num(prog.target_race);
+      });
+      html += '<div class="pdp-row"><div class="pdp-row-label">Target race</div><select id="dev-race-' + programId + '">'
+        + '<option value="">' + (curRace ? str(curRace.name) + ' (' + String(curRace.race_date).slice(0, 10).slice(5) + ')' : '—') + '</option>';
+      laterRaces.forEach(function (c) { html += '<option value="' + c.round + '">' + str(c.name) + ' (' + String(c.race_date).slice(0, 10).slice(5) + ')</option>'; });
+      html += '</select>' + (laterRaces.length ? '<button class="btn btn-ghost btn-compact" id="dev-racebtn-' + programId + '"><span>Commit target</span></button>' : '') + '</div>';
+    }
+
+    if (prog.status === 'developing') {
+      var avail = getAvailable();
+      var cfdMax = num(prog.cfd_alloc) + avail.cfd;
+      var wthMax = num(prog.wth_alloc) + avail.wth;
+      var cfdFill = cfdMax ? Math.round(num(prog.cfd_alloc) / cfdMax * 100) : 0;
+      var wthFill = wthMax ? Math.round(num(prog.wth_alloc) / wthMax * 100) : 0;
+      html += '<div class="pdp-row"><div class="pdp-row-label">CFD</div>'
+        + '<div class="ps-slider-wrap"><input type="range" id="dev-cfd-' + programId + '" min="0" max="' + cfdMax + '" step="1" value="' + num(prog.cfd_alloc) + '" class="ps-focus-input" style="--fill:' + cfdFill + '%"><span class="ps-focus-pct" id="dev-cfd-pct-' + programId + '">' + num(prog.cfd_alloc) + ' MAu</span></div></div>';
+      html += '<div class="pdp-row"><div class="pdp-row-label">WTH</div>'
+        + '<div class="ps-slider-wrap"><input type="range" id="dev-wth-' + programId + '" min="0" max="' + wthMax + '" step="1" value="' + num(prog.wth_alloc) + '" class="ps-focus-input" style="--fill:' + wthFill + '%"><span class="ps-focus-pct" id="dev-wth-pct-' + programId + '">' + num(prog.wth_alloc) + ' h</span></div></div>';
+      html += '<button class="btn btn-ghost btn-compact" id="dev-alloc-' + programId + '" style="margin:10px 0 0;"><span>Commit allocation</span></button>';
+    }
     html += '<div class="pdo-progress-track"><div class="pdo-progress-fill" style="width:' + progressPct + '%"></div></div>';
 
     if (prog.status !== 'introduced') {
@@ -954,23 +1147,66 @@
       html += '<div class="pdp-result-card"><h4>Aero Testing Result</h4><div class="pdp-result-row"><span>Likely result</span><b class="' + (prog.aero_test.likely >= 0 ? 'pos' : 'neg') + '">' + pctFmt(prog.aero_test.likely) + '</b></div><div class="pdp-result-row"><span>Possible range</span><b>' + pctFmt(prog.aero_test.lo) + ' to ' + pctFmt(prog.aero_test.hi) + '</b></div><div class="pdp-result-row"><span>Confidence</span><b>' + str(prog.aero_test.confidence) + '</b></div></div>';
     }
 
-    var impact = designImpactFor(part) || {};
-    html += '<div class="pdo-cp-estimate"><div class="pdo-cp-label">Estimated car performance impact</div>';
+    html += '<div class="pdo-actions" id="pdo-actions-' + partId + '"></div>';
+    html += '</div>'; // close .pdo-main
+
+    // Car performance estimate — same format as the Design Parts tab.
+    var impact = designImpactFor(part, prog) || {};
+    var side = '<div class="cp-card"><div class="cp-head"><h2>Car performance</h2><div class="cp-overall">estimated impact of this part</div></div>';
     var currentGroup = null;
     (S.carView || []).forEach(function (r) {
-      if (r.grp !== currentGroup) { currentGroup = r.grp; html += '<div style="font-family:var(--data-face);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--copy-faint);margin:8px 0 4px;">' + currentGroup + '</div>'; }
-      var imp = impact[r.row_key] || null;
-      if (!r.has || r.lo == null || r.hi == null || !imp) {
-        html += '<div class="pdo-cp-row"><div class="pdo-cp-name">' + str(r.label) + '</div><div class="pdo-cp-bottom"><span>' + (r.has ? fmtVal(r.lo, r.unit, r.dec) + ' – ' + fmtVal(r.hi, r.unit, r.dec) : '—') + '</span></div></div>';
+      if (r.grp !== currentGroup) { currentGroup = r.grp; side += '<div class="cp-section-label">' + str(currentGroup) + '</div>'; }
+      if (!r.has || r.lo == null || r.hi == null) {
+        side += '<div class="cp-row"><div class="cp-top"><span class="cp-label">' + str(r.label) + '</span></div><div class="cp-bottom"><span class="cp-val">—</span></div></div>';
         return;
       }
-      html += '<div class="pdo-cp-row"><div class="pdo-cp-name">' + str(r.label) + '</div><div class="pdo-cp-bottom"><span>' + fmtVal(r.lo, r.unit, r.dec) + ' – ' + fmtVal(r.hi, r.unit, r.dec) + '</span><span class="cp-range-delta ' + deltaRangeClass(imp.lo, imp.hi) + '">' + fmtDeltaRange(num(imp.lo), num(imp.hi), r.unit, r.dec) + '</span></div></div>';
+      var imp = impact[r.row_key] || null;
+      side += '<div class="cp-row"><div class="cp-top"><span class="cp-label">' + str(r.label) + '</span></div><div class="cp-bottom"><span class="cp-val">' + fmtVal(r.lo, r.unit, r.dec) + ' – ' + fmtVal(r.hi, r.unit, r.dec) + '</span>';
+      if (imp && (num(imp.lo) !== 0 || num(imp.hi) !== 0)) side += '<span class="cp-new ' + deltaRangeClass(imp.lo, imp.hi) + '">' + fmtDeltaRange(num(imp.lo), num(imp.hi), r.unit, r.dec) + '</span>';
+      side += '</div></div>';
     });
-    html += '</div>';
-
-    html += '<div class="pdo-actions" id="pdo-actions-' + partId + '"></div>';
-    html += '</div>';
+    side += '</div>';
+    html += '<div class="pdo-side">' + side + '</div>';
+    html += '</div>'; // close .pdo-body-layout
     card.innerHTML = html;
+
+    var focusSlider = card.querySelector('#focus-' + programId);
+    if (focusSlider) {
+      wireFocusSlider(card, programId);
+    }
+    var noteInput = card.querySelector('#dev-note-' + programId);
+    if (noteInput) {
+      noteInput.value = prog.note || '';
+      noteInput.addEventListener('change', function () { saveNote({ programId: programId, note: noteInput.value }); });
+      noteInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') noteInput.blur(); });
+    }
+    var allocBtn = card.querySelector('#dev-alloc-' + programId);
+    var cfdSl = card.querySelector('#dev-cfd-' + programId);
+    var wthSl = card.querySelector('#dev-wth-' + programId);
+    if (allocBtn && cfdSl && wthSl) {
+      cfdSl.addEventListener('input', function () {
+        var v = parseInt(cfdSl.value, 10);
+        cfdSl.style.setProperty('--fill', Math.round(v / (num(cfdSl.max) || 1) * 100) + '%');
+        var p = card.querySelector('#dev-cfd-pct-' + programId); if (p) p.textContent = v + ' MAu';
+      });
+      wthSl.addEventListener('input', function () {
+        var v = parseInt(wthSl.value, 10);
+        wthSl.style.setProperty('--fill', Math.round(v / (num(wthSl.max) || 1) * 100) + '%');
+        var p = card.querySelector('#dev-wth-pct-' + programId); if (p) p.textContent = v + ' h';
+      });
+      allocBtn.addEventListener('click', function () {
+        doUpdate(programId, 'reallocate', { cfd: parseInt(cfdSl.value, 10), wth: parseInt(wthSl.value, 10) });
+      });
+    }
+    var raceSel = card.querySelector('#dev-race-' + programId);
+    var raceBtn = card.querySelector('#dev-racebtn-' + programId);
+    if (raceSel && raceBtn) {
+      raceBtn.addEventListener('click', function () {
+        var v = parseInt(raceSel.value, 10);
+        if (!v) return;
+        doUpdate(programId, 'retarget', { targetRace: v });
+      });
+    }
 
     var actions = card.querySelector('#pdo-actions-' + partId);
     function btn(label, cls, onClick) {
@@ -978,22 +1214,53 @@
       b.addEventListener('click', function (e) { e.stopPropagation(); onClick(); });
       return b;
     }
-    actions.appendChild(btn('View in Design', 'btn-ghost', function () { selectPart(partId); selectMainTab('design'); }));
     if (prog.status === 'developing') {
-      actions.appendChild(btn('Continue', 'btn-primary', function () { doContinue(partId); }));
-      if (num(prog.extend_count) < 5) actions.appendChild(btn('Extend', 'btn-ghost', function () { doUpdate(partId, 'extend'); }));
-      actions.appendChild(btn('Delay', 'btn-ghost', function () { doUpdate(partId, 'delay'); }));
-      actions.appendChild(btn('Scrap', 'btn-danger', function () { doScrap(partId); }));
+      actions.appendChild(btn('Continue', 'btn-primary', function () { doContinue(programId); }));
+      actions.appendChild(btn('Scrap', 'btn-danger', function () { doScrap(programId); }));
     } else if (prog.status === 'delayed') {
-      actions.appendChild(btn('Resume', 'btn-primary', function () { doUpdate(partId, 'resume'); }));
-      actions.appendChild(btn('Scrap', 'btn-danger', function () { doScrap(partId); }));
+      actions.appendChild(btn('Resume', 'btn-primary', function () { doUpdate(programId, 'resume'); }));
+      actions.appendChild(btn('Scrap', 'btn-danger', function () { doScrap(programId); }));
     } else if (prog.status === 'tested') {
-      actions.appendChild(btn('Manufacture & introduce', 'btn-primary', function () { doIntroduce(partId); }));
-      actions.appendChild(btn('Scrap', 'btn-danger', function () { doScrap(partId); }));
+      actions.appendChild(btn('Manufacture & introduce', 'btn-primary', function () { doIntroduce(programId); }));
+      actions.appendChild(btn('Scrap', 'btn-danger', function () { doScrap(programId); }));
     } else if (prog.status === 'introduced') {
-      actions.appendChild(btn('Run on track', 'btn-primary', function () { doRunTrack(partId); }));
+      actions.appendChild(btn('Run on track', 'btn-primary', function () { doRunTrack(programId); }));
     }
     return card;
+  }
+
+  /* ── focus share (linked sliders) ──────────────────────────────────── */
+  function pRound1(x) { return Math.round(x * 10) / 10; }
+  function applyFocusShare(programId, newShare) {
+    var list = activeDevList();
+    newShare = clamp(newShare, 0, 100);
+    var self = list.filter(function (p) { return num(p.program_id) === num(programId); })[0];
+    var selfPart = self ? num(self.part_id) : null;
+    // Distinct parts: copies of the same part share one focus allocation.
+    var others = [];
+    list.forEach(function (p) {
+      if (selfPart != null && num(p.part_id) === selfPart) return;
+      if (!others.some(function (o) { return num(o.part_id) === num(p.part_id); })) others.push(p);
+    });
+    var totalOther = others.reduce(function (s, p) { return s + num(p.focus_share); }, 0);
+    var remaining = clamp(100 - newShare, 0, 100);
+    others.forEach(function (p) {
+      p.focus_share = totalOther > 0 ? pRound1(remaining * num(p.focus_share) / totalOther) : (others.length ? pRound1(remaining / others.length) : 0);
+    });
+    list.forEach(function (p) { if (selfPart != null && num(p.part_id) === selfPart) p.focus_share = newShare; });
+  }
+  function syncFocusSliders(excludeId) {
+    activeDevList().forEach(function (p) {
+      var id = p.program_id;
+      if (num(id) === num(excludeId)) return;
+      var sl = document.getElementById('focus-' + id);
+      if (sl) { var v = Math.round(num(p.focus_share)); sl.value = v; sl.style.setProperty('--fill', v + '%'); var pc = document.getElementById('focus-pct-' + id); if (pc) pc.textContent = v + '%'; }
+    });
+  }
+  function saveFocusShares() {
+    var shares = {};
+    activeDevList().forEach(function (p) { shares[p.program_id] = num(p.focus_share); });
+    api('partsSetFocus', { shares: shares }).then(function (d) { if (d && !d.ok) console.error('partsSetFocus', d.error); });
   }
 
   function selectMainTab(tab) {
@@ -1024,6 +1291,7 @@
       var part = partById(activePartId);
       if (part) { renderHeader(part); renderProgramme(part); renderCategories(part); renderCarPerformance(); }
       syncEditButtons(part);
+      renderScrapped();
     } else if (activeMainTab === 'manufacture') {
       el('pd-design-view').style.display = 'none';
       el('pd-development-view').style.display = 'none';
@@ -1038,7 +1306,8 @@
   function syncEditButtons(part) {
     var commit = el('btn-commit'), reset = el('btn-reset');
     if (!commit || !reset) return;
-    var canEdit = part && !part.locked && ['setup'].indexOf(str(progFor(part.part_id).status)) !== -1;
+    var activeCount = part ? programsForPart(part.part_id).filter(function (p) { return ['developing', 'delayed', 'tested', 'introduced'].indexOf(str(p.status)) !== -1; }).length : 0;
+    var canEdit = part && !part.locked && activeCount < 2;
     commit.disabled = !canEdit; reset.disabled = !canEdit;
   }
 
@@ -1050,7 +1319,7 @@
     var cfd = cfdEl ? parseInt(cfdEl.value, 10) : num(prog.cfd_alloc);
     var wth = wthEl ? parseInt(wthEl.value, 10) : num(prog.wth_alloc);
     var targetRace = raceEl ? parseInt(raceEl.value, 10) : num(prog.target_race);
-    var data = await api('partsCommit', { partId: partId, focus: focusState, cfd: cfd, wth: wth, targetRace: targetRace });
+    var data = await api('partsCommit', { partId: partId, focus: focusState, cfd: cfd, wth: wth, targetRace: targetRace, note: prog.note || '' });
     if (data.ok) {
       await reload(); renderAll();
       await alertModal('Development started. Design cost: <b>$' + Number(data.designCost).toLocaleString() + '</b>.', 'Development started');
@@ -1058,17 +1327,26 @@
       await alertModal('Could not start development — ' + data.error + (data.designCost ? ' (design cost $' + Number(data.designCost).toLocaleString() + ')' : ''), 'Development not started');
     }
   }
-  async function doUpdate(partId, action, extra) {
-    var data = await api('partsUpdate', Object.assign({ partId: partId, action: action }, extra || {}));
+  async function doUpdate(programId, action, extra) {
+    var data = await api('partsUpdate', Object.assign({ programId: programId, action: action }, extra || {}));
     if (data.ok) { await reload(); renderAll(); } else { await alertModal(data.error, 'Update failed'); }
   }
-  async function doContinue(partId) {
-    var data = await api('partsContinue', { partId: partId });
+  async function saveNote(target) {
+    var data = await api('partsSetNote', target);
+    if (data.ok) { await reload(); renderAll(); } else { await alertModal(data.error, 'Note failed'); }
+  }
+  async function doSetNote(target) {
+    var val = await promptModal('Add a note to this design. It shows as flair text under the name.', 'Add note', target.note || '');
+    if (val == null) return;
+    await saveNote(Object.assign({}, target, { note: val }));
+  }
+  async function doContinue(programId) {
+    var data = await api('partsContinue', { programId: programId });
     if (data.ok) { await reload(); renderAll(); } else { await alertModal(data.error, 'Continue failed'); }
   }
-  async function doIntroduce(partId) {
-    var data = await api('partsIntroduce', { partId: partId });
-    if (data.ok) { await reload(); renderAll(); await alertModal('Part introduced. Build cost charged to the team budget.', 'Introduced'); }
+  async function doIntroduce(programId) {
+    var data = await api('partsIntroduce', { programId: programId });
+    if (data.ok) { await reload(); renderAll(); await alertModal('Part introduced as <b>' + (data.name || '—') + '</b>. Build cost charged to the team budget.', 'Introduced'); }
     else { await alertModal(data.error, 'Introduce failed'); }
   }
   async function doManufacture(designId, partId) {
@@ -1085,15 +1363,15 @@
     if (data.ok) { await reload(); renderAll(); }
     else { await alertModal(data.error, 'Build continue failed'); }
   }
-  async function doRunTrack(partId) {
-    var data = await api('partsRunTrack', { partId: partId });
+  async function doRunTrack(programId) {
+    var data = await api('partsRunTrack', { programId: programId });
     if (data.ok) { await reload(); renderAll(); await alertModal('Track correlation result revealed (<b>' + Number(data.actual).toFixed(1) + '%</b>).', 'Track run complete'); }
     else { await alertModal(data.error, 'Track run failed'); }
   }
-  async function doScrap(partId) {
+  async function doScrap(programId) {
     var ok = await confirmModal('Scrap this development programme? This cannot be undone.', 'Scrap programme');
     if (!ok) return;
-    var data = await api('partsUpdate', { partId: partId, action: 'scrap' });
+    var data = await api('partsUpdate', { programId: programId, action: 'scrap' });
     if (data.ok) { await reload(); renderAll(); } else { await alertModal(data.error, 'Scrap failed'); }
   }
   async function doStartNew(partId) {

@@ -150,11 +150,18 @@ body {
   }
   function trackImg(circuit) {
     var c = BTG.circuitBySlug(circuit);
-    return c && c.img ? 'tracks/' + c.img + '.webp' : null;
+    return c && c.img ? 'tracks/' + encodeURIComponent(c.img) + '.webp' : null;
   }
   function flagUrl(circuit) {
     var c = BTG.circuitBySlug(circuit);
     return c && c.flag ? 'Flags/' + c.flag + '.svg' : '';
+  }
+  function fmtIcon(r) {
+    var f = str(r.format || '').toLowerCase();
+    if (num(r.weekend_type) === 1 || f === 'sprint') return '<img src="tracks/Sprint.png" alt="Sprint">';
+    if (f === 'double') return '<img src="tracks/Double.png" alt="Double">';
+    if (f === 'flagship') return '<img src="tracks/Flagship.png" alt="Flagship">';
+    return '';
   }
 
   function build() {
@@ -231,14 +238,20 @@ body {
     }
     var today = todayFor(activeSeries);
     var firstUpcomingIdx = -1;
+    // A race with imported results is finished — the calendar advances past it
+    // even before the league date ticks over (e.g. F2 Bahrain done → Jeddah next).
+    var resultsByRace = {};
+    (D.race_results || []).forEach(function (r) { resultsByRace[String(r.race_id)] = true; });
+    (D.race_sprints || []).forEach(function (s) { resultsByRace[String(s.race_id)] = true; });
 
     var cards = races.map(function (r, i) {
       var raceDate = str(r.race_date).slice(0, 10);
-      var isCompleted = false, isCurrent = false;
+      var hasResult = !!resultsByRace[String(r.race_id)];
+      var isCompleted = hasResult, isCurrent = false;
       if (today) {
         var weekendStart = shift(raceDate, -2);
-        isCompleted = today > raceDate;
-        isCurrent = today >= weekendStart && today <= raceDate;
+        isCompleted = isCompleted || today > raceDate;
+        isCurrent = !isCompleted && today >= weekendStart && today <= raceDate;
       }
       if (!isCompleted && firstUpcomingIdx === -1) firstUpcomingIdx = i;
       var isNext = firstUpcomingIdx === i;
@@ -251,7 +264,7 @@ body {
       else { boxShadow = '0 0 16px 4px ' + color + '44, 0 0 0 2px ' + color; live = false; }
 
       var circuit = str(r.circuit);
-      var gpName = circuit ? BTG.gpNameFor(circuit) : (str(r.name) || '');
+      var gpName = circuit ? BTG.gpNameFor(circuit, r.format) : (str(r.name) || '');
       var img = trackImg(circuit);
       var flag = flagUrl(circuit);
       var bg = img ? 'background-image:url(' + img + ')' : '';
@@ -266,7 +279,7 @@ body {
         + '<div class="cal-bottom">'
         + '<div class="cal-raceinfo">'
         + '<div class="cal-pill">Race ' + (i + 1) + '/' + races.length
-        + (num(r.weekend_type) === 1 ? '<img src="tracks/Sprint.png" alt="Sprint">' : '')
+        + fmtIcon(r)
         + '</div>'
         + (live ? '<span class="cal-live">LIVE</span>' : '')
         + '</div>'

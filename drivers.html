@@ -194,11 +194,11 @@ body::before {
 .dp-career-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
 
 /* ── Past Seasons ────────────────────────────────────────────────────────── */
-.dp-past-head { display: grid; grid-template-columns: 34px minmax(0,1fr) repeat(4, 34px) 44px; gap: 6px; align-items: center; padding: 6px 16px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-disabled); border-bottom: 1px solid var(--border-subtle); }
+.dp-past-head { display: grid; grid-template-columns: 34px 42px minmax(0,1fr) repeat(4, 34px) 44px; gap: 6px; align-items: center; padding: 6px 16px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-disabled); border-bottom: 1px solid var(--border-subtle); }
 .dp-past-head .tm { min-width: 0; }
 .dp-past-head .px { text-align: right; }
 .dp-past-head .ps { text-align: right; }
-.dp-past-row { display: grid; grid-template-columns: 34px minmax(0,1fr) repeat(4, 34px) 44px; gap: 6px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--border-subtle); font-size: 12px; min-width: 0; }
+.dp-past-row { display: grid; grid-template-columns: 34px 42px minmax(0,1fr) repeat(4, 34px) 44px; gap: 6px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--border-subtle); font-size: 12px; min-width: 0; }
 .dp-past-row:last-child { border-bottom: none; }
 .dp-past-row .yr { font-family: var(--font-mono); color: var(--text-muted); }
 .dp-past-row .tm { font-weight: 600; min-width: 0; display: flex; align-items: center; gap: 7px; overflow: hidden; }
@@ -206,12 +206,15 @@ body::before {
 .dp-past-row .tm .team-dot { width: 8px; height: 8px; border-radius: 2px; flex: none; }
 .dp-past-row .st { font-family: var(--font-mono); color: var(--text-secondary); font-size: 10px; }
 .dp-past-row .sx { font-family: var(--font-mono); font-size: 9px; color: var(--text-disabled); text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid var(--border-subtle); border-radius: 3px; padding: 1px 5px; flex: none; }
+.dp-hero__academy { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-top: 5px; }
+.dp-hero__academy .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-disabled); flex: none; }
+.dp-picker__acad { font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-disabled); border: 1px solid var(--border-subtle); border-radius: 3px; padding: 1px 4px; margin-left: 6px; flex: none; }
 .dp-past-row .px { font-family: var(--font-mono); color: var(--text-secondary); font-size: 11px; text-align: right; }
 .dp-past-row .ps { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); text-align: right; }
 @media (max-width: 560px) {
-  .dp-past-head, .dp-past-row { grid-template-columns: 30px minmax(0,1fr) repeat(2, 30px) 40px; }
-  .dp-past-head .px:nth-of-type(3), .dp-past-head .px:nth-of-type(4),
-  .dp-past-row .px:nth-of-type(3), .dp-past-row .px:nth-of-type(4) { display: none; }
+  .dp-past-head, .dp-past-row { grid-template-columns: 30px 34px minmax(0,1fr) repeat(2, 30px) 40px; }
+  .dp-past-head .px:nth-of-type(5), .dp-past-head .px:nth-of-type(6),
+  .dp-past-row .px:nth-of-type(5), .dp-past-row .px:nth-of-type(6) { display: none; }
 }
 
 /* ── Grid Penalties ──────────────────────────────────────────────────────── */
@@ -437,6 +440,7 @@ body::before {
           + '<span class="dp-picker__num">'+num+'</span>'
           + BTG.flagImg(d.nation, 14, 11)
           + '<span class="dp-picker__name">'+BTG.esc(d.fullName || d.name)+'</span>'
+          + (d.academy ? '<span class="dp-picker__acad"'+(d.academyColor ? ' style="color:'+d.academyColor+'"' : '')+'>'+BTG.teamLogoImg(d.academy, activeSeries, 9)+BTG.esc(d.academy)+'</span>' : '')
           + '</button>';
       });
       html += '</div>';
@@ -488,6 +492,8 @@ body::before {
     var d = drivers.find(function(x){return x.id===driverId;});
     if (!d) return;
     var team = BTG.teamByName(d.team);
+    var acadName = d.academy && window.BTG && BTG.Roster && BTG.Roster.teamName
+      ? (BTG.Roster.teamName(d.academy) || d.academy) : d.academy;
     var color = team ? team.color : '185,29,46';
     var panel = document.getElementById('detail-panel');
     panel.className = '';
@@ -519,6 +525,9 @@ body::before {
       + BTG.entryLogoImg(d.team, d.car, d.series || activeSeries, 18)
       + '<span>'+BTG.esc(BTG.entryLabel(d.team, d.car))+'</span>'
       + '</div>'
+      + (d.academy ? '<div class="dp-hero__academy"'+(d.academyColor ? ' style="color:'+d.academyColor+'"' : '')+'>'
+          + BTG.teamLogoImg(d.academy, d.series || activeSeries, 12)
+          + '<span>'+BTG.esc(acadName)+(d.academyRole === 'Reserve' ? ' Reserve' : ' Academy')+'</span></div>' : '')
       + '</div></div>';
     html += BTG.wrapCard(heroInner, {
       teamColor: color,
@@ -607,11 +616,21 @@ body::before {
     html += '<div class="dp-right">';
 
     // Verdict
+    var h2hScore = (h2h && h2h.val > 0) ? Math.round(h2h.val) : '—';
+    var teamPts = 0;
+    for (var ti = 0; ti < drivers.length; ti++) {
+      var td = drivers[ti];
+      if (td.series === d.series && td.team === d.team && td.standings) {
+        teamPts += Number(td.standings.pts) || 0;
+      }
+    }
+    var myPts = d.standings ? (Number(d.standings.pts) || 0) : 0;
+    var ptsShare = teamPts > 0 ? Math.round(myPts / teamPts * 100) + '%' : '—';
     html += '<div class="dp-card"><div class="dp-card__title">Verdict</div>'
       + '<div class="dp-verdict__label">'+(d.standings?seasonVerdict(d,ss):'—')+'</div>'
       + '<div class="dp-verdict__stats">'
-      + '<div class="dp-verdict__stat"><span class="dp-verdict__val">—</span><span class="dp-verdict__lbl">H2H</span></div>'
-      + '<div class="dp-verdict__stat"><span class="dp-verdict__val">—</span><span class="dp-verdict__lbl">Pts Share</span></div>'
+      + '<div class="dp-verdict__stat"><span class="dp-verdict__val">'+h2hScore+'</span><span class="dp-verdict__lbl">H2H</span></div>'
+      + '<div class="dp-verdict__stat"><span class="dp-verdict__val">'+ptsShare+'</span><span class="dp-verdict__lbl">Pts Share</span></div>'
       + '</div>'
       + '<div class="dp-verdict__bullets">—</div></div>';
 
@@ -627,14 +646,15 @@ body::before {
     // Past Seasons (full career across every series — same driver, not duplicated)
     if (d.history && d.history.length) {
       html += '<div class="dp-card"><div class="dp-card__title">Past Seasons</div>'
-        + '<div class="dp-past-head"><span>Season</span><span>Team</span><span class="px">Pos</span><span class="px">Wins</span><span class="px">Pods</span><span class="px">Pts</span><span class="ps">Rating</span></div>'
+        + '<div class="dp-past-head"><span>Season</span><span>Series</span><span>Team</span><span class="px">Pos</span><span class="px">Wins</span><span class="px">Pods</span><span class="px">Pts</span><span class="ps">Rating</span></div>'
         + d.history.map(function(h) {
           var hteam = BTG.teamByName(h.team);
           var hcolor = hteam ? hteam.color : '100,100,100';
           var label = h.team && h.team !== 'Privateer' ? h.team : (h.series || '');
           var logo = h.team && h.team !== 'Privateer' ? BTG.teamLogoImg(h.team, h.series, 14) : '';
           return '<div class="dp-past-row"><span class="yr">'+h.season+'</span>'
-            + '<span class="tm">'+logo+BTG.esc(label)+(h.series && h.series !== d.series ? '<span class="sx">'+BTG.esc(h.series)+'</span>' : '')+'</span>'
+            + '<span class="st">'+BTG.esc(h.series || '—')+'</span>'
+            + '<span class="tm">'+logo+BTG.esc(label)+(h.role === 'Reserve' ? '<span class="sx">Reserve</span>' : '')+'</span>'
             + '<span class="px">'+(h.pos && h.pos !== '—' ? 'P'+h.pos : '—')+'</span>'
             + '<span class="px">'+(h.wins ? h.wins : '—')+'</span>'
             + '<span class="px">'+(h.podiums ? h.podiums : '—')+'</span>'
@@ -649,11 +669,18 @@ body::before {
     html += '</div>'; // right
     html += '</div>'; // dp-main
 
-    // Career Timeline (full width below) — TFG-style year blocks, spanning every
-    // series the driver appeared in (primary or reserve — same driver, one career).
-    if (d.history && d.history.length) {
-      var hist = d.history.slice().sort(function(a,b){return a.season-b.season || (a.series<b.series?-1:a.series>b.series?1:0);});
-      var years = hist.map(function(h){return h.season;});
+    // Career Timeline (full width below) — TFG-style year blocks. The main track
+    // only shows DRIVING stints (reserve/junior/academy never split a season in
+    // two); junior + reserve contract drives are rendered as their own coloured
+    // rows beneath, matching the save-viewer behaviour.
+    var acadStints = d.academyStints || [];
+    var resStints = d.reserveStints || [];
+    var drivingHist = (d.history || []).filter(function (h) {
+      return h.role !== 'Reserve' && h.role !== 'Junior' && h.role !== 'Affiliate';
+    }).slice().sort(function(a,b){return a.season-b.season || (a.series<b.series?-1:a.series>b.series?1:0);});
+
+    if (drivingHist.length || acadStints.length || resStints.length) {
+      var hist = drivingHist;
       var blocks = [];      // consecutive same-team runs
       hist.forEach(function(h) {
         var last = blocks[blocks.length-1];
@@ -670,48 +697,79 @@ body::before {
         return 'rgb(' + c + ')';
       };
 
-      // Year label row (show series tag when a year spans multiple series)
       html += '<div class="dp-card" style="margin:0 12px"><div class="dp-card__title">Career Timeline</div>'
-        + '<div class="dp-tl">'
-        + '<div class="dp-tl__years">' + hist.map(function(h){
+        + '<div class="dp-tl">';
+
+      if (hist.length) {
+        // Year label row (show series tag when a year spans multiple series)
+        html += '<div class="dp-tl__years">' + hist.map(function(h){
             return '<span>' + h.season + (h.series && h.series !== d.series ? '·'+BTG.esc(h.series.slice(0,4)) : '') + '</span>';
           }).join('') + '</div>'
         + '<div class="dp-tl__track">';
 
-      hist.forEach(function(h, yi) {
-        var prev = yi > 0 ? hist[yi-1] : null;
-        var team = h && h.team ? BTG.teamByName(h.team) : null;
-        var bg = teamBg(h ? h.team : null);
-        var showLogo = false;
-        // Show logo only at mid-year of each run
-        blocks.forEach(function(b) {
-          var mid = Math.round((b.startYear + b.endYear) / 2);
-          if (h.season === mid && b.series === h.series) showLogo = true;
+        hist.forEach(function(h, yi) {
+          var prev = yi > 0 ? hist[yi-1] : null;
+          var team = h && h.team ? BTG.teamByName(h.team) : null;
+          var bg = teamBg(h ? h.team : null);
+          var showLogo = false;
+          // Show logo only at mid-year of each run
+          blocks.forEach(function(b) {
+            var mid = Math.round((b.startYear + b.endYear) / 2);
+            if (h.season === mid && b.series === h.series) showLogo = true;
+          });
+          // Brand-change ◆ when consecutive years differ in team
+          var isBrandChange = prev && prev.team && h && h.team && prev.team !== h.team;
+          var cellStyle = 'background:' + bg + ';opacity:0.75;';
+          html += '<div class="dp-tl__cell" style="' + cellStyle + '">'
+            + (showLogo && (team || h.car) ? BTG.entryLogoImg(h.team, h.car, h.series, 12) : '')
+            + (isBrandChange ? '<span class="dp-tl__mark">◆</span>' : '')
+            + '</div>';
         });
-        // Brand-change ◆ when consecutive years differ in team
-        var isBrandChange = prev && prev.team && h && h.team && prev.team !== h.team;
-        var cellStyle = 'background:' + bg + ';opacity:0.75;';
-        html += '<div class="dp-tl__cell" style="' + cellStyle + '">'
-          + (showLogo && (team || h.car) ? BTG.entryLogoImg(h.team, h.car, h.series, 12) : '')
-          + (isBrandChange ? '<span class="dp-tl__mark">◆</span>' : '')
-          + '</div>';
-      });
+        html += '</div>';
 
-      html += '</div>';
+        // Label row below (team name per run)
+        html += '<div class="dp-tl__legend">';
+        blocks.forEach(function(b) {
+          var t = BTG.teamByName(b.team);
+          var c = t ? 'rgb(' + t.color + ')' : '#71717a';
+          var yrsLabel = b.startYear === b.endYear ? b.startYear : b.startYear + '-' + String(b.endYear).slice(2);
+          html += '<span class="dp-tl__legend-item" style="display:inline-flex;align-items:center;gap:5px;">'
+            + '<span class="dot" style="background:' + c + '"></span>'
+            + BTG.entryLogoImg(b.team, b.car, b.series || activeSeries, 10)
+            + BTG.esc(BTG.entryLabel(b.team, b.car)) + (b.series && b.series !== d.series ? ' <span style="opacity:.55">'+BTG.esc(b.series)+'</span>' : '') + ' <span style="opacity:.55">' + yrsLabel + '</span>'
+            + '</span>';
+        });
+        html += '</div>';
+      } else {
+        html += '<div style="color:var(--text-disabled);font-size:11px;padding:4px 0 8px">No driving stints — career shown via academy/reserve below.</div>';
+      }
 
-      // Label row below (team name per run)
-      html += '<div class="dp-tl__legend">';
-      blocks.forEach(function(b) {
-        var t = BTG.teamByName(b.team);
-        var c = t ? 'rgb(' + t.color + ')' : '#71717a';
-        var yrsLabel = b.startYear === b.endYear ? b.startYear : b.startYear + '-' + String(b.endYear).slice(2);
-        html += '<span class="dp-tl__legend-item" style="display:inline-flex;align-items:center;gap:5px;">'
-          + '<span class="dot" style="background:' + c + '"></span>'
-          + BTG.entryLogoImg(b.team, b.car, b.series || activeSeries, 10)
-          + BTG.esc(BTG.entryLabel(b.team, b.car)) + (b.series && b.series !== d.series ? ' <span style="opacity:.55">'+BTG.esc(b.series)+'</span>' : '') + ' <span style="opacity:.55">' + yrsLabel + '</span>'
-          + '</span>';
-      });
-      html += '</div>';
+      // Academy + Reserve rows (junior + reserve contract drives) — one coloured
+      // block per stint, aligned to the same year axis, in the team's colour.
+      var stintRows = acadStints.map(function(s){ return { type:'academy', team:s.team, color:s.color, seasons:s.seasons }; })
+        .concat(resStints.map(function(s){ return { type:'reserve', team:s.team, color:s.color, seasons:s.seasons }; }));
+      if (stintRows.length) {
+        var colYears = {};
+        hist.forEach(function(h){ colYears[h.season] = true; });
+        stintRows.forEach(function(st){ st.seasons.forEach(function(s){ colYears[s] = true; }); });
+        var gy = Object.keys(colYears).map(Number).sort(function(a,b){return a-b;});
+        var colIdx = {}; gy.forEach(function(y,i){ colIdx[y] = i + 1; });
+
+        html += '<div style="margin-top:8px">';
+        stintRows.forEach(function(st) {
+          var color = st.color || '#9ca3af';
+          var minY = Math.min.apply(null, st.seasons), maxY = Math.max.apply(null, st.seasons);
+          var c1 = colIdx[minY], c2 = colIdx[maxY] + 1;
+          html += '<div style="display:grid;grid-template-columns:repeat('+gy.length+',1fr);gap:2px;margin-bottom:4px;">'
+            + '<div style="grid-column:'+c1+' / '+c2+';height:20px;display:flex;align-items:center;justify-content:center;gap:4px;background:'+color+'22;border:1px solid '+color+'55;border-radius:3px;overflow:hidden;">'
+            + BTG.teamLogoImg(st.team, activeSeries, 12)
+            + '<span style="font-size:8px;font-weight:700;color:'+color+';text-transform:uppercase;letter-spacing:0.03em;white-space:nowrap;">'
+            + (st.type === 'reserve' ? 'Reserve ' : 'Academy ')
+            + (minY === maxY ? minY : minY + '-' + String(maxY).slice(2))
+            + '</span></div></div>';
+        });
+        html += '</div>';
+      }
 
       html += '</div></div>';
     }

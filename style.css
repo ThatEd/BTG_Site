@@ -1390,11 +1390,28 @@ select option { background: #3a3a3a; color: #ffffff; }
 
 .pdo-empty { border: 1px dashed var(--edge-strong); border-radius: 10px; padding: 28px; text-align: center; color: var(--copy-faint); font-size: 14px; }
 .pdo-list { display: flex; flex-direction: column; gap: 14px; }
+.pdo-group { border: 1px solid var(--edge); border-radius: 12px; overflow: hidden; background: var(--card); }
+.pdo-group-head { background: var(--card-raised); border-bottom: 1px solid var(--edge); padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.pdo-group-title { display: flex; align-items: baseline; gap: 10px; }
+.pdo-group-title h3 { font-family: var(--head-face); font-size: 16px; font-weight: 700; color: var(--copy); }
+.pdo-group-title span { font-family: var(--data-face); font-size: 10px; color: var(--copy-faint); text-transform: uppercase; letter-spacing: .08em; }
+.pdo-group-focus { max-width: 440px; }
+.pdo-group-members { display: flex; flex-direction: column; gap: 12px; padding: 12px; }
 .pdo-card { background: var(--card-raised); border: 1px solid var(--edge); border-radius: 10px; padding: 16px; }
 .pdo-card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
 .pdo-card-title { display: flex; align-items: baseline; gap: 10px; }
 .pdo-card-title h3 { font-family: var(--head-face); font-size: 17px; font-weight: 700; }
 .pdo-card-title span { font-family: var(--data-face); font-size: 10px; color: var(--copy-faint); }
+.pdo-body-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
+.pdo-main { min-width: 0; }
+.pdo-side { min-width: 0; }
+@media (max-width: 1080px) { .pdo-body-layout { grid-template-columns: minmax(0, 1fr); } }
+.pdo-card-code { font-family: var(--data-face); font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--team-accent); }
+.pdo-card-note { font-family: var(--body-face); font-style: italic; font-size: 11.5px; color: var(--copy-faint); max-width: 380px; }
+.pd-mfg-note { font-family: var(--body-face); font-style: italic; font-size: 11px; color: var(--brass); display: block; margin-top: 1px; }
+.pd-modal-input { width: 100%; box-sizing: border-box; background: var(--ink); color: var(--copy); border: 1px solid var(--edge-strong); border-radius: 6px; padding: 8px 10px; font-family: var(--body-face); font-size: 14px; margin-top: 10px; }
+.pd-note-input { flex: 1; min-width: 0; background: var(--ink); color: var(--copy); border: 1px solid var(--edge); border-radius: 6px; padding: 7px 10px; font-family: var(--body-face); font-size: 13px; }
+.pd-note-input::placeholder { color: var(--copy-faint); }
 .pdo-stats { display: flex; gap: 18px; flex-wrap: wrap; font-family: var(--data-face); font-size: 12px; color: var(--copy-faint); }
 .pdo-stats b { color: var(--copy-soft); font-weight: 600; }
 .pdo-progress-track { height: 5px; border-radius: 3px; background: var(--edge); margin-top: 10px; overflow: hidden; }
@@ -1529,6 +1546,7 @@ select option { background: #3a3a3a; color: #ffffff; }
 .pa-cars { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 12px; }
 .pa-car { background: var(--card-raised); border: 1px solid var(--edge); border-radius: 12px; overflow: hidden; }
 .pa-car-head { padding: 12px 14px; border-bottom: 1px solid var(--edge); font-family: var(--head-face); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-size: 14px; color: var(--copy); }
+.pa-car-driver { display: block; font-family: var(--head-face); font-weight: 600; letter-spacing: .02em; text-transform: none; font-size: 13px; color: var(--team-accent); margin-top: 3px; }
 .pa-car-parts { display: flex; flex-direction: column; padding: 8px; gap: 6px; }
 .pa-part { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--card); border: 1px solid var(--edge); border-radius: 8px; padding: 8px 10px; cursor: pointer; color: var(--copy); font-family: var(--body-face); transition: border-color .12s, background .12s; }
 .pa-part:hover { border-color: var(--edge-strong); background: var(--card-high); }

@@ -216,6 +216,24 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 .season-cal-mark{display:block; width:100%; height:4px; border-radius:2px; opacity:.5;}
 .season-cal-mark.race-day{height:7px; opacity:1;}
 
+/* Season weekend panel */
+.season-cal-layout{display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap;}
+#season-calendar{flex:1 1 520px; min-width:0;}
+#season-weekend-panel{flex:0 0 300px; min-width:260px; margin-top:14px;}
+.season-weekend-head{font-family:var(--data-face); font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--copy-faint); margin:0 0 8px;}
+.season-weekend-card{border-radius:10px; overflow:hidden; background:var(--card); border:1px solid var(--edge);}
+.season-weekend-card + .season-weekend-card{margin-top:10px;}
+.season-weekend-media{position:relative; width:100%; padding-bottom:56%; background-size:cover; background-position:center;}
+.season-weekend-shade{position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,.85) 0%, rgba(0,0,0,.35) 50%, rgba(0,0,0,.15) 100%);}
+.season-weekend-pill{background:rgba(0,0,0,.65); border-radius:6px; padding:6px 10px; backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);}
+.season-weekend-name{position:absolute; top:10px; left:12px; right:12px; z-index:1; display:flex; align-items:center; gap:8px;}
+.season-weekend-name .season-weekend-pill{font-size:14px; font-weight:800; color:#fff; line-height:1.2;}
+.season-weekend-name img{width:24px; height:16px; border-radius:2px; border:1px solid rgba(255,255,255,.15); object-fit:cover; flex:0 0 auto;}
+.season-weekend-tag{position:absolute; bottom:10px; left:12px; right:12px; z-index:1; display:flex; align-items:center; gap:8px;}
+.season-weekend-tag .season-weekend-pill{font-size:11px; font-weight:700; color:rgba(255,255,255,.9); display:inline-flex; align-items:center; gap:7px;}
+.season-weekend-dot{width:8px; height:8px; border-radius:50%; display:inline-block; flex:0 0 auto;}
+.season-weekend-empty{font-family:var(--body-face); font-size:13px; color:var(--copy-faint); padding:14px; border:1px dashed var(--edge); border-radius:8px;}
+
 /* Season race editor */
 .season-edit-head{font-family:var(--data-face); font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--copy-faint); margin:14px 0 8px;}
 .season-edit-add{display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;}
@@ -961,7 +979,10 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
         <button class="action" id="season-next-week-btn"><span>Next week</span></button>
         <button class="action action-lead" id="season-next-race-btn"><span>Next race →</span></button>
       </div>
-      <div id="season-calendar"></div>
+      <div class="season-cal-layout">
+        <div id="season-calendar"></div>
+        <div id="season-weekend-panel"></div>
+      </div>
       <div class="field-row" style="margin-top:12px;">
         <div class="readout"><div class="value" id="season-selected-date">—</div><div class="caption">Selected</div></div>
         <button class="action action-lead" id="season-set-date-btn"><span>Set date</span></button>
@@ -1334,6 +1355,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 <script src="teams/f1.js"></script>
 <script src="js/roster.js"></script>
 <script src="js/data-loader.js"></script>
+<script src="js/db-cache.js"></script>
 <script src="js/circuits.js"></script>
 <script src="js/notification-sounds.js"></script>
 <script src="js/parts-design.js"></script>
@@ -1963,8 +1985,8 @@ async function renderPartsAllocation() {
     return;
   }
   html += '<div class="pa-cars">'
-    + paCarHtml('Car 1', parts, 1)
-    + paCarHtml('Car 2', parts, 2)
+    + paCarHtml('Car 1', parts, 1, data.car1Driver)
+    + paCarHtml('Car 2', parts, 2, data.car2Driver)
     + '</div>';
   html += '<div class="muted pa-hint">Click a part to change the design fitted to that car.</div>';
   wrap.innerHTML = html;
@@ -1991,7 +2013,7 @@ function paDesignQty(part, designId) {
   return d ? (Number(d.quantity) || 0) : 0;
 }
 
-function paCarHtml(label, parts, carNo) {
+function paCarHtml(label, parts, carNo, driverName) {
   const items = parts.map(function (pt) {
     const designId = carNo === 1 ? pt.car1_design_id : pt.car2_design_id;
     const qty = paDesignQty(pt, designId);
@@ -2002,7 +2024,7 @@ function paCarHtml(label, parts, carNo) {
       + '<span class="pa-part-count">×' + qty + '</span>'
       + '</button>';
   }).join('');
-  return '<div class="pa-car"><div class="pa-car-head">' + BTG.esc(label) + '</div><div class="pa-car-parts">' + items + '</div></div>';
+  return '<div class="pa-car"><div class="pa-car-head">' + BTG.esc(label) + (driverName ? '<span class="pa-car-driver">' + BTG.esc(driverName) + '</span>' : '') + '</div><div class="pa-car-parts">' + items + '</div></div>';
 }
 
 function openPartModal(partId, car, teamKey) {
@@ -2119,7 +2141,12 @@ function driverSeasonRecord(name) {
     var roster = (BTG.Roster && BTG.Roster.driverByName) ? BTG.Roster.driverByName(name) : null;
     var series = roster && roster.series ? roster.series : null;
     if (!series) {
-      Object.keys(BTG.Data.series || {}).some(function (sid) {
+      var sids = [];
+      if (BTG.Data.getSeriesList) {
+        try { sids = BTG.Data.getSeriesList().map(function (s) { return s.id; }); } catch (e) { sids = []; }
+      }
+      if (!sids.length) sids = Object.keys(BTG.Data.series || {});
+      sids.some(function (sid) {
         try {
           if (BTG.Data.buildDriverList(sid, undefined, { includeAll: true }).some(function (d) { return d.name === name || d.fullName === name; })) { series = sid; return true; }
         } catch (e) {}
@@ -4659,8 +4686,6 @@ async function unblockMailSender(name) {
 }
 
 function renderSalary(salary, bank) {
-  const sec = document.getElementById('salary-section');
-  if (sec) sec.classList.remove('hidden');
   const bankEl = document.getElementById('salary-bank');
   const monthlyEl = document.getElementById('salary-monthly');
   if (bankEl) bankEl.textContent = fmtMoney(bank);
@@ -4668,11 +4693,8 @@ function renderSalary(salary, bank) {
 }
 
 function renderSponsors(sponsors) {
-  const sec = document.getElementById('sponsors-section');
   const role = CURRENT_USER && CURRENT_USER.role;
   const list = (role === 'tp') ? (sponsors || []).filter(function (s) { return s.season !== 'next' && s.team === selectedTpTeam(); }) : (sponsors || []);
-  if (!list.length && role !== 'admin') { sec.classList.add('hidden'); return; }
-  sec.classList.remove('hidden');
 
   var html = '';
   if (role === 'admin') {
@@ -4976,7 +4998,7 @@ function renderSeasonCalendar() {
   const el = document.getElementById('season-calendar');
   if (!el) return;
   const y = SEASON_CAL.viewYear, m = SEASON_CAL.viewMonth;
-  const startDow = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
+  const startDow = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7;
   const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
   const weekend = seasonWeekendMap();
   const st = seasonState();
@@ -4987,7 +5009,7 @@ function renderSeasonCalendar() {
     + '<button type="button" class="season-cal-nav" data-nav="1">▶</button>'
     + '</div>'
     + '<div class="season-cal-grid">'
-    + ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(function (d) { return '<div class="season-cal-dow">' + d + '</div>'; }).join('');
+    + ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(function (d) { return '<div class="season-cal-dow">' + d + '</div>'; }).join('');
   for (let i = 0; i < startDow; i++) html += '<div class="season-cal-day empty"></div>';
   for (let d = 1; d <= daysInMonth; d++) {
     const key = fmtKey(y, m, d);
@@ -5022,6 +5044,52 @@ function renderSeasonCalendar() {
       renderRaceEditor();
     };
   });
+  renderWeekendPanel();
+}
+function weekendSessionsFor(key) {
+  const out = [];
+  (SEASON_CAL.calendar || []).forEach(function (r) {
+    const rd = String(r.race_date || '').slice(0, 10);
+    if (!rd) return;
+    if (key >= shiftDateStr(rd, -2) && key <= rd) out.push(r);
+  });
+  return out;
+}
+function renderWeekendPanel() {
+  const el = document.getElementById('season-weekend-panel');
+  if (!el) return;
+  const key = SEASON_CAL.selected;
+  const sessions = key ? weekendSessionsFor(key) : [];
+  if (!sessions.length) {
+    el.innerHTML = '<div class="season-weekend-empty">Click a race weekend to see its sessions here.</div>';
+    return;
+  }
+  const p = String(key).split('-').map(Number);
+  const mIdx = (p[1] || 1) - 1;
+  const headDate = MONTH_NAMES[mIdx] ? (p[2] + ' ' + MONTH_NAMES[mIdx] + ' ' + p[0]) : key;
+  let html = '<div class="season-weekend-head">' + BTG.esc(headDate) + ' — ' + sessions.length + ' session' + (sessions.length === 1 ? '' : 's') + '</div>';
+  sessions.forEach(function (r) {
+    const c = r.circuit ? BTG.circuitBySlug(r.circuit) : null;
+    const img = c && c.img ? 'tracks/' + encodeURIComponent(c.img) + '.webp' : null;
+    const flag = c && c.flag ? 'Flags/' + c.flag + '.svg' : '';
+    const name = c ? BTG.gpNameFor(r.circuit) : (r.name || r.circuit || '');
+    const color = seriesMarkColor(r.series);
+    const bg = img ? 'background-image:url(' + img + ')' : '';
+    const rd = String(r.race_date || '').slice(0, 10);
+    const wStart = shiftDateStr(rd, -2);
+    const isSprint = Number(r.weekend_type) === 1;
+    html += '<div class="season-weekend-card">'
+      + '<div class="season-weekend-media" style="' + bg + '">'
+      + '<div class="season-weekend-shade"></div>'
+      + '<div class="season-weekend-name"><span class="season-weekend-pill">' + BTG.esc(name) + '</span>'
+      + (flag ? '<img src="' + flag + '" alt="" onerror="this.style.display=\'none\'">' : '')
+      + '</div>'
+      + '<div class="season-weekend-tag"><span class="season-weekend-pill"><span class="season-weekend-dot" style="background:' + color + '"></span>'
+      + BTG.esc(r.series) + ' · ' + wStart + ' → ' + rd + (isSprint ? ' · Sprint' : '') + '</span></div>'
+      + '</div>'
+      + '</div>';
+  });
+  el.innerHTML = html;
 }
 document.getElementById('season-series-select').addEventListener('change', function () {
   SEASON_CAL.series = this.value;
@@ -5412,6 +5480,17 @@ function stopLive() {
 /* ---------- pre-load race data for overview standings/points ---------- */
 (function () {
   if (!window.BTG || !BTG.Data || !BTG.Data.init) return;
+  // Prefer the DB public cache (Supabase) for driver data and standings — the
+  // legacy data-loader doesn't carry the imported race results / points.
+  if (window.BTG.DBCache) {
+    BTG.DBCache.init().then(function (dbData) {
+      if (dbData && dbData.races && dbData.races.length) {
+        BTG.Data.getSeriesList = BTG.DBCache.getSeriesList;
+        BTG.Data.getSeasons = BTG.DBCache.getSeasons;
+        BTG.Data.buildDriverList = BTG.DBCache.buildDriverList;
+      }
+    }).catch(function () {});
+  }
   BTG.Data.init().catch(function () {});
   BTG.Data.onUpdate(function () {
     if (CURRENT_USER) {
