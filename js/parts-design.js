@@ -22,7 +22,7 @@
     var sess = getSession();
     if (!sess) return { ok: false, error: 'no_session' };
     try {
-      var body = Object.assign({ action: action, username: sess.username, password: sess.password }, opts.team ? { team: opts.team } : {}, payload || {});
+      var body = Object.assign({ action: action, token: sess.token }, opts.team ? { team: opts.team } : {}, payload || {});
       var res = await fetch(EDGE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
