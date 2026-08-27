@@ -1326,7 +1326,7 @@
     }
   }
   async function doUpdate(programId, action, extra) {
-    var data = await api('partsUpdate', Object.assign({ programId: programId, action: action }, extra || {}));
+    var data = await api('partsUpdate', Object.assign({ programId: programId, op: action }, extra || {}));
     if (data.ok) { await reload(); renderAll(); } else { await alertModal(data.error, 'Update failed'); }
   }
   async function saveNote(target) {
@@ -1369,11 +1369,11 @@
   async function doScrap(programId) {
     var ok = await confirmModal('Scrap this development programme? This cannot be undone.', 'Scrap programme');
     if (!ok) return;
-    var data = await api('partsUpdate', { programId: programId, action: 'scrap' });
+    var data = await api('partsUpdate', { programId: programId, op: 'scrap' });
     if (data.ok) { await reload(); renderAll(); } else { await alertModal(data.error, 'Scrap failed'); }
   }
   async function doStartNew(partId) {
-    var data = await api('partsUpdate', { partId: partId, action: 'scrap' });
+    var data = await api('partsUpdate', { partId: partId, op: 'scrap' });
     if (data.ok) { await reload(); renderAll(); } else { await alertModal(data.error, 'Failed to reset'); }
   }
 
