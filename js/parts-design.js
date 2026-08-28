@@ -1213,7 +1213,6 @@
       return b;
     }
     if (prog.status === 'developing') {
-      actions.appendChild(btn('Continue', 'btn-primary', function () { doContinue(programId); }));
       actions.appendChild(btn('Scrap', 'btn-danger', function () { doScrap(programId); }));
     } else if (prog.status === 'delayed') {
       actions.appendChild(btn('Resume', 'btn-primary', function () { doUpdate(programId, 'resume'); }));
