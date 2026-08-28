@@ -943,11 +943,10 @@
       var baseDays = buildDaysFor(mfgPartId);
       var days = mfgApproach === 1 ? baseDays * 2 : baseDays; // Normal = base time, Outsource = 2× slower
       var totalDays = days * mfgQty;
-      var isDev = !!(design && design.developed); // developed parts are part of the dev bill — free
       var baseCost = num(part.build_cost);
       var costMul = mfgApproach === 1 ? 1 : 1.5; // Normal = fast (1.5x), Outsource = base
-      var buildCost = isDev ? 0 : Math.round(baseCost * mfgQty);
-      var approachCost = isDev ? 0 : Math.max(0, Math.round(baseCost * costMul * mfgQty) - buildCost);
+      var buildCost = Math.round(baseCost * mfgQty);
+      var approachCost = Math.max(0, Math.round(baseCost * costMul * mfgQty) - buildCost);
       var doneDate = todayStr() ? addDays(todayStr(), totalDays) : '—';
       var doneLong = todayStr() ? fmtDateLong(doneDate) : '—';
       var firstDate = todayStr() ? addDays(todayStr(), days) : '—';
@@ -962,8 +961,8 @@
         + '<div class="pd-summary">'
         + '<div class="pd-sum-row"><span>Completion date</span><b>' + totalDays + ' days (' + doneLong + ')</b></div>'
         + '<div class="pd-sum-row"><span>1st car part</span><b>' + days + ' days (' + firstLong + ')</b></div>'
-        + '<div class="pd-sum-row"><span>Manufacture cost</span><b>' + (isDev ? 'Free — part of dev bill' : '$' + Number(buildCost).toLocaleString()) + '</b></div>'
-        + (isDev ? '' : '<div class="pd-sum-row"><span>Approach cost</span><b>$' + Number(approachCost).toLocaleString() + '</b></div>')
+        + '<div class="pd-sum-row"><span>Manufacture cost</span><b>$' + Number(buildCost).toLocaleString() + '</b></div>'
+        + '<div class="pd-sum-row"><span>Approach cost</span><b>$' + Number(approachCost).toLocaleString() + '</b></div>'
         + '</div>'
         + '<button class="btn btn-ghost" id="mfg-note-btn"><span>Add note</span></button>'
         + '<button class="btn btn-primary" id="mfg-build-btn"><span>Manufacture</span></button>'
