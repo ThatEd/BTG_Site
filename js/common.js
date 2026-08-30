@@ -18,6 +18,7 @@ BTG.renderNav = function(activePage) {
   var tabs = [
     { id: 'standings', label: 'Standings', href: 'index.html' },
     { id: 'drivers',   label: 'Drivers',   href: 'drivers.html' },
+    { id: 'teams',     label: 'Teams',     href: 'teams.html' },
     { id: 'race-weekend', label: 'Race Weekend', href: 'race-weekend.html' },
     { id: 'calendar', label: 'Calendar', href: 'calendar.html' },
     { id: 'dashboard', label: 'Dashboard', href: 'BTG_DriverAttributes.html' },
