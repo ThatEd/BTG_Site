@@ -558,9 +558,10 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
   // ── Series-based border glow (same as the home page) ────────────────────
   function applyBorderGlow() {
     var accent = BTG.seriesAccent(activeSeries); // "r,g,b"
+    var accentSpace = accent.replace(/,/g, ' '); // CSS rgb(... / a) needs spaces
     // Update existing glow cards to the active series accent (series switch).
     document.querySelectorAll('#st-overview .border-glow-card').forEach(function (w) {
-      w.style.setProperty('--team-rgb', accent);
+      w.style.setProperty('--team-rgb', accentSpace);
       var edge = w.querySelector('.edge-light');
       if (edge && BTG.rgbToHslDeg) edge.style.setProperty('--glow-color', BTG.rgbToHslDeg(accent));
     });

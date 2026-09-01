@@ -26,7 +26,7 @@
   --font-mono: ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono',
     'Roboto Mono', 'Oxygen Mono', 'Ubuntu Monospace', 'Source Code Pro',
     'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace;
-  --team-rgb: 99, 102, 241;
+  --team-rgb: 99 102 241;
 }
 
 @font-face {
@@ -333,9 +333,9 @@ body::before {
      For the selected season year Y we look in logos/full/Y/ first; if the
      team has no file there we fall back to earlier years (Y-1 … 2024). The
      filename uses the same DB team name as the team (variants for common
-     spellings). If NO full-format file exists anywhere we finally fall back
-     to the regular team logo (logos/teams/{DB logo}) so the hero never
-     collapses or flashes — it always shows the team's mark.
+     spellings). If NO full-format file exists in ANY year the hero collapses
+     entirely (BTG.fullLogoStep) — no fallback to the regular team logo, no
+     placeholder; when the full logo isn't there it's just empty.
      `altNames` (optional) lets the caller also try the short DB name when
      the display name is the per-season full name (e.g. "Scuderia Ferrari"
      falls back to "Ferrari").                                            */
@@ -357,14 +357,6 @@ body::before {
         out.push('logos/full/' + y + '/' + v + '.webp');
       });
     }
-    // Fallback: the standard team logo (DB logo → logos/teams/…), so the hero
-    // always renders something real instead of collapsing/flashing.
-    try {
-      if (window.BTG && BTG.DBCache && BTG.DBCache.teamLogo) {
-        var dbLogo = BTG.DBCache.teamLogo(teamName) || BTG.DBCache.teamLogo(altNames && altNames[0]);
-        if (dbLogo) out.push(BTG.teamLogoUrl ? BTG.teamLogoUrl(dbLogo) : 'logos/teams/' + dbLogo);
-      }
-    } catch (e) {}
     return out;
   }
   function fullLogoImg(teamName, year, altNames) {
@@ -597,6 +589,10 @@ body::before {
     var t = dbTeam(tid);
     var name = teamFullName(tid, activeSeason);
     rgb = teamRgb(tid) || '99 102 241';
+    // Set the team colour on the panel so every .dp-card / .team-glow-row
+    // child picks up the team's border glow (CSS uses rgb(var(--team-rgb)/a),
+    // which needs SPACE-separated channels).
+    panel.style.setProperty('--team-rgb', rgb);
     var teamColor = 'rgb(' + rgb + ')';
 
     // Results + contracts — needed by the driver resolution below, so compute
@@ -645,6 +641,18 @@ body::before {
       if (str(h.entity_type) !== 'driver' || str(h.role) !== 'Driving') return;
       var d = (D.drivers || []).filter(function (dd) { return normName(dd.full_name) === normName(str(h.entity_name)); })[0];
       addDriver(str(h.entity_name), d ? d.driver_number : null, d ? d.ovr : null, h.till_year);
+    });
+    // 2) Drivers who actually RACED for this team this season — the ground
+    //    truth of the lineup. This covers feeder-series drivers whose contract
+    //    (hire) is held by ANOTHER team — e.g. an F2 seat for an F1 junior or
+    //    reserve (Fabian Stahl is a Haas junior but drives for F2 ART). Their
+    //    current contract lives elsewhere, so the contract-based pool alone
+    //    would wrongly hide them from their racing team's page.
+    seasonResults.forEach(function (r) {
+      var nm = str(r.driver_name);
+      if (!nm) return;
+      var d = (D.drivers || []).filter(function (dd) { return normName(dd.full_name) === normName(nm); })[0];
+      addDriver(nm, d ? d.driver_number : null, d ? d.ovr : null, null);
     });
 
     var drivers = poolOrder.map(function (key) {

@@ -899,9 +899,10 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
   function applyBorderGlow() {
     // Wrap highlight cards + main columns with the series accent glow.
     var accent = BTG.seriesAccent(activeSeries); // "r,g,b"
+    var accentSpace = accent.replace(/,/g, ' '); // CSS rgb(... / a) needs spaces
     // Update existing glow wrappers to the active series accent (series switch).
     document.querySelectorAll('.border-glow-card').forEach(function (w) {
-      w.style.setProperty('--team-rgb', accent);
+      w.style.setProperty('--team-rgb', accentSpace);
       var edge = w.querySelector('.edge-light');
       if (edge && BTG.rgbToHslDeg) edge.style.setProperty('--glow-color', BTG.rgbToHslDeg(accent));
     });
