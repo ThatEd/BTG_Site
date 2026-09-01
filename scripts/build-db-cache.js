@@ -52,6 +52,7 @@ const TABLES = [
   ['season_driver_standings', 'season_driver_standings'],
   ['season_team_standings', 'season_team_standings'],
   ['series_points', 'series_points'],
+  ['series_bonus_points', 'series_bonus_points'],
   ['race_car_performance', 'race_car_performance'],
   ['team_engine_history', 'team_engine_history'],
   ['team_staff', 'team_staff'],

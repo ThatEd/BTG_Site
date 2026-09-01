@@ -402,6 +402,7 @@ window.BTG = window.BTG || {};
     // Register the team in the color registry (DB-backed) so team cells render
     // the correct colour, exactly like every other row source.
     var teamId = teamIdFor(teamName || 'Privateer');
+    var rowPoints = Number(r.points || 0) + Number(r.bonus_points || 0);
     return {
       driverId: r.driver_name || '',
       teamName: teamName,
@@ -410,7 +411,9 @@ window.BTG = window.BTG || {};
       finishingPos: pos,
       startingPos: grid,
       fastestLap: fl,
-      points: Number(r.points || 0),
+      points: rowPoints,
+      finishPoints: Number(r.points || 0),
+      bonusPoints: Number(r.bonus_points || 0),
       dnf: dnf,
       laps: laps,
       finishTime: finishTime,
@@ -435,7 +438,9 @@ window.BTG = window.BTG || {};
       finishingPos: pos,
       startingPos: grid,
       fastestLap: Number(s.fastest_lap_seconds || 0),
-      points: Number(s.points || 0),
+      points: Number(s.points || 0) + Number(s.bonus_points || 0),
+      finishPoints: Number(s.points || 0),
+      bonusPoints: Number(s.bonus_points || 0),
       dnf: !!s.dnf,
       finishTime: 0,
       positionsGained: grid > 0 && pos > 0 && pos < 99 ? grid - pos : null
@@ -1412,7 +1417,7 @@ window.BTG = window.BTG || {};
       cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono text-secondary-text cell-data border-b border-white/[0.04] ' + rowBg + '" data-row="' + idx + '">' + (r.startingPos || '—') + '</div>');
       cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono text-secondary-text cell-data border-b border-white/[0.04] ' + rowBg + '" data-row="' + idx + '">' + (dnf ? 'DNF' : r.finishingPos || '—') + '</div>');
       cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono font-black cell-data border-b border-white/[0.04] ' + rowBg + (r.positionsGained > 0 ? ' text-emerald-300' : r.positionsGained < 0 ? ' text-red-300' : ' text-muted-text') + '" data-row="' + idx + '">' + (r.positionsGained == null ? '—' : r.positionsGained > 0 ? '+' + r.positionsGained : r.positionsGained) + '</div>');
-      cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono font-black text-yellow-300 cell-data border-b border-white/[0.04] ' + rowBg + '" data-row="' + idx + '">' + r.points + '</div>');
+      cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono font-black text-yellow-300 cell-data border-b border-white/[0.04] ' + rowBg + '" data-row="' + idx + '">' + r.points + (r.bonusPoints > 0 ? '<span class="text-emerald-300" title="+' + r.bonusPoints + ' bonus (fastest lap / pole)">+' + r.bonusPoints + '</span>' : '') + '</div>');
       if (!isSprint) {
         cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono text-secondary-text cell-data border-b border-white/[0.04] ' + rowBg + (!hasPitData ? ' cell-hidden' : '') + '" data-row="' + idx + '">' + (hasPitData ? (r.pitStops || '—') : '—') + '</div>');
         cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono text-secondary-text cell-data border-b border-white/[0.04] ' + rowBg + (!hasPitData ? ' cell-hidden' : '') + '" data-row="' + idx + '">' + (hasPitData ? formatSeconds(r.pitTotal) : '—') + '</div>');

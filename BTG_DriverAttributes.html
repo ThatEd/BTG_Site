@@ -733,6 +733,21 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
         <button class="action action-lead action-compact" id="pts-save-btn" disabled><span>Save points</span></button>
       </div>
       <div class="result-line" id="pts-result"></div>
+      <div class="bonus-editor" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--edge);">
+        <h4 style="margin:0 0 4px;font-size:13px;">Fastest lap / Pole bonuses</h4>
+        <p class="muted" style="margin-bottom:8px;font-size:12px;">Bonus points per series for fastest lap and pole position, by session type. F1 2024 = +1 fastest lap (main race only); F2 2024 = +2 fastest lap (sprint + feature) and +2 pole. Saving recalculates standings.</p>
+        <div class="field-row" style="flex-wrap:wrap;">
+          <div class="field" style="max-width:200px;">
+            <label for="pts-bonus-series">Series</label>
+            <select id="pts-bonus-series"><option value="">— choose a series —</option></select>
+          </div>
+        </div>
+        <div id="pts-bonus-grid" style="margin:10px 0 14px;display:flex;flex-wrap:wrap;gap:10px;"></div>
+        <div class="field-row">
+          <button class="action action-compact" id="pts-bonus-save-btn" disabled><span>Save bonuses</span></button>
+        </div>
+        <div class="result-line" id="pts-bonus-result"></div>
+      </div>
     </div>
   </section>
 
@@ -3392,6 +3407,84 @@ async function ptsSave() {
     typeSel.dispatchEvent(new Event('change'));
   });
   saveBtn.addEventListener('click', ptsSave);
+})();
+
+/* ── admin: series bonus points editor (fastest lap / pole) ── */
+var PTSB = { series: '', rows: [] };
+const PTSB_TYPES = [
+  { st: 'race', bt: 'fastest_lap', label: 'Fastest lap · Race' },
+  { st: 'race', bt: 'pole', label: 'Pole · Race' },
+  { st: 'sprint', bt: 'fastest_lap', label: 'Fastest lap · Sprint' },
+  { st: 'sprint', bt: 'pole', label: 'Pole · Sprint' }
+];
+function ptsbPopulateSeries() {
+  var sel = document.getElementById('pts-bonus-series');
+  if (!sel || sel.options.length > 1) return;
+  ['F1', 'F2', 'GT1', 'XGT'].forEach(function (s) {
+    var o = document.createElement('option');
+    o.value = s; o.textContent = s;
+    sel.appendChild(o);
+  });
+}
+function ptsbFetch(series) {
+  return callGateway('adminGetSeriesBonuses', {
+    username: CURRENT_USER.username, password: CURRENT_USER.password, series: series
+  }).then(function (data) {
+    if (!data.ok) { showResult(document.getElementById('pts-bonus-result'), false, '✗ ' + data.error); return []; }
+    return data.rows || [];
+  });
+}
+function ptsbValue(st, bt) {
+  var v = 0;
+  PTSB.rows.forEach(function (r) {
+    if (String(r.session_type) === st && String(r.bonus_type) === bt) v = Number(r.points) || 0;
+  });
+  return v;
+}
+function ptsbRender() {
+  var grid = document.getElementById('pts-bonus-grid');
+  var saveBtn = document.getElementById('pts-bonus-save-btn');
+  grid.innerHTML = '';
+  if (!PTSB.series) { saveBtn.disabled = true; return; }
+  PTSB_TYPES.forEach(function (t) {
+    var cell = document.createElement('div');
+    cell.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;';
+    cell.innerHTML = '<span style="font-size:10px;color:var(--copy-faint);line-height:1;">' + t.label + '</span>'
+      + '<input type="number" min="0" max="99" step="1" data-st="' + t.st + '" data-bt="' + t.bt + '" value="' + ptsbValue(t.st, t.bt) + '" style="width:64px;text-align:center;background:var(--card);border:1px solid var(--edge);border-radius:6px;padding:5px 2px;color:var(--copy);font-variant-numeric:tabular-nums;">';
+    grid.appendChild(cell);
+  });
+  saveBtn.disabled = false;
+}
+async function ptsbSave() {
+  var rows = [];
+  document.querySelectorAll('#pts-bonus-grid input[data-st]').forEach(function (inp) {
+    rows.push({ session_type: inp.dataset.st, bonus_type: inp.dataset.bt, points: Number(inp.value) || 0 });
+  });
+  var resEl = document.getElementById('pts-bonus-result');
+  var btn = document.getElementById('pts-bonus-save-btn');
+  btn.disabled = true; setStatus('busy', 'Saving bonuses…');
+  try {
+    var data = await callGateway('adminSetSeriesBonuses', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      series: PTSB.series, rows: rows
+    });
+    if (!data.ok) { showResult(resEl, false, '✗ ' + data.error); setStatus('ready', 'Ready'); }
+    else { showResult(resEl, true, '✓ Saved ' + data.saved + ' bonuses — standings recalculated.'); setStatus('ok', 'Bonuses saved'); }
+  } catch (e) { showResult(resEl, false, '✗ ' + e.message); setStatus('ready', 'Ready'); }
+  finally { btn.disabled = false; }
+}
+(function () {
+  var sel = document.getElementById('pts-bonus-series');
+  var saveBtn = document.getElementById('pts-bonus-save-btn');
+  if (!sel || !saveBtn) return;
+  ptsbPopulateSeries();
+  sel.addEventListener('change', async function () {
+    PTSB.series = sel.value;
+    if (!PTSB.series) { ptsbRender(); return; }
+    PTSB.rows = await ptsbFetch(PTSB.series);
+    ptsbRender();
+  });
+  saveBtn.addEventListener('click', ptsbSave);
 })();
 
 /* ── admin: race data editor ── */
