@@ -141,6 +141,7 @@ window.BTG = window.BTG || {};
     carMap: {},           // driverName → {car, className, team}
     prestigeMap: null,    // driver name → career prestige score (built from DB cache)
     formMap: null,        // driver name → avg finish over current+previous season
+    racePoint: null,      // {seasonId, round, year} of the currently-viewed race
     loading: false
   };
 
@@ -473,8 +474,9 @@ window.BTG = window.BTG || {};
   }
   async function loadCacheRaceData(raceId) {
     var cache = await BTG.DBCache.init();
-    state.prestigeMap = buildPrestigeMap(cache);
-    state.formMap = buildFormMap(cache);
+    state.racePoint = cacheRacePoint(cache, raceId);
+    state.prestigeMap = buildPrestigeMap(cache, state.racePoint);
+    state.formMap = buildFormMap(cache, state.racePoint);
     state.raceResult = [];
     state.sprintResult = [];
     state.qualiQ1 = []; state.qualiQ2 = []; state.qualiQ3 = [];
@@ -1441,10 +1443,30 @@ window.BTG = window.BTG || {};
 
   /* ── Driver of the Day (ported scoring) ─────────────────────────────────── */
 
+  /** Resolve the 'point in time' of a race: which season it belongs to, its
+      round within that season, and the season year. DoTD must never use results
+      from races AFTER this point (no future rounds / seasons leak in). */
+  function cacheRacePoint(cache, raceId) {
+    if (!cache || raceId == null) return null;
+    var race = null;
+    (cache.races || []).forEach(function (r) { if (String(r.race_id) === String(raceId)) race = r; });
+    if (!race) return null;
+    var year = 0, series = '';
+    (cache.race_seasons || []).forEach(function (rs) {
+      if (String(rs.season_id) === String(race.season_id)) {
+        year = Number(rs.year) || 0;
+        series = rs.series_id;
+      }
+    });
+    return { seasonId: String(race.season_id), series: series, round: Number(race.round_number) || 0, year: year };
+  }
+
   /** Build a career-prestige score per driver from the DB cache.
       Weighted by series tier + recency (mainly last few seasons); extra
-      bonus for podiums, even more for wins, and the most for a title. */
-  function buildPrestigeMap(cache) {
+      bonus for podiums, even more for wins, and the most for a title.
+      `point` scopes everything to race results at-or-before that race, so
+      later rounds/seasons can't leak into the score. */
+  function buildPrestigeMap(cache, point) {
     var m = {};
     if (!cache) return m;
     var tierW = {};
@@ -1460,9 +1482,14 @@ window.BTG = window.BTG || {};
       if (y > maxYear) maxYear = y;
     });
     var raceSeason = {};
-    (cache.races || []).forEach(function (r) { raceSeason[String(r.race_id)] = r.season_id; });
+    var raceRound = {};
+    (cache.races || []).forEach(function (r) {
+      raceSeason[String(r.race_id)] = r.season_id;
+      raceRound[String(r.race_id)] = Number(r.round_number) || 0;
+    });
+    var refYear = point ? point.year : maxYear;
     var rec = function (y) {
-      var d = maxYear - y;
+      var d = refYear - y;
       if (d <= 0) return 1;      // current season
       if (d === 1) return 0.8;   // previous
       if (d === 2) return 0.5;   // season before that
@@ -1473,8 +1500,20 @@ window.BTG = window.BTG || {};
       if (!k) return;
       m[k] = (m[k] || 0) + v;
     };
+    // Only count a result if its race happened at-or-before the viewed race.
+    var atOrBefore = function (raceId) {
+      if (!point) return true;
+      var sid = String(raceSeason[String(raceId)] || '');
+      var si = seasonInfo[sid];
+      if (!si) return false;
+      if (si.year < point.year) return true;                     // earlier seasons: fully in the past
+      if (si.year > point.year) return false;                    // future season
+      if (sid === point.seasonId) return raceRound[String(raceId)] <= point.round;  // same season: up to current round
+      return true;                                               // same year, other series: parallel
+    };
     // Per-race finishing positions, weighted by tier + recency.
     (cache.race_results || []).forEach(function (rr) {
+      if (!atOrBefore(rr.race_id)) return;
       var info = seasonInfo[raceSeason[String(rr.race_id)]];
       if (!info) return;
       var w = (tierW[String(info.series)] || 0.6) * rec(info.year);
@@ -1485,10 +1524,13 @@ window.BTG = window.BTG || {};
       if (pos === 1) add(rr.driver_name, 15 * w);      // extra for a win
       else if (pos <= 3) add(rr.driver_name, 6 * w);   // extra for a podium
     });
-    // Season standings: championships + season win/podium counts.
+    // Season standings: championships + season win/podium counts. Only count
+    // COMPLETED seasons (before the current one) — a title can't be claimed
+    // mid-season, and the current season's aggregate may include later rounds.
     (cache.season_driver_standings || []).forEach(function (sd) {
       var info = seasonInfo[String(sd.season_id)];
       if (!info) return;
+      if (point && info.year >= point.year) return;
       var w = (tierW[String(info.series)] || 0.6) * rec(info.year);
       var p = Number(sd.position);
       if (p === 1) add(sd.driver_name, 100 * w);       // title
@@ -1503,6 +1545,7 @@ window.BTG = window.BTG || {};
     (cache.season_driver_standings || []).forEach(function (sd) {
       var info = seasonInfo[String(sd.season_id)];
       if (!info || Number(sd.position) !== 1) return;
+      if (point && info.year >= point.year) return;
       var k = String(sd.driver_name || '').toLowerCase().replace(/\s+/g, ' ').trim() + '|' + String(info.series);
       (champs[k] = champs[k] || []).push(info.year);
     });
@@ -1520,7 +1563,8 @@ window.BTG = window.BTG || {};
   function prestigeOf(name) {
     if (!state.prestigeMap) {
       var raw = window.BTG && BTG.DBCache && BTG.DBCache.data ? BTG.DBCache.data() : null;
-      state.prestigeMap = buildPrestigeMap(raw);
+      var pt = state.racePoint || (raw ? cacheRacePoint(raw, state.selectedRaceId) : null);
+      state.prestigeMap = buildPrestigeMap(raw, pt);
     }
     var k = String(name || '').toLowerCase().replace(/\s+/g, ' ').trim();
     return state.prestigeMap[k] || 0;
@@ -1529,8 +1573,9 @@ window.BTG = window.BTG || {};
   /** Build a recent-form baseline per driver: average finishing position over
       the current + previous season (recency 1x / 0.8x), weighted by series tier.
       Used to reward sudden jumps in performance (a driver who has been bad all
-      season suddenly taking a podium = DoTD material). */
-  function buildFormMap(cache) {
+      season suddenly taking a podium = DoTD material). `point` scopes it to
+      race results at-or-before the viewed race (no later rounds/seasons). */
+  function buildFormMap(cache, point) {
     var m = {};
     if (!cache) return m;
     var tierW = {};
@@ -1546,7 +1591,21 @@ window.BTG = window.BTG || {};
       if (y > maxYear) maxYear = y;
     });
     var raceSeason = {};
-    (cache.races || []).forEach(function (r) { raceSeason[String(r.race_id)] = r.season_id; });
+    var raceRound = {};
+    (cache.races || []).forEach(function (r) {
+      raceSeason[String(r.race_id)] = r.season_id;
+      raceRound[String(r.race_id)] = Number(r.round_number) || 0;
+    });
+    var atOrBefore = function (raceId) {
+      if (!point) return true;
+      var sid = String(raceSeason[String(raceId)] || '');
+      var si = seasonInfo[sid];
+      if (!si) return false;
+      if (si.year < point.year) return true;
+      if (si.year > point.year) return false;
+      if (sid === point.seasonId) return raceRound[String(raceId)] <= point.round;
+      return true;
+    };
     var acc = {}; // key → {sum, weight}
     var add = function (nm, pos, w) {
       var k = String(nm || '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -1556,6 +1615,7 @@ window.BTG = window.BTG || {};
       a.weight += w;
     };
     (cache.race_results || []).forEach(function (rr) {
+      if (!atOrBefore(rr.race_id)) return;
       var info = seasonInfo[raceSeason[String(rr.race_id)]];
       if (!info) return;
       var tw = tierW[String(info.series)] || 0.6;
@@ -1573,7 +1633,8 @@ window.BTG = window.BTG || {};
   function formOf(name) {
     if (!state.formMap) {
       var raw = window.BTG && BTG.DBCache && BTG.DBCache.data ? BTG.DBCache.data() : null;
-      state.formMap = buildFormMap(raw);
+      var pt = state.racePoint || (raw ? cacheRacePoint(raw, state.selectedRaceId) : null);
+      state.formMap = buildFormMap(raw, pt);
     }
     var k = String(name || '').toLowerCase().replace(/\s+/g, ' ').trim();
     return state.formMap[k] || null;
