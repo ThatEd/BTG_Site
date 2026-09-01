@@ -333,7 +333,9 @@ body::before {
      For the selected season year Y we look in logos/full/Y/ first; if the
      team has no file there we fall back to earlier years (Y-1 … 2024). The
      filename uses the same DB team name as the team (variants for common
-     spellings). Missing images hide silently — never a placeholder.
+     spellings). If NO full-format file exists anywhere we finally fall back
+     to the regular team logo (logos/teams/{DB logo}) so the hero never
+     collapses or flashes — it always shows the team's mark.
      `altNames` (optional) lets the caller also try the short DB name when
      the display name is the per-season full name (e.g. "Scuderia Ferrari"
      falls back to "Ferrari").                                            */
@@ -355,6 +357,14 @@ body::before {
         out.push('logos/full/' + y + '/' + v + '.webp');
       });
     }
+    // Fallback: the standard team logo (DB logo → logos/teams/…), so the hero
+    // always renders something real instead of collapsing/flashing.
+    try {
+      if (window.BTG && BTG.DBCache && BTG.DBCache.teamLogo) {
+        var dbLogo = BTG.DBCache.teamLogo(teamName) || BTG.DBCache.teamLogo(altNames && altNames[0]);
+        if (dbLogo) out.push(BTG.teamLogoUrl ? BTG.teamLogoUrl(dbLogo) : 'logos/teams/' + dbLogo);
+      }
+    } catch (e) {}
     return out;
   }
   function fullLogoImg(teamName, year, altNames) {
@@ -483,7 +493,7 @@ body::before {
     teamList.forEach(function (t) {
       html += '<button class="dp-picker__chip' + (String(t.team_id) === String(selectedTeamId) ? ' dp-picker__chip--active' : '') + '" '
         + 'data-tid="' + t.team_id + '" style="border-left-color:' + (String(t.team_id) === String(selectedTeamId) ? 'rgb(' + rgb + ')' : 'transparent') + '">'
-        + (BTG.teamLogoImg ? BTG.teamLogoImg(t.name, activeSeries, 16) : '')
+        + (BTG.teamLogoImg ? BTG.teamLogoImg(t.key, activeSeries, 16) : '')
         + '<span class="dp-picker__name">' + esc(t.name) + '</span>'
         + '</button>';
     });
@@ -759,7 +769,7 @@ body::before {
             + 'border-left:' + (showBorder ? '1px solid rgba(0,0,0,0.25)' : 'none') + ';'
             + 'display:flex;align-items:center;justify-content:center;gap:3px;'
             + 'opacity:' + (Number(y) === Number(activeSeason) ? 1 : 0.7) + ';">'
-            + (showLogo ? (BTG.teamLogoImg ? BTG.teamLogoImg(name, activeSeries, 14) : esc(name)) : '')
+            + (showLogo ? (BTG.teamLogoImg ? BTG.teamLogoImg(teamKey(tid), activeSeries, 14) : esc(name)) : '')
             + (isBrandChange ? '<div style="position:absolute;left:-6px;top:-8px;font-size:8px;color:#fbbf24;font-weight:700;text-shadow:0 0 3px rgba(0,0,0,0.8);z-index:2;">◆</div>' : '')
             + '</div>';
         }).join('')
@@ -794,7 +804,7 @@ body::before {
       '<div style="grid-column:1 / -1;">'
       + glow(
           '<div style="display:flex;align-items:center;gap:14px;padding:14px 20px;background:#161618;border-radius:8px;">'
-          + (BTG.teamLogoImg ? BTG.teamLogoImg(name, activeSeries, 40) : '')
+          + (BTG.teamLogoImg ? BTG.teamLogoImg(teamKey(tid), activeSeries, 40) : '')
           + '<span style="color:' + teamColor + ';font-size:20px;font-weight:800;text-transform:uppercase;letter-spacing:-0.02em;">' + esc(name) + '</span>'
           + '</div>')
       + '</div>'

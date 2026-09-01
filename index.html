@@ -136,6 +136,9 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
 .home-chart__svg { width: 100%; height: 100%; display: block; }
 .home-chart__svg text { font-family: ui-monospace, Menlo, monospace; }
 .home-chart__line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.home-chart__line, .home-chart__dot { cursor: pointer; }
+.home-chart__line:hover { stroke-width: 3.5; }
+.home-chart__dot:hover { stroke: #fff; stroke-width: 1.5; }
 .home-chart__grid { stroke: rgba(255,255,255,0.05); }
 .home-chart__axis { stroke: rgba(255,255,255,0.08); }
 .home-chart__empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-muted); font-size: 12px; }
@@ -311,6 +314,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
 <script src="js/common.js"></script>
 <script src="js/border-glow.js"></script>
 <script src="teams/f1.js"></script>
+<script src="js/circuits.js"></script>
 <script src="js/roster.js"></script>
 <script src="js/db-cache.js"></script>
 <script src="js/data-loader.js"></script>
@@ -508,7 +512,10 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
       if (has) done++;
       else if (nextIdx === -1) nextIdx = i;
       var cls = has ? 'home-cal-dot--done' : (i === nextIdx ? 'home-cal-dot--next' : '');
-      var code = String(r.country || '').slice(0, 2).toUpperCase();
+      // ISO-2 flag from the circuit metadata (Flags/{code}.svg); fall back to
+      // a country-code guess, else no image (onerror hides it anyway).
+      var c = BTG.circuitBySlug ? BTG.circuitBySlug(r.circuit) : null;
+      var code = (c && c.flag) ? c.flag : String(r.country || '').slice(0, 2).toLowerCase();
       return '<span class="home-cal-dot ' + cls + '" title="' + esc(r.name || r.circuit || '') + '">'
         + (code ? '<img src="Flags/' + code + '.svg" alt="" onerror="this.style.display=\'none\'">' : '')
         + '</span>';
@@ -650,16 +657,26 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
       // series lines
       visible.forEach(function (s) {
         var pts = s.data.map(function (v, i) { return x(i) + ',' + y(v); }).join(' ');
-        svg += '<polyline class="home-chart__line" points="' + pts + '" style="stroke:' + s.color + ';"></polyline>';
+        svg += '<polyline class="home-chart__line" data-key="' + esc(s.key) + '" points="' + pts + '" style="stroke:' + s.color + ';"></polyline>';
       });
       // end dots
       visible.forEach(function (s) {
         var i = s.data.length - 1;
         if (i < 0) return;
-        svg += '<circle cx="' + x(i) + '" cy="' + y(s.data[i]) + '" r="3" style="fill:' + s.color + ';"></circle>';
+        svg += '<circle class="home-chart__dot" data-key="' + esc(s.key) + '" cx="' + x(i) + '" cy="' + y(s.data[i]) + '" r="3" style="fill:' + s.color + ';"></circle>';
       });
       svg += '</svg>';
       body.innerHTML = svg;
+      // Clicking a line (or its end dot) toggles that series, just like the app.
+      body.querySelectorAll('.home-chart__line, .home-chart__dot').forEach(function (el) {
+        el.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var k = el.getAttribute('data-key');
+          if (!k) return;
+          hidden[k] = !hidden[k];
+          render();
+        });
+      });
     }
     render();
   }
@@ -882,6 +899,12 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
   function applyBorderGlow() {
     // Wrap highlight cards + main columns with the series accent glow.
     var accent = BTG.seriesAccent(activeSeries); // "r,g,b"
+    // Update existing glow wrappers to the active series accent (series switch).
+    document.querySelectorAll('.border-glow-card').forEach(function (w) {
+      w.style.setProperty('--team-rgb', accent);
+      var edge = w.querySelector('.edge-light');
+      if (edge && BTG.rgbToHslDeg) edge.style.setProperty('--glow-color', BTG.rgbToHslDeg(accent));
+    });
     var glowCards = document.querySelectorAll('.home-card, .home-col, .home-headline, .home-qs, .home-chart');
     glowCards.forEach(function (card) {
       if (card.closest('.border-glow-card') || card.dataset.glowDone) return;

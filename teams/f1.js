@@ -450,13 +450,32 @@ BTG.seriesLogoImg = function(seriesId, size, className) {
 
 /**
  * Data-driven accent color for a series — never hardcoded per series name.
- * Samples the most common team color among the series' drivers (via BTG.Data),
- * falling back to a neutral accent when no team colors exist. Returns an
- * "r,g,b" string usable as `rgb(r,g,b)`.
+ * Priority: (1) DB cache series.color (authoritative — F1 red, F2 blue,
+ * XGT yellow, GT1 grey); (2) known fallback map; (3) samples the most common
+ * team color among the series' drivers (via BTG.Data); (4) neutral accent.
+ * Returns an "r,g,b" string usable as `rgb(r,g,b)`.
  * @param {string} seriesId
  * @returns {string} "r,g,b"
  */
 BTG.seriesAccent = function(seriesId) {
+  // 1. DB cache series color (the authoritative source).
+  try {
+    var db = (window.BTG && BTG.DBCache && BTG.DBCache.data) ? BTG.DBCache.data() : null;
+    var srs = (db && db.series) || [];
+    for (var i = 0; i < srs.length; i++) {
+      if (String(srs[i].series_id) !== String(seriesId)) continue;
+      var hx = String(srs[i].color || '').replace('#', '');
+      if (hx.length === 6 && !isNaN(parseInt(hx, 16))) {
+        var r = parseInt(hx.slice(0, 2), 16), g = parseInt(hx.slice(2, 4), 16), b = parseInt(hx.slice(4, 6), 16);
+        if (!isNaN(r) && !isNaN(g) && !isNaN(b)) return r + ',' + g + ',' + b;
+      }
+      break;
+    }
+  } catch (e) {}
+  // 2. Known fallback map (used when the cache isn't loaded yet).
+  var known = { F1: '225,6,0', F2: '0,144,255', XGT: '216,186,22', GT1: '138,138,138' };
+  if (known[seriesId]) return known[seriesId];
+  // 3. Old sampling logic (roster team colors).
   try {
     if (window.BTG && BTG.Data && BTG.Data.drivers) {
       var counts = {};
