@@ -150,9 +150,10 @@
     var raceToSeason = {}, seasonSeries = {};
     (D && D.races || []).forEach(function (r) { raceToSeason[String(r.race_id)] = String(r.season_id); });
     (D && D.race_seasons || []).forEach(function (rs) { seasonSeries[String(rs.season_id)] = str(rs.series_id); });
+    var dbNum = dbDriverNumber(name);
     var out = {};
     function acc(series) {
-      if (!out[series]) out[series] = { series: series, years: 0, starts: 0, wins: 0, sprintWins: 0, podiums: 0, dnfs: 0, points: 0, bestPos: null, teams: {}, teamKeys: [] };
+      if (!out[series]) out[series] = { series: series, years: 0, starts: 0, wins: 0, sprintWins: 0, podiums: 0, dnfs: 0, points: 0, bestPos: null, teams: {}, teamKeys: [], numbers: dbNum != null ? [dbNum] : [] };
       return out[series];
     }
     function teamOf(name) {
@@ -308,6 +309,20 @@
       }
     } catch (e) {}
     return '';
+  }
+  function dbDriverNumber(name) {
+    // Driver's car number from the DB drivers table (per driver).
+    try {
+      var rows = (D && D.drivers) || [];
+      for (var i = 0; i < rows.length; i++) {
+        var x = rows[i];
+        if (str(x.full_name) === name || str(x.driver_name) === name) {
+          var n = num(x.driver_number);
+          return n > 0 ? n : null;
+        }
+      }
+    } catch (e) {}
+    return null;
   }
   function rosterTeamOrder(series, team) {
     try {
@@ -484,6 +499,7 @@
       var teamNameStr = teamKey ? teamName(teamKey) : '';
       var teamSeries = teamKey ? seriesOfTeam(teamKey) : series;
       var nation = rosterNation(name) || dbNation(name);
+      var dbNum = dbDriverNumber(name);
 
       // Junior/feeder academy + reserve stints: the current academy team (Junior /
       // Affiliate / Reserve) plus the full per-team season ranges from
@@ -566,7 +582,7 @@
         fullName: name,
         team: normTeam(teamNameStr),
         teamOrder: rosterTeamOrder(teamSeries, teamNameStr),
-        car: null, className: null, carNumber: null,
+        car: null, className: null, carNumber: dbNum != null ? dbNum : null,
         series: series,
         nation: nation,
         academy: academy,

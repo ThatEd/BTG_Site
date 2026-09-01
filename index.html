@@ -57,6 +57,9 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
 .home-card__icon--amber { background: rgba(250,204,21,0.12); }
 .home-card__icon--sky { background: rgba(56,189,248,0.12); }
 .home-card__icon--emerald { background: rgba(52,211,153,0.12); }
+.home-card__media { width: 46px; height: 46px; border-radius: 50%; overflow: hidden; flex-shrink: 0; display: grid; place-items: center; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); }
+.home-card__media--photo img { width: 100%; height: 100%; object-fit: cover; }
+.home-card__media img { max-width: 36px; max-height: 36px; object-fit: contain; }
 .home-card__body { min-width: 0; }
 .home-card__title { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
 .home-card__value { font-size: 16px; font-weight: 800; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -302,20 +305,41 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     var cards = [];
     var lead = topDrivers[0];
     if (lead) {
-      cards.push({ icon: '👑', iconCls: 'amber', title: 'Championship Leader', value: lead.fullName || lead.name, sub: (lead.standings ? lead.standings.pts : 0) + ' pts' });
+      cards.push({
+        icon: '👑', iconCls: 'amber', title: 'Championship Leader',
+        value: lead.fullName || lead.name, sub: (lead.standings ? lead.standings.pts : 0) + ' pts',
+        photo: lead, team: lead.team
+      });
     }
     if (topTeams[0]) {
-      cards.push({ icon: '🏭', iconCls: 'sky', title: 'Constructors Leader', value: topTeams[0].team, sub: topTeams[0].points + ' pts' });
+      cards.push({
+        icon: '🏭', iconCls: 'sky', title: 'Constructors Leader',
+        value: topTeams[0].team, sub: topTeams[0].points + ' pts',
+        isTeam: true, teamName: topTeams[0].team
+      });
     }
     var topWin = topDrivers.slice().sort(function (a, b) { return (b.seasonStats ? b.seasonStats.wins : 0) - (a.seasonStats ? a.seasonStats.wins : 0); })[0];
     if (topWin && topWin.seasonStats && topWin.seasonStats.wins > 0) {
-      cards.push({ icon: '🏆', iconCls: 'emerald', title: 'Most Race Wins', value: topWin.fullName || topWin.name, sub: topWin.seasonStats.wins + ' victories' });
+      cards.push({
+        icon: '🏆', iconCls: 'emerald', title: 'Most Race Wins',
+        value: topWin.fullName || topWin.name, sub: topWin.seasonStats.wins + ' victories',
+        photo: topWin, team: topWin.team
+      });
     } else {
       cards.push({ icon: '⭐', iconCls: 'emerald', title: 'Drivers', value: (topDrivers.length || 0) + ' entered', sub: esc(activeSeries) + ' championship' });
     }
     el.innerHTML = cards.map(function (c) {
+      var media = '';
+      if (c.isTeam) {
+        var tl = BTG.teamLogoImg ? BTG.teamLogoImg(c.teamName, activeSeries, 40) : '';
+        media = '<span class="home-card__media">' + (tl || '<span class="home-card__icon">' + c.icon + '</span>') + '</span>';
+      } else if (c.photo) {
+        media = '<span class="home-card__media home-card__media--photo">' + BTG.driverPhotoImg(c.photo.fullName || c.photo.name, 44, '') + '</span>';
+      } else {
+        media = '<div class="home-card__icon home-card__icon--' + c.iconCls + '">' + c.icon + '</div>';
+      }
       return '<div class="home-card">'
-        + '<div class="home-card__icon home-card__icon--' + c.iconCls + '">' + c.icon + '</div>'
+        + media
         + '<div class="home-card__body"><div class="home-card__title">' + esc(c.title) + '</div>'
         + '<div class="home-card__value">' + esc(c.value) + '</div>'
         + '<div class="home-card__sub">' + esc(c.sub) + '</div></div></div>';
@@ -495,6 +519,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
       ? career.map(function (c) {
           return '<div class="ml-series"><div class="ml-head"><span class="ml-series-logo">' + BTG.seriesLogoImg(c.series, 14) + '</span>'
             + (c.teamKeys.length ? '<span class="ml-teams">' + c.teamKeys.map(function (t) { return esc(t); }).join(' · ') + '</span>' : '')
+            + (c.numbers && c.numbers.length ? '<span class="ml-nums">#' + c.numbers.join(' #') + '</span>' : '')
             + '</div><div class="ml-stats">'
             + '<span>Seasons <b>' + (c.years || '—') + '</b></span>'
             + '<span>Starts <b>' + c.starts + '</b></span>'
