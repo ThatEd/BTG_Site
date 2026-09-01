@@ -2875,6 +2875,15 @@ var IMP_CIRCUIT_ALIAS = {
   americas: 'circuitoftheamericas', mexico: 'hermanosrodriguez',
   saopaulo: 'interlagos', lasvegas: 'vegas', lusail: 'qatar', abudhabi: 'yasmarina'
 };
+// Game/RLT team names that don't match the DB team_key/team_name directly.
+// Key is impNorm()'d (lowercased) game name → DB team_key it maps to.
+var IMP_TEAM_ALIAS = {
+  'racing bulls': 'rb',
+  'visa cash app rb': 'rb',
+  'visacashapprb': 'rb',
+  'kick sauber': 'stake_sauber',
+  'audi': 'stake_sauber'
+};
 function impCircuitSlug(name) {
   var n = impNormCircuit(name);
   return n ? (IMP_CIRCUIT_ALIAS[n] || n) : '';
@@ -2891,6 +2900,12 @@ function impFindTeam(index, f1mTeam) {
   for (var i = 0; i < index.length; i++) { var t = index[i]; if (t.normKey === n || t.normBase === n) return t; }
   for (var j = 0; j < index.length; j++) { if (index[j].normName === n) return index[j]; }
   for (var k = 0; k < index.length; k++) { if (index[k].normName.indexOf(n) !== -1 || n.indexOf(index[k].normBase) !== -1) return index[k]; }
+  // Explicit alias (game name → DB team_key), e.g. "Racing Bulls" → rb.
+  var aliasKey = IMP_TEAM_ALIAS[n];
+  if (aliasKey) {
+    var an = impNorm(aliasKey);
+    for (var a = 0; a < index.length; a++) { if (index[a].normKey === an || index[a].normBase === an || index[a].normKey === aliasKey) return index[a]; }
+  }
   return null;
 }
 function impBuildDriverIndex(drivers) {
