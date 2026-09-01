@@ -2976,7 +2976,10 @@ function impRows(dsList, race, series, teamIndex, driverIndex, kind, flDriver) {
     };
     if (kind === 'feature') {
       row.status = dnf ? 'DNF' : 'Finished';
-      row.time_or_gap = pos === 1 ? impFmtTime(ds.timeInt) : impGap(ds.timeInt, winnerTime);
+      // Store the driver's ABSOLUTE race time in seconds (timeInt is ms).
+      // The site's race-weekend page needs absolute seconds per driver to show
+      // Finish Time, Gap Ahead (finishTime diff) and Avg Lap (time/laps).
+      row.time_or_gap = Number(ds.timeInt) > 0 ? Number(ds.timeInt) / 1000 : null;
     }
     return row;
   });
