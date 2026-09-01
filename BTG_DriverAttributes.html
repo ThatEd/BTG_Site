@@ -687,15 +687,15 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     </div>
 
     <div class="tool-card">
-      <h3>Import race results (RLT)</h3>
-      <p class="muted" style="margin-bottom:12px;">Import race results from a Racing League Tools (RLT) <code>.db</code> database. The file is read locally in your browser — only the parsed results are sent to the DB. Pick the series the results belong to (RLT can hold any series); if the database has more than one championship for it, choose the right one. Races are matched to the calendar by circuit: feature → <code>race_results</code>, sprint → <code>race_sprints</code>. Existing results for a matched race are replaced.</p>
+      <h3>Import race results (RLT / League export)</h3>
+      <p class="muted" style="margin-bottom:12px;">Import from a Racing League Tools (RLT) <code>.db</code> <i>or</i> a League-export <code>.db</code> (the schema that mirrors the DB: <code>Teams</code>, <code>races</code>, <code>race_results</code>…). The file is read locally in your browser — only the parsed data is sent to the DB. RLT files: pick the series (RLT can hold any series) and, if there are multiple championships for it, the right one; races are matched to the calendar by circuit (feature → <code>race_results</code>, sprint → <code>race_sprints</code>), replacing existing results for a matched race. League-export files carry their own series/teams/calendar/results and are upserted as-is (safe to re-run).</p>
       <div class="field-row">
         <div class="field" style="max-width:190px;">
-          <label for="imp-series-select">Series</label>
-          <select id="imp-series-select"><option value="">— choose a series —</option></select>
+          <label for="imp-series-select">Series (RLT only)</label>
+          <select id="imp-series-select"><option value="">— choose series (RLT) —</option></select>
         </div>
         <div class="field" style="flex:1;">
-          <label for="imp-file">RLT database (.db)</label>
+          <label for="imp-file">Database (.db)</label>
           <input type="file" id="imp-file" accept=".db,.sqlite,.sqlite3">
         </div>
         <button class="action action-compact" id="imp-parse-btn"><span>Analyse</span></button>
@@ -994,6 +994,10 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     <div class="tool-card" id="season-clock-card">
       <h3>Auto clock — real date → race</h3>
       <p class="muted" style="margin-bottom:10px;">Set the real-world date of the next race. The league clock eases toward it on a bell curve (slower as it gets close) and stops 2 days before race day. The scale is stored server-side only.</p>
+      <div class="field-row">
+        <label for="clock-series-select" style="width:auto; min-width:0;">Series</label>
+        <select id="clock-series-select" style="max-width:180px;"></select>
+      </div>
       <div class="field-row">
         <div class="readout"><div class="value" id="clock-status-date">—</div><div class="caption">League date</div></div>
         <div class="readout"><div class="value" id="clock-status-target">—</div><div class="caption">Stops at</div></div>
@@ -2855,7 +2859,7 @@ function populateMoveDriverTool() {
 })();
 
 /* ── admin: import race results from an RLT .db database ── */
-var IMP = { parsed: null, payload: [], cache: null, warnings: [] };
+var IMP = { parsed: null, payload: [], cache: null, warnings: [], league: null };
 function impNorm(s) {
   return String(s || '').toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -2979,7 +2983,7 @@ function impBuildPayload(parsed, series, champId) {
   var driverIdx = impBuildDriverIndex(cache.drivers);
   var sessionsByEvent = {};
   parsed.sessions.forEach(function (s) {
-    if (s.raceType === 2 || s.raceType === 3) {
+    if (s.raceType === 0 || s.raceType === 2 || s.raceType === 3) {
       if (!sessionsByEvent[s.eventId]) sessionsByEvent[s.eventId] = [];
       sessionsByEvent[s.eventId].push(s);
     }
@@ -3000,7 +3004,12 @@ function impBuildPayload(parsed, series, champId) {
     parsed.events.filter(function (e) { return e.seasonId === seasonId; }).forEach(function (ev) {
       var sessions = sessionsByEvent[ev.id] || [];
       var feat = null, spr = null;
-      sessions.forEach(function (s) { if (s.raceType === 3) feat = s; if (s.raceType === 2) spr = s; });
+      // Feature = RaceType 3 when present (F2), else RaceType 0 (F1 v2.1).
+      sessions.forEach(function (s) {
+        if (s.raceType === 3) feat = s;
+        if (s.raceType === 0 && !feat) feat = s;
+        if (s.raceType === 2) spr = s;
+      });
       var featRows = feat ? (dsBySession[feat.id] || []) : [];
       var sprRows = spr ? (dsBySession[spr.id] || []) : [];
       if (!featRows.length && !sprRows.length) return;
@@ -3045,25 +3054,64 @@ async function impParseFile(file) {
     var c = res[0].columns, v = res[0].values;
     return v.map(function (r) { var o = {}; c.forEach(function (k, i) { o[k] = r[i]; }); return o; });
   }
-  var championships = rows('SELECT Id, Name FROM Championships').map(function (r) {
-    return { id: r.Id, name: String(r.Name || '') };
-  });
-  var seasons = rows('SELECT Id, ChampionshipId FROM Seasons');
-  var tracks = {};
-  rows('SELECT Id, CircuitName FROM Tracks').forEach(function (r) { tracks[r.Id] = { name: String(r.CircuitName || '') }; });
-  var events = rows('SELECT Id, SeasonId, TrackId, Date FROM Events').map(function (r) {
-    return { id: r.Id, seasonId: r.SeasonId, trackId: r.TrackId, date: String(r.Date || '').slice(0, 10) };
-  });
-  var sessions = rows('SELECT sr.Id AS id, sr.EventId AS eventId, sr.RaceType AS raceType, sr.TotalLaps AS totalLaps, sr.FastestLapDriverName AS fastestLapDriver FROM SessionResults sr WHERE sr.SessionType = 0 AND sr.RaceType IN (2, 3)');
-  var driverSessions = rows('SELECT ds.SessionResultId AS sessionResultId, ds.DriverName AS driverName, ds.TeamName AS teamName, ds.GridPosition AS gridPosition, ds.Position AS position, ds.LapsCount AS lapsCount, ds.FastestLapTimeInt AS fastestLapTimeInt, ds.TimeInt AS timeInt, ds.Status AS status FROM DriverSessions ds');
+  function hasTable(name) {
+    var res = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='" + name + "'");
+    return !!(res && res.length && res[0].values && res[0].values.length);
+  }
+
+  // Two supported schemas:
+  //  A) raw RLT: Championships / Seasons / Tracks / Events / SessionResults / DriverSessions
+  //  B) League export: series / Teams / races / race_results / ... (mirrors the Supabase schema)
+  if (hasTable('Championships') && hasTable('SessionResults')) {
+    var championships = rows('SELECT Id, Name FROM Championships').map(function (r) {
+      return { id: r.Id, name: String(r.Name || '') };
+    });
+    var seasons = rows('SELECT Id, ChampionshipId FROM Seasons');
+    var tracks = {};
+    rows('SELECT Id, CircuitName FROM Tracks').forEach(function (r) { tracks[r.Id] = { name: String(r.CircuitName || '') }; });
+    var events = rows('SELECT Id, SeasonId, TrackId, Date FROM Events').map(function (r) {
+      return { id: r.Id, seasonId: r.SeasonId, trackId: r.TrackId, date: String(r.Date || '').slice(0, 10) };
+    });
+    // SessionType 0 = race session. Feature = RaceType 3 (F2 convention) or
+    // RaceType 0 (F1 v2.1+ export convention); sprint = RaceType 2.
+    var sessions = rows('SELECT sr.Id AS id, sr.EventId AS eventId, sr.RaceType AS raceType, sr.TotalLaps AS totalLaps, sr.FastestLapDriverName AS fastestLapDriver FROM SessionResults sr WHERE sr.SessionType = 0 AND sr.RaceType IN (0, 2, 3)');
+    var driverSessions = rows('SELECT ds.SessionResultId AS sessionResultId, ds.DriverName AS driverName, ds.TeamName AS teamName, ds.GridPosition AS gridPosition, ds.Position AS position, ds.LapsCount AS lapsCount, ds.FastestLapTimeInt AS fastestLapTimeInt, ds.TimeInt AS timeInt, ds.Status AS status FROM DriverSessions ds');
+    db.close();
+    return { mode: 'rlt', championships: championships, seasons: seasons, tracks: tracks, events: events, sessions: sessions, driverSessions: driverSessions };
+  }
+
+  if (hasTable('Teams') && hasTable('races')) {
+    // League export — pull every supported table verbatim.
+    var LEAGUE_TABLES = ['series', 'Teams', 'race_seasons', 'races', 'race_results', 'race_qualifying', 'race_pit_stops', 'race_car_performance', 'team_part_stats', 'team_staff', 'team_facilities', 'Team Identity'];
+    var leagueTables = {};
+    LEAGUE_TABLES.forEach(function (t) {
+      try { leagueTables[t] = rows('SELECT * FROM "' + t + '"'); } catch (e) { leagueTables[t] = []; }
+    });
+    db.close();
+    return { mode: 'league', tables: leagueTables };
+  }
+
   db.close();
-  return { championships: championships, seasons: seasons, tracks: tracks, events: events, sessions: sessions, driverSessions: driverSessions };
+  throw new Error('unrecognised database schema — expected an RLT database (Championships/SessionResults) or a League-export database (Teams/races)');
 }
 function impRenderPreview() {
   var el = document.getElementById('imp-preview');
   var btn = document.getElementById('imp-save-btn');
   var resEl = document.getElementById('imp-result');
   resEl.style.display = 'none';
+  // League-export preview: show a per-table summary instead of race rows.
+  if (IMP.league) {
+    var lhtml = '<div style="color:var(--copy-soft);font-size:13px;margin-bottom:8px;">League-export database — ' + IMP.league.summary.length + ' tables with data. Import upserts each table (safe to re-run).</div>';
+    lhtml += '<table style="width:100%;font-size:12px;border-collapse:collapse;"><tbody>';
+    IMP.league.summary.forEach(function (s) {
+      lhtml += '<tr style="border-bottom:1px solid var(--edge);"><td style="padding:4px 6px;">' + BTG.esc(s.table) + '</td><td style="padding:4px 6px;text-align:right;">' + s.rows + ' rows</td></tr>';
+    });
+    lhtml += '</tbody></table>';
+    el.style.display = 'block';
+    el.innerHTML = lhtml;
+    btn.disabled = false;
+    return;
+  }
   if (!IMP.payload.length) {
     el.style.display = 'block';
     el.innerHTML = '<div style="color:var(--copy-soft);font-size:13px;">No completed race results found in this database (or none match the DB calendar for the selected series).</div>';
@@ -3116,7 +3164,10 @@ function impChampMatch(championships, series) {
 function impPopulateChamps() {
   var champSel = document.getElementById('imp-champ-select');
   var row = document.getElementById('imp-champ-row');
-  if (!IMP.parsed || !IMP.series) { row.style.display = 'none'; champSel.innerHTML = ''; impRenderPreview(); return; }
+  if (!IMP.parsed) { row.style.display = 'none'; champSel.innerHTML = ''; impRenderPreview(); return; }
+  // League-export DBs carry their own series/season/teams — no series/champ pick needed.
+  if (IMP.parsed.mode === 'league') { row.style.display = 'none'; champSel.innerHTML = ''; impBuildAndPreview(); return; }
+  if (!IMP.series) { row.style.display = 'none'; champSel.innerHTML = ''; impRenderPreview(); return; }
   var matches = impChampMatch(IMP.parsed.championships, IMP.series);
   row.style.display = 'block';
   if (matches.length) {
@@ -3130,6 +3181,19 @@ function impPopulateChamps() {
 }
 function impBuildAndPreview() {
   var champSel = document.getElementById('imp-champ-select');
+  if (IMP.parsed && IMP.parsed.mode === 'league') {
+    // Build a per-table summary payload for the preview.
+    var summary = [];
+    var t = IMP.parsed.tables || {};
+    Object.keys(t).forEach(function (k) {
+      var n = (t[k] || []).length;
+      if (n > 0) summary.push({ table: k, rows: n });
+    });
+    IMP.league = { summary: summary, tables: t };
+    IMP.payload = []; IMP.warnings = [];
+    impRenderPreview();
+    return;
+  }
   var champId = champSel.value;
   if (!IMP.parsed || !IMP.series || !champId) { IMP.payload = []; IMP.warnings = []; impRenderPreview(); return; }
   var built = impBuildPayload(IMP.parsed, IMP.series, champId);
@@ -3154,7 +3218,6 @@ function impBuildAndPreview() {
   if (parseBtn) parseBtn.addEventListener('click', async function () {
     var fi = document.getElementById('imp-file');
     if (!fi.files || !fi.files[0]) { showResult(resEl, false, '✗ Choose an RLT .db file first.'); return; }
-    if (!seriesSel.value) { showResult(resEl, false, '✗ Choose the series first.'); return; }
     parseBtn.disabled = true; setStatus('busy', 'Analysing database…');
     try {
       var cacheRes = await fetch('cache/public-data.json', { cache: 'no-store' });
@@ -3162,7 +3225,14 @@ function impBuildAndPreview() {
       var parsed = await impParseFile(fi.files[0]);
       IMP.parsed = parsed;
       IMP.series = seriesSel.value;
-      impPopulateChamps();
+      IMP.league = null;
+      if (parsed.mode === 'league') {
+        // League DBs carry everything — no series/champ selection required.
+        impBuildAndPreview();
+      } else {
+        if (!IMP.series) { showResult(resEl, false, '✗ Choose the series first.'); return; }
+        impPopulateChamps();
+      }
       setStatus('ok', 'Database analysed');
     } catch (e) {
       showResult(resEl, false, '✗ Could not parse database: ' + e.message);
@@ -3170,23 +3240,38 @@ function impBuildAndPreview() {
     } finally { parseBtn.disabled = false; }
   });
   if (saveBtn) saveBtn.addEventListener('click', async function () {
-    if (!IMP.payload.length) return;
     saveBtn.disabled = true; setStatus('busy', 'Importing…');
     try {
-      var data = await callGateway('adminImportRaceResults', {
-        username: CURRENT_USER.username, password: CURRENT_USER.password,
-        races: IMP.payload
-      });
-      if (!data.ok) { showResult(resEl, false, '✗ Backend error: ' + data.error); setStatus('ready', 'Ready'); }
-      else {
-        showResult(resEl, true, '✓ Imported ' + data.importedRaces + ' race(s) — ' + data.featureRows + ' feature rows, ' + data.sprintRows + ' sprint rows. Rebuild the public cache to see results site-wide.');
-        setStatus('ok', 'Import done');
+      if (IMP.league && IMP.league.tables) {
+        var data = await callGateway('adminImportLeague', {
+          username: CURRENT_USER.username, password: CURRENT_USER.password,
+          tables: IMP.league.tables
+        });
+        if (!data.ok) { showResult(resEl, false, '✗ Backend error: ' + data.error); setStatus('ready', 'Ready'); }
+        else {
+          var bits = Object.keys(data.tables || {}).map(function (k) { return k + ':' + data.tables[k]; });
+          showResult(resEl, true, '✓ Imported league snapshot — ' + bits.join(', ') + '. Standings recomputed. Rebuild the public cache to see results site-wide.');
+          setStatus('ok', 'Import done');
+        }
+      } else if (IMP.payload.length) {
+        var data2 = await callGateway('adminImportRaceResults', {
+          username: CURRENT_USER.username, password: CURRENT_USER.password,
+          races: IMP.payload
+        });
+        if (!data2.ok) { showResult(resEl, false, '✗ Backend error: ' + data2.error); setStatus('ready', 'Ready'); }
+        else {
+          showResult(resEl, true, '✓ Imported ' + data2.importedRaces + ' race(s) — ' + data2.featureRows + ' feature rows, ' + data2.sprintRows + ' sprint rows. Rebuild the public cache to see results site-wide.');
+          setStatus('ok', 'Import done');
+        }
+      } else {
+        showResult(resEl, false, '✗ Nothing to import — analyse a database first.');
+        setStatus('ready', 'Ready');
       }
     } catch (e) { showResult(resEl, false, '✗ Import failed: ' + e.message); setStatus('ready', 'Ready'); }
     finally { saveBtn.disabled = false; }
   });
   if (resetBtn) resetBtn.addEventListener('click', function () {
-    IMP.payload = []; IMP.warnings = []; IMP.parsed = null; IMP.series = '';
+    IMP.payload = []; IMP.warnings = []; IMP.parsed = null; IMP.series = ''; IMP.league = null;
     document.getElementById('imp-preview').style.display = 'none';
     document.getElementById('imp-file').value = '';
     if (champSel) champSel.innerHTML = '';
@@ -5218,43 +5303,96 @@ async function loadSeasonClockUI() {
   if (!CURRENT_USER || CURRENT_USER.role !== 'admin') return;
   const wrap = document.getElementById('season-clock-card');
   if (!wrap) return;
+  const seriesSel = document.getElementById('clock-series-select');
+  const series = (seriesSel && seriesSel.value) || 'ALL';
   let data;
-  try { data = await callGateway('seasonClockGet', { username: CURRENT_USER.username, password: CURRENT_USER.password }); }
+  try { data = await callGateway('seasonClockGet', { username: CURRENT_USER.username, password: CURRENT_USER.password, series: series }); }
   catch (e) { return; }
-  if (!data || !data.ok) return;
+  if (!data || !data.ok) {
+    const line = document.getElementById('clock-status-line');
+    if (line && data && data.error === 'clock_table_missing') line.innerHTML = '<span style="color:#f87171;">⚠ The <b>season_clock</b> table isn\'t set up — run <b>supabase-clock.sql</b> in the SQL editor, then reload.</span>';
+    return;
+  }
+  // Series selector: All + each series with a calendar.
+  if (seriesSel && data.seriesList) {
+    const cur = seriesSel.value;
+    let opts = '<option value="ALL">All</option>';
+    (data.seriesList || []).forEach(function (s) {
+      opts += '<option value="' + BTG.esc(s.id) + '">' + BTG.esc(s.name || s.id) + '</option>';
+    });
+    seriesSel.innerHTML = opts;
+    if (cur && cur !== 'ALL') seriesSel.value = cur;
+  }
   const d = document.getElementById('clock-status-date');
-  if (d) d.textContent = data.today || '—';
   const t = document.getElementById('clock-status-target');
   const line = document.getElementById('clock-status-line');
-  const cfg = data.config;
-  if (cfg && cfg.target_real) {
-    if (t) t.textContent = 'Stops ' + (cfg.target_league || '—') + ' (real race ' + cfg.target_real + ')';
-    if (line) line.innerHTML = 'Easing <b>' + (data.progress ? data.progress.leaguePct : 0) + '%</b> toward the race weekend — the clock advances automatically (server-side cron).';
-  } else {
+  const configTableMissing = data.configTableMissing;
+  if (configTableMissing) {
+    if (d) d.textContent = '—';
     if (t) t.textContent = '—';
-    if (line) line.innerHTML = 'No target set yet. Pick the next race and give it a real-world date below.';
+    if (line) line.innerHTML = '<span style="color:#f87171;">⚠ The <b>season_clock</b> table isn\'t set up — run <b>supabase-clock.sql</b> in the SQL editor, then reload.</span>';
+  } else if (series === 'ALL') {
+    // Combined view: one date line per series.
+    const tbs = data.todayBySeries || {};
+    const cfgMap = {};
+    (data.configs || []).forEach(function (c) { cfgMap[c.series] = c; });
+    const rows = (data.seriesList || []).map(function (s) {
+      const c = cfgMap[s.id];
+      const today = tbs[s.id] || '—';
+      const stop = c && c.target_league ? c.target_league : null;
+      const pct = c && c.progress ? c.progress.leaguePct : 0;
+      return '<div style="font-size:12px;">' + BTG.esc(s.name || s.id)
+        + ' · ' + BTG.esc(today)
+        + (stop ? ' → stops <b>' + BTG.esc(stop) + '</b> (' + pct + '%)' : ' — no target')
+        + '</div>';
+    }).join('');
+    if (d) d.textContent = 'All series';
+    if (t) t.textContent = '—';
+    if (line) line.innerHTML = rows || 'No series yet.';
+  } else {
+    const cfg = data.config;
+    if (cfg && cfg.target_real) {
+      if (d) d.textContent = data.today || '—';
+      if (t) t.textContent = 'Stops ' + (cfg.target_league || '—') + ' (real race ' + cfg.target_real + ')';
+      if (line) line.innerHTML = 'Easing <b>' + (data.progress ? data.progress.leaguePct : 0) + '%</b> toward the race weekend — the clock advances automatically (server-side cron).';
+    } else {
+      if (d) d.textContent = data.today || '—';
+      if (t) t.textContent = '—';
+      if (line) line.innerHTML = 'No target set yet. Pick the next race and give it a real-world date below.';
+    }
   }
   const sel = document.getElementById('clock-race-select');
   if (sel && data.calendar) {
-    const today = data.today || '0000-00-00';
+    const today = series === 'ALL' ? '0000-00-00' : (data.today || '0000-00-00');
     const opts = (data.calendar || []).filter(function (r) { return r.race_date >= today; }).map(function (r) {
-      return '<option value="' + r.race_id + '">R' + r.round + ' ' + BTG.esc(r.name) + ' — ' + r.race_date + '</option>';
+      const tag = series === 'ALL' ? (r.series + ' · ') : '';
+      return '<option value="' + r.race_id + '"' + (series === 'ALL' ? ' data-series="' + BTG.esc(r.series) + '"' : '') + '>' + BTG.esc(tag) + 'R' + r.round + ' ' + BTG.esc(r.name) + ' — ' + r.race_date + '</option>';
     }).join('');
     sel.innerHTML = opts || '<option value="">No upcoming races</option>';
   }
 }
+document.getElementById('clock-series-select').addEventListener('change', loadSeasonClockUI);
 document.getElementById('clock-set-btn').addEventListener('click', async function () {
   const sel = document.getElementById('clock-race-select');
   const real = document.getElementById('clock-real-date');
+  const seriesSel = document.getElementById('clock-series-select');
   const resultEl = document.getElementById('clock-result');
   if (!sel || !real || !sel.value || !real.value || !CURRENT_USER) return;
   resultEl.style.display = 'none';
+  // In "All" mode the option carries the race's own series.
+  let series = (seriesSel && seriesSel.value) || 'ALL';
+  if (series === 'ALL' && sel.selectedOptions && sel.selectedOptions[0] && sel.selectedOptions[0].dataset.series) {
+    series = sel.selectedOptions[0].dataset.series;
+  }
   const data = await callGateway('seasonClockSet', {
     username: CURRENT_USER.username, password: CURRENT_USER.password,
-    raceId: Number(sel.value), realDate: real.value
+    series: series, raceId: Number(sel.value), realDate: real.value
   });
   if (data.ok) { await loadSeasonClockUI(); showResult(resultEl, true, '✓ Set — the league clock will stop at ' + data.target_league + ' (2 days before race day).'); }
-  else showResult(resultEl, false, '✗ ' + data.error);
+  else {
+    const msg = data.error === 'clock_table_missing' ? 'season_clock table isn\'t set up — run supabase-clock.sql in the SQL editor' : data.error;
+    showResult(resultEl, false, '✗ ' + msg);
+  }
 });
 /* --- TP: send offer --- */
 document.getElementById('tp-send-offer-btn').addEventListener('click', async () => {

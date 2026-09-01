@@ -37,6 +37,7 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://jocmjietuviegelluiev.
 const TABLES = [
   ['series', 'series'],
   ['Teams', 'teams'],
+  ['team_season_names', 'team_season_names'],
   ['Drivers', 'drivers'],
   ['race_seasons', 'race_seasons'],
   ['races', 'races'],

@@ -927,7 +927,7 @@
           + (ico ? '<span class="pd-mfg-ico"><img src="' + ico + '" alt=""></span>' : '')
           + '<span class="pd-design-info"><span class="pd-mfg-name">' + mName + '</span>'
           + (d.note ? '<span class="pd-mfg-note">' + str(d.note) + '</span>' : '')
-          + '<span class="pd-mfg-sub">Installed on both cars</span></span>'
+          + '<span class="pd-mfg-sub">' + (d.source === 'developed' ? 'Developed spec — stock' : 'Installed on both cars') + '</span></span>'
           + '<span class="pd-design-meta"><span class="pd-design-stock">' + (num(d.quantity) || 0) + '</span><span class="pd-design-cond">0%</span></span>'
           + '</button>';
       });
@@ -1024,7 +1024,7 @@
     });
     var noteBtn = el('mfg-note-btn');
     if (noteBtn) noteBtn.addEventListener('click', function () {
-      if (design) doSetNote({ partId: num(design.part_id), note: design.note });
+      if (design) doSetNote(design.source === 'developed' ? { designId: num(design.design_id), note: design.note } : { partId: num(design.part_id), note: design.note });
     });
   }
 

@@ -268,6 +268,16 @@ body::before {
     try { var n = BTG.Roster.teamName(k, true); if (n) return n; } catch (e) {}
     return k;
   }
+  /* Official full name for a team in a given season — straight from the DB
+     (team_season_names, keyed team_id+season). Falls back to the base
+     team_name when no per-season row exists. Never hardcoded. */
+  function teamFullName(id, year) {
+    var rows = (D && D.team_season_names || []).filter(function (n) {
+      return String(n.team_id) === String(id) && num(n.season) === num(year);
+    });
+    if (rows.length && rows[0].full_name) return str(rows[0].full_name);
+    return teamName(id);
+  }
   function teamRgb(id) {
     var t = dbTeam(id);
     var hex = t && t.color_primary ? str(t.color_primary) : '';
@@ -319,10 +329,19 @@ body::before {
      For the selected season year Y we look in logos/full/Y/ first; if the
      team has no file there we fall back to earlier years (Y-1 … 2024). The
      filename uses the same DB team name as the team (variants for common
-     spellings). Missing images hide silently — never a placeholder.      */
-  function fullLogoCandidates(teamName, year) {
+     spellings). Missing images hide silently — never a placeholder.
+     `altNames` (optional) lets the caller also try the short DB name when
+     the display name is the per-season full name (e.g. "Scuderia Ferrari"
+     falls back to "Ferrari").                                            */
+  function fullLogoCandidates(teamName, year, altNames) {
     if (!teamName) return [];
     var variants = (window.BTG && BTG.logoNameVariants) ? BTG.logoNameVariants(teamName) : [teamName];
+    (altNames || []).forEach(function (alt) {
+      if (!alt || String(alt) === String(teamName)) return;
+      (window.BTG && BTG.logoNameVariants ? BTG.logoNameVariants(alt) : [alt]).forEach(function (v) {
+        if (variants.indexOf(v) === -1) variants.push(v);
+      });
+    });
     var minYear = 2024;
     var out = [];
     var y = Math.max(num(year) || 2024, minYear);
@@ -334,8 +353,8 @@ body::before {
     }
     return out;
   }
-  function fullLogoImg(teamName, year) {
-    var cands = fullLogoCandidates(teamName, year);
+  function fullLogoImg(teamName, year, altNames) {
+    var cands = fullLogoCandidates(teamName, year, altNames);
     if (!cands.length) return '';
     var chain = cands.map(function (p) { return p.replace(/"/g, '&quot;'); }).join('|');
     return '<img src="' + cands[0] + '" alt="' + esc(teamName) + '" '
@@ -344,9 +363,10 @@ body::before {
 
   /* Full-team-logo hero: BorderGlow card + the year-aware full logo. When no
      file exists in ANY year the whole card collapses (BTG.fullLogoStep) so no
-     empty placeholder box is ever shown. */
-  function fullLogoHero(teamName, year) {
-    var cands = fullLogoCandidates(teamName, year);
+     empty placeholder box is ever shown. `altNames` = short DB name fallbacks
+     so full names ("Scuderia Ferrari") still resolve "Ferrari"-keyed files. */
+  function fullLogoHero(teamName, year, altNames) {
+    var cands = fullLogoCandidates(teamName, year, altNames);
     if (!cands.length) return '';
     var chain = cands.map(function (p) { return p.replace(/"/g, '&quot;'); }).join('|');
     return glow(
@@ -413,7 +433,7 @@ body::before {
       return {
         team_id: t.team_id,
         key: t.team_key,
-        name: teamName(t.team_id),
+        name: teamFullName(t.team_id, activeSeason),
         pos: posByTeam[String(t.team_id)] != null ? posByTeam[String(t.team_id)] : null
       };
     });
@@ -561,7 +581,7 @@ body::before {
     var tid = selectedTeamId;
     var sid = seasonIdFor(activeSeries, activeSeason);
     var t = dbTeam(tid);
-    var name = teamName(tid);
+    var name = teamFullName(tid, activeSeason);
     rgb = teamRgb(tid) || '99 102 241';
     var teamColor = 'rgb(' + rgb + ')';
 
@@ -699,7 +719,7 @@ body::before {
     if (!years.length) years = [activeSeason];
     var timeline = years.map(function (y) {
       var eh = engineHist.filter(function (e) { return e.season === y; })[0];
-      return { season: y, label: name, color: teamColor, engineName: eh ? eh.engine : null };
+      return { season: y, label: teamFullName(tid, y), color: teamColor, engineName: eh ? eh.engine : null };
     });
     var brandBlocks = [];
     timeline.forEach(function (e) {
@@ -779,7 +799,7 @@ body::before {
       + '<div class="dp-left">'
 
       /* Full Team Logo Hero — logos/full/{year}/{DB name} (no placeholder) */
-      + fullLogoHero(name, activeSeason)
+      + fullLogoHero(name, activeSeason, [teamName(tid)])
 
       /* WCC Titles — label comes from the DB series.team_championship.
          Hidden entirely when the team has won none this season (the card

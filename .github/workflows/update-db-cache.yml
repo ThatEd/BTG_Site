@@ -30,4 +30,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add "cache/public-data.json"
           git diff --cached --quiet || git commit -m "chore: daily DB public-data cache"
+          # Rebase onto the latest remote so a concurrent push can't reject ours.
+          git pull --rebase --autostash
           git push
