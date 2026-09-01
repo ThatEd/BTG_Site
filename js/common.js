@@ -16,7 +16,6 @@ BTG.renderNav = function(activePage) {
   if (!nav) return;
 
   var tabs = [
-    { id: 'home',      label: 'Home',      href: 'index.html' },
     { id: 'standings', label: 'Standings', href: 'standings.html' },
     { id: 'drivers',   label: 'Drivers',   href: 'drivers.html' },
     { id: 'teams',     label: 'Teams',     href: 'teams.html' },

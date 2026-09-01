@@ -116,6 +116,30 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
 .home-cal-dot--next { border-color: var(--accent); box-shadow: 0 0 8px rgba(185,29,46,0.5); }
 .home-cal-dot img { width: 100%; height: 100%; object-fit: cover; }
 
+/* Fights charts */
+.home-fights { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+@media (max-width: 900px) { .home-fights { grid-template-columns: 1fr; } }
+.home-chart { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; overflow: hidden; }
+.home-chart__head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border-subtle); }
+.home-chart__title { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.home-chart__legend { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 14px 4px; }
+.home-chart__pill {
+  display: inline-flex; align-items: center; gap: 5px; cursor: pointer; user-select: none;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 3px 9px;
+  transition: opacity 150ms, border-color 150ms;
+}
+.home-chart__pill .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.home-chart__pill:hover { border-color: rgba(255,255,255,0.25); color: var(--text-primary); }
+.home-chart__pill.is-off { opacity: 0.35; text-decoration: line-through; }
+.home-chart__body { position: relative; height: 300px; }
+.home-chart__svg { width: 100%; height: 100%; display: block; }
+.home-chart__svg text { font-family: ui-monospace, Menlo, monospace; }
+.home-chart__line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.home-chart__grid { stroke: rgba(255,255,255,0.05); }
+.home-chart__axis { stroke: rgba(255,255,255,0.08); }
+.home-chart__empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-muted); font-size: 12px; }
+
 /* Form guide + records */
 .home-double { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 @media (max-width: 900px) { .home-double { grid-template-columns: 1fr; } }
@@ -130,6 +154,37 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
 .home-dot--pts { background: rgba(56,189,248,0.14); color: #7dd3fc; border-color: rgba(56,189,248,0.3); }
 .home-dot--other { background: rgba(255,255,255,0.04); color: var(--text-muted); }
 .home-rec { font-size: 11px; color: var(--text-secondary); }
+
+/* News feed */
+.home-news { font-size: 12px; color: var(--text-secondary); line-height: 1.5; padding: 8px 0; }
+.home-news__row { display: flex; align-items: flex-start; gap: 8px; padding: 7px 14px; }
+.home-news__row + .home-news__row { border-top: 1px solid rgba(255,255,255,0.03); }
+.home-news__badge {
+  font-size: 8px; font-weight: 800; letter-spacing: 0.06em; color: var(--text-muted);
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; padding: 1px 5px; flex-shrink: 0; margin-top: 1px;
+}
+
+/* Teammate watch */
+.home-tw { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 10px 14px; }
+.home-tw__card {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px;
+}
+.home-tw__team { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); width: 90px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-tw__h2h { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.home-tw__d1 { font-size: 12px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-tw__d2 { font-size: 12px; font-weight: 700; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-tw__score { font-size: 11px; font-weight: 800; font-family: ui-monospace, monospace; color: #fde047; flex-shrink: 0; }
+.home-tw__bar { flex: 0 0 60px; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+.home-tw__bar span { display: block; height: 100%; }
+
+/* Contract badges */
+.home-badge {
+  font-size: 9px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.14); border-radius: 20px; padding: 2px 8px; flex-shrink: 0;
+}
+.home-badge--danger { color: #f87171; border-color: rgba(248,113,113,0.4); background: rgba(248,113,113,0.1); }
+.home-col__foot { padding: 10px 14px; font-size: 10px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.04); }
 
 .tfg-attrib { position: fixed; bottom: 12px; left: 16px; font-size: 9px; color: #52525b; z-index: 60; font-family: ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', monospace; }
 .tfg-attrib a { color: #52525b; text-decoration: underline; }
@@ -188,6 +243,29 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     </div>
   </div>
 
+  <!-- Fights: cumulative points charts with clickable legend -->
+  <div class="home-fights" id="home-fights">
+    <div class="home-chart">
+      <div class="home-chart__head"><span class="home-chart__title">🏭 Constructors Fight</span><span class="home-chart__legend" id="cf-legend"></span></div>
+      <div class="home-chart__body" id="cf-body"><div class="home-chart__empty">No data</div></div>
+    </div>
+    <div class="home-chart">
+      <div class="home-chart__head"><span class="home-chart__title">👑 Drivers Fight</span><span class="home-chart__legend" id="df-legend"></span></div>
+      <div class="home-chart__body" id="df-body"><div class="home-chart__empty">No data</div></div>
+    </div>
+  </div>
+
+  <div class="home-grid">
+    <div class="home-col">
+      <div class="home-col__head"><span class="home-col__title">⏳ Contract Clock</span></div>
+      <div class="home-col__list" id="home-contracts"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loading…</div></div>
+    </div>
+    <div class="home-col">
+      <div class="home-col__head"><span class="home-col__title">🔄 Next Season</span></div>
+      <div class="home-col__list" id="home-next"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loading…</div></div>
+    </div>
+  </div>
+
   <div class="home-double">
     <div class="home-col">
       <div class="home-col__head"><span class="home-col__title">📈 Form Guide</span></div>
@@ -196,6 +274,17 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     <div class="home-col">
       <div class="home-col__head"><span class="home-col__title">🏎 Season Records</span></div>
       <div class="home-col__list" id="home-records"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loading…</div></div>
+    </div>
+  </div>
+
+  <div class="home-double">
+    <div class="home-col">
+      <div class="home-col__head"><span class="home-col__title">📰 Paddock News</span></div>
+      <div class="home-col__list" id="home-news"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loading…</div></div>
+    </div>
+    <div class="home-col">
+      <div class="home-col__head"><span class="home-col__title">👥 Teammate Watch</span></div>
+      <div class="home-col__list" id="home-teammates"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loading…</div></div>
     </div>
   </div>
 </div>
@@ -489,6 +578,325 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     }).join('');
   }
 
+  // ── Fights (cumulative points line charts, clickable legend) ─────────────
+  function teamHex(name) {
+    var hex = BTG.DBCache && BTG.DBCache.teamColorHex ? BTG.DBCache.teamColorHex(name) : '';
+    if (hex && /^#?[0-9a-f]{6}$/i.test(hex)) return hex;
+    var rgb = teamRgb(name).split(' ').map(Number);
+    if (rgb.length === 3 && rgb.every(function (v) { return !isNaN(v); })) {
+      return '#' + rgb.map(function (v) { var h = Math.max(0, Math.min(255, Math.round(v))).toString(16); return h.length === 1 ? '0' + h : h; }).join('');
+    }
+    return '#71717a';
+  }
+
+  function cumRaces() {
+    var races = (BTG.Data.getRaces(activeSeries, activeSeason) || []).slice().sort(function (a, b) { return Number(a.round_number) - Number(b.round_number); });
+    var results = (BTG.DBCache.data() || {}).race_results || [];
+    var sprints = (BTG.DBCache.data() || {}).race_sprints || [];
+    // Only races that actually have results (completed).
+    return races.filter(function (r) {
+      return results.some(function (x) { return String(x.race_id) === String(r.race_id); });
+    });
+  }
+
+  function buildFightChart(bodyId, legendId, labels, series) {
+    var body = document.getElementById(bodyId);
+    var legendEl = document.getElementById(legendId);
+    if (!body) return;
+    if (!labels.length || !series.length) {
+      body.innerHTML = '<div class="home-chart__empty">No data</div>';
+      legendEl.innerHTML = '';
+      return;
+    }
+    var hidden = {};
+    series.forEach(function (s) { hidden[s.key] = false; });
+
+    function render() {
+      var visible = series.filter(function (s) { return !hidden[s.key]; });
+      legendEl.innerHTML = series.map(function (s) {
+        return '<span class="home-chart__pill' + (hidden[s.key] ? ' is-off' : '') + '" data-key="' + esc(s.key) + '">'
+          + '<span class="dot" style="background:' + s.color + '"></span>' + esc(s.name) + '</span>';
+      }).join('');
+      legendEl.querySelectorAll('.home-chart__pill').forEach(function (p) {
+        p.onclick = function () {
+          var k = p.getAttribute('data-key');
+          hidden[k] = !hidden[k];
+          render();
+        };
+      });
+
+      var W = 560, H = 280, padL = 40, padR = 14, padT = 14, padB = 30;
+      var iw = W - padL - padR, ih = H - padT - padB;
+      var maxV = 0;
+      visible.forEach(function (s) {
+        s.data.forEach(function (v) { if (v > maxV) maxV = v; });
+      });
+      maxV = Math.ceil((maxV || 1) * 1.15 / 10) * 10;
+      var x = function (i) { return padL + (labels.length === 1 ? iw / 2 : (i / (labels.length - 1)) * iw); };
+      var y = function (v) { return padT + ih - (v / maxV) * ih; };
+
+      var svg = '<svg class="home-chart__svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">';
+      // gridlines
+      for (var g = 0; g <= 4; g++) {
+        var gy = padT + (g / 4) * ih;
+        var gv = maxV - (g / 4) * maxV;
+        svg += '<line class="home-chart__grid" x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '"></line>';
+        svg += '<text x="' + (padL - 6) + '" y="' + (gy + 3) + '" text-anchor="end" style="fill:var(--text-muted);font-size:9px;">' + Math.round(gv) + '</text>';
+      }
+      // x labels
+      labels.forEach(function (l, i) {
+        svg += '<text x="' + x(i) + '" y="' + (H - 8) + '" text-anchor="middle" style="fill:var(--text-muted);font-size:8px;">' + esc(l) + '</text>';
+      });
+      // series lines
+      visible.forEach(function (s) {
+        var pts = s.data.map(function (v, i) { return x(i) + ',' + y(v); }).join(' ');
+        svg += '<polyline class="home-chart__line" points="' + pts + '" style="stroke:' + s.color + ';"></polyline>';
+      });
+      // end dots
+      visible.forEach(function (s) {
+        var i = s.data.length - 1;
+        if (i < 0) return;
+        svg += '<circle cx="' + x(i) + '" cy="' + y(s.data[i]) + '" r="3" style="fill:' + s.color + ';"></circle>';
+      });
+      svg += '</svg>';
+      body.innerHTML = svg;
+    }
+    render();
+  }
+
+  function renderFights() {
+    var races = cumRaces();
+    var results = (BTG.DBCache.data() || {}).race_results || [];
+    var sprints = (BTG.DBCache.data() || {}).race_sprints || [];
+    var raceIds = races.map(function (r) { return String(r.race_id); });
+    var labels = races.map(function (r) { return String(r.circuit || r.name || '').slice(0, 3).toUpperCase(); });
+
+    // Constructors: cumulative team points per completed race (feature + sprint + bonus).
+    var teamPts = {}, teamOrder = [];
+    raceIds.forEach(function (rid) {
+      results.forEach(function (r) {
+        if (String(r.race_id) !== rid) return;
+        var k = String(r.team_id != null ? r.team_id : r.entry_key || '');
+        if (!k) return;
+        var nm = BTG.DBCache.teamName ? BTG.DBCache.teamName(r.team_id != null ? r.team_id : r.entry_key) : '';
+        if (!teamPts[k]) { teamPts[k] = { name: nm, arr: raceIds.map(function () { return 0; }) }; teamOrder.push(k); }
+        teamPts[k].arr[raceIds.indexOf(rid)] += Number(r.points || 0) + Number(r.bonus_points || 0);
+      });
+      sprints.forEach(function (s) {
+        if (String(s.race_id) !== rid) return;
+        var k = String(s.team_id != null ? s.team_id : '');
+        if (!k) return;
+        var nm = BTG.DBCache.teamName ? BTG.DBCache.teamName(s.team_id != null ? s.team_id : '') : '';
+        if (!teamPts[k]) { teamPts[k] = { name: nm, arr: raceIds.map(function () { return 0; }) }; teamOrder.push(k); }
+        teamPts[k].arr[raceIds.indexOf(rid)] += Number(s.points || 0);
+      });
+    });
+    // cumulative
+    Object.keys(teamPts).forEach(function (k) {
+      var arr = teamPts[k].arr, run = 0;
+      for (var i = 0; i < arr.length; i++) { run += arr[i]; arr[i] = run; }
+    });
+    var teamSeries = teamOrder.map(function (k) { return { key: 't' + k, name: teamPts[k].name, color: teamHex(teamPts[k].name), data: teamPts[k].arr }; })
+      .sort(function (a, b) { return (b.data[b.data.length - 1] || 0) - (a.data[a.data.length - 1] || 0); });
+
+    // Drivers: cumulative driver points per completed race.
+    var drvPts = {}, drvOrder = [];
+    raceIds.forEach(function (rid) {
+      results.forEach(function (r) {
+        if (String(r.race_id) !== rid) return;
+        var k = r.driver_name;
+        if (!drvPts[k]) { drvPts[k] = { name: k, arr: raceIds.map(function () { return 0; }) }; drvOrder.push(k); }
+        drvPts[k].arr[raceIds.indexOf(rid)] += Number(r.points || 0) + Number(r.bonus_points || 0);
+      });
+      sprints.forEach(function (s) {
+        if (String(s.race_id) !== rid) return;
+        if (!drvPts[s.driver_name]) { drvPts[s.driver_name] = { name: s.driver_name, arr: raceIds.map(function () { return 0; }) }; drvOrder.push(s.driver_name); }
+        drvPts[s.driver_name].arr[raceIds.indexOf(rid)] += Number(s.points || 0);
+      });
+    });
+    Object.keys(drvPts).forEach(function (k) {
+      var arr = drvPts[k].arr, run = 0;
+      for (var i = 0; i < arr.length; i++) { run += arr[i]; arr[i] = run; }
+    });
+    var dTeamOf = {};
+    drivers.forEach(function (d) { dTeamOf[d.name] = d.team; });
+    var drvSeries = drvOrder.map(function (k) {
+      var team = dTeamOf[k] || '';
+      return { key: 'd' + k, name: k, color: teamHex(team), data: drvPts[k].arr };
+    }).sort(function (a, b) { return (b.data[b.data.length - 1] || 0) - (a.data[a.data.length - 1] || 0); }).slice(0, 12);
+
+    buildFightChart('cf-body', 'cf-legend', labels, teamSeries);
+    buildFightChart('df-body', 'df-legend', labels, drvSeries);
+  }
+
+  // ── Contract clock + next season ─────────────────────────────────────────
+  function currentYear() {
+    var app = (BTG.DBCache.data() || {}).app_state || [];
+    var f1 = app.filter(function (a) { return String(a.series) === activeSeries; })[0] || app[0];
+    return f1 ? (Number(f1.year) || activeSeason) : activeSeason;
+  }
+
+  function renderContracts() {
+    var el = document.getElementById('home-contracts');
+    var nextEl = document.getElementById('home-next');
+    var ch = (BTG.DBCache.data() || {}).contract_history || [];
+    var year = currentYear();
+    var mine = ch.filter(function (h) {
+      return str0(h.entity_type) === 'driver' && h.is_current && str0(h.role) === 'Driving' && str0(h.series) === activeSeries;
+    });
+    function nameOf(h) {
+      // prefer DB full name
+      var drv = (BTG.DBCache.data() || {}).drivers || [];
+      for (var i = 0; i < drv.length; i++) {
+        if (str0(drv[i].full_name) === str0(h.entity_name) || str0(drv[i].driver_name) === str0(h.entity_name)) return drv[i].full_name || h.entity_name;
+      }
+      return h.entity_name;
+    }
+    // Sort by end year ascending (expiring soonest first).
+    mine.sort(function (a, b) { return (Number(a.till_year) || 999) - (Number(b.till_year) || 999); });
+    if (!mine.length) { el.innerHTML = '<div style="padding:20px;color:var(--text-muted);font-size:12px;">No current contracts.</div>'; nextEl.innerHTML = ''; return; }
+
+    var expiring = mine.filter(function (h) { return Number(h.till_year) <= year; });
+    var continuing = mine.filter(function (h) { return Number(h.till_year) > year; });
+
+    el.innerHTML = mine.slice(0, 14).map(function (h) {
+      var team = h.team_key || '';
+      var rgb = teamRgb(team);
+      var til = Number(h.till_year);
+      var exp = til <= year;
+      return '<div class="home-row" style="--team-rgb:' + rgb + '">'
+        + '<span class="home-row__photo">' + BTG.driverPhotoImg(nameOf(h), 30, '') + '</span>'
+        + '<span class="home-row__name" style="color:' + teamColorCss(team) + '">' + esc(nameOf(h)) + '</span>'
+        + '<span class="home-row__team">' + esc(team || '') + '</span>'
+        + (exp
+            ? '<span class="home-badge home-badge--danger">EXPIRING</span>'
+            : '<span class="home-badge">Ends ' + til + '</span>')
+        + '</div>';
+    }).join('');
+    el.innerHTML += '<div class="home-col__foot">' + expiring.length + ' expiring this season · ' + continuing.length + ' continuing</div>';
+
+    // Next season: signed deals for the following year (from contract history
+    // rows where till_year >= year+1 — i.e. current multi-year or future deals).
+    var next = mine.filter(function (h) { return Number(h.till_year) >= year + 1; });
+    nextEl.innerHTML = next.length
+      ? next.slice(0, 14).map(function (h) {
+          var team = h.team_key || '';
+          var rgb = teamRgb(team);
+          return '<div class="home-row" style="--team-rgb:' + rgb + '">'
+            + '<span class="home-row__photo">' + BTG.driverPhotoImg(nameOf(h), 30, '') + '</span>'
+            + '<span class="home-row__name" style="color:' + teamColorCss(team) + '">' + esc(nameOf(h)) + '</span>'
+            + '<span class="home-row__team">' + esc(team || '') + '</span>'
+            + '<span class="home-badge">' + year + '–' + (Number(h.till_year) || '?') + '</span>'
+            + '</div>';
+        }).join('')
+      : '<div style="padding:20px;color:var(--text-muted);font-size:12px;">No multi-year deals yet.</div>';
+  }
+
+  function str0(v) { return v == null ? '' : String(v); }
+
+  // ── Paddock News (generated from race data, like the TFG dashboard) ──────
+  function renderNews() {
+    var el = document.getElementById('home-news');
+    var races = cumRaces();
+    var results = (BTG.DBCache.data() || {}).race_results || [];
+    var news = [];
+    if (!races.length) { el.innerHTML = '<div class="home-news"><div class="home-news__row">No races yet.</div></div>'; return; }
+    var last = races[races.length - 1];
+    var lastId = String(last.race_id);
+    var lastRows = results.filter(function (r) { return String(r.race_id) === lastId; });
+    var track = last.name || last.circuit || 'Grand Prix';
+    var winner = lastRows.filter(function (r) { return Number(r.finish_position) === 1; })[0];
+    if (winner) news.push({ icon: '🏁', text: winner.driver_name + ' wins the ' + track });
+    // Big gainer
+    var gainer = lastRows.map(function (r) {
+      var g = (Number(r.grid_position) || 99) - (Number(r.finish_position) || 99);
+      return { name: r.driver_name, gained: g };
+    }).sort(function (a, b) { return b.gained - a.gained; })[0];
+    if (gainer && gainer.gained >= 5) news.push({ icon: '🔝', text: gainer.name + ' gained ' + gainer.gained + ' positions at ' + track });
+    // Pole
+    var pole = lastRows.filter(function (r) { return Number(r.grid_position) === 1; })[0];
+    if (pole && winner && pole.driver_name !== winner.driver_name) news.push({ icon: '⏱', text: pole.driver_name + ' on pole for ' + track });
+    // Sprint winner
+    var sprints = (BTG.DBCache.data() || {}).race_sprints || [];
+    var sWin = sprints.filter(function (s) { return String(s.race_id) === lastId && Number(s.finish_position) === 1; })[0];
+    if (sWin) news.push({ icon: '⚡', text: sWin.driver_name + ' won the ' + track + ' sprint' });
+    // Leader
+    var lead = drivers.slice().sort(function (a, b) {
+      var pa = (a.standings && a.standings.pos !== '—') ? Number(a.standings.pos) : 999;
+      var pb = (b.standings && b.standings.pos !== '—') ? Number(b.standings.pos) : 999;
+      return pa - pb;
+    })[0];
+    if (lead) news.push({ icon: '👑', text: lead.name + ' leads the ' + esc(activeSeries) + ' championship' });
+
+    if (!news.length) { el.innerHTML = '<div class="home-news"><div class="home-news__row">No news yet.</div></div>'; return; }
+    el.innerHTML = '<div class="home-news">' + news.slice(0, 8).map(function (n) {
+      return '<div class="home-news__row"><span class="home-news__badge">' + esc(activeSeries) + '</span><span>' + n.icon + ' ' + esc(n.text) + '</span></div>';
+    }).join('') + '</div>';
+  }
+
+  // ── Teammate Watch (head-to-head per team) ───────────────────────────────
+  function renderTeammates() {
+    var el = document.getElementById('home-teammates');
+    var races = cumRaces();
+    var results = (BTG.DBCache.data() || {}).race_results || [];
+    var raceIds = races.map(function (r) { return String(r.race_id); });
+    var byTeam = {};
+    results.forEach(function (r) {
+      if (raceIds.indexOf(String(r.race_id)) === -1) return;
+      var tid = String(r.team_id != null ? r.team_id : r.entry_key || '');
+      if (!tid) return;
+      var nm = r.driver_name;
+      if (!byTeam[tid]) byTeam[tid] = { name: (BTG.DBCache.teamName ? BTG.DBCache.teamName(r.team_id != null ? r.team_id : r.entry_key) : ''), drivers: {} };
+      if (!byTeam[tid].drivers[nm]) byTeam[tid].drivers[nm] = [];
+      byTeam[tid].drivers[nm].push(Number(r.finish_position) || 99);
+    });
+    var tw = [];
+    Object.keys(byTeam).forEach(function (tid) {
+      var t = byTeam[tid];
+      var names = Object.keys(t.drivers);
+      if (names.length < 2) return;
+      for (var i = 0; i < names.length; i++) {
+        for (var j = i + 1; j < names.length; j++) {
+          var a = t.drivers[names[i]], b = t.drivers[names[j]];
+          var aw = 0, n = Math.min(a.length, b.length);
+          for (var k = 0; k < n; k++) { if ((a[k] || 99) < (b[k] || 99)) aw++; }
+          tw.push({ team: t.name, rgb: teamRgb(t.name), d1: names[i], d2: names[j], h2h: aw, total: n, pct: n ? Math.round((aw / n) * 100) : 50 });
+        }
+      }
+    });
+    tw.sort(function (a, b) { return b.total - a.total; });
+    if (!tw.length) { el.innerHTML = '<div style="padding:20px;color:var(--text-muted);font-size:12px;">No teammate data.</div>'; return; }
+    el.innerHTML = '<div class="home-tw">' + tw.slice(0, 12).map(function (t) {
+      return '<div class="home-tw__card" style="--team-rgb:' + t.rgb + '">'
+        + '<span class="home-tw__team">' + esc(t.team) + '</span>'
+        + '<div class="home-tw__h2h">'
+        + '<span class="home-tw__d1">' + esc(t.d1) + '</span>'
+        + '<span class="home-tw__score">' + t.h2h + '–' + (t.total - t.h2h) + '</span>'
+        + '<span class="home-tw__bar"><span style="width:' + t.pct + '%;background:rgb(' + t.rgb.split(' ').join(',') + ');"></span></span>'
+        + '<span class="home-tw__d2">' + esc(t.d2) + '</span>'
+        + '</div></div>';
+    }).join('') + '</div>';
+  }
+
+  // ── Series-based border glow ─────────────────────────────────────────────
+  function applyBorderGlow() {
+    // Wrap highlight cards + main columns with the series accent glow.
+    var accent = BTG.seriesAccent(activeSeries); // "r,g,b"
+    var glowCards = document.querySelectorAll('.home-card, .home-col, .home-headline, .home-qs, .home-chart');
+    glowCards.forEach(function (card) {
+      if (card.closest('.border-glow-card') || card.dataset.glowDone) return;
+      var wrapper = BTG.wrapCard('', { teamColor: accent, backgroundColor: '#101014', borderRadius: 12, glowRadius: 16, glowIntensity: 0.4 });
+      var tmp = document.createElement('div');
+      tmp.innerHTML = wrapper;
+      var w = tmp.firstElementChild;
+      var inner = w.querySelector('.border-glow-inner');
+      card.parentNode.insertBefore(w, card);
+      inner.appendChild(card);
+      card.dataset.glowDone = '1';
+    });
+    if (BTG.initBorderGlow) BTG.initBorderGlow();
+  }
+
   function render() {
     var topDrivers = getTopDrivers();
     var topTeams = BTG.DBCache.getTeamStandings(activeSeries, activeSeason);
@@ -499,8 +907,13 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     renderLastRace();
     renderCalendar();
     renderReliability();
+    renderFights();
+    renderContracts();
     renderForm();
     renderRecords();
+    renderNews();
+    renderTeammates();
+    applyBorderGlow();
   }
 
   function showDriverModal(name) {
