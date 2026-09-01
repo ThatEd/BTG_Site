@@ -142,14 +142,22 @@ window.BTG = window.BTG || {};
     loading: false
   };
 
-  /* Team color registry: teamName → {id, color} */
+  /* Team color registry: teamName → {id, color}.
+     Color source of truth = the DB public cache (same as teams.html/drivers);
+     falls back to the legacy hardcoded list only when the DB cache has no
+     entry for the team. */
   var teamRegistry = {};
   var teamNextId = 1;
+  function dbTeamColorRgb(name) {
+    var v = BTG.DBCache && BTG.DBCache.teamColorRgb ? BTG.DBCache.teamColorRgb(name) : '';
+    if (v) return v;
+    var team = BTG.teamByName(name);
+    return team ? (team.color || '') : '';
+  }
   function teamIdFor(name) {
     if (!name) return 0;
     if (teamRegistry[name]) return teamRegistry[name].id;
-    var team = BTG.teamByName(name);
-    var color = team ? team.color : '113,113,130';
+    var color = dbTeamColorRgb(name) || '113,113,130';
     var id = teamNextId++;
     teamRegistry[name] = { id: id, color: color };
     // Expose --team{id}-triplet for the row coloring, like TFG
@@ -375,10 +383,15 @@ window.BTG = window.BTG || {};
     if (r.successful_overtakes != null || r.failed_overtakes != null) {
       overtakes = Number(r.successful_overtakes || 0) + Number(r.failed_overtakes || 0);
     }
+    var teamName = teamNameOf(r.team_id) || String(r.entry_key || '').replace(/^F2\s*/i, '');
+    // Register the team in the color registry (DB-backed) so team cells render
+    // the correct colour, exactly like every other row source.
+    var teamId = teamIdFor(teamName || 'Privateer');
     return {
       driverId: r.driver_name || '',
-      teamName: teamNameOf(r.team_id) || String(r.entry_key || '').replace(/^F2\s*/i, ''),
-      teamId: r.team_id,
+      teamName: teamName,
+      teamId: teamId,
+      TeamID: teamId,
       finishingPos: pos,
       startingPos: grid,
       fastestLap: fl,
@@ -397,10 +410,13 @@ window.BTG = window.BTG || {};
   function rowFromCacheSprint(s, teamNameOf) {
     var pos = Number(s.finish_position || 0);
     var grid = Number(s.grid_position || 0);
+    var teamName = teamNameOf(s.team_id) || '';
+    var teamId = teamIdFor(teamName || 'Privateer');
     return {
       driverId: s.driver_name || '',
-      teamName: teamNameOf(s.team_id) || '',
-      teamId: s.team_id,
+      teamName: teamName,
+      teamId: teamId,
+      TeamID: teamId,
       finishingPos: pos,
       startingPos: grid,
       fastestLap: Number(s.fastest_lap_seconds || 0),
