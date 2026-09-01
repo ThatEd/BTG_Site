@@ -314,6 +314,16 @@ body::before {
   var seasons = [], activeSeason = null;
   var selectedDriverId = null;
 
+  // Team colour source of truth = the DB public cache (same as teams.html).
+  // Falls back to the legacy hardcoded F1/F2 list only when the DB cache
+  // hasn't loaded or has no entry for the team.
+  function dbTeamRgb(name, secondary) {
+    var v = BTG.DBCache && BTG.DBCache.teamColorRgb ? BTG.DBCache.teamColorRgb(name, secondary) : '';
+    if (v) return v;
+    var t = BTG.teamByName(name);
+    return t ? (secondary ? (t.colorSecondary || '') : (t.color || '')) : '';
+  }
+
   // Prefer the DB public cache (built daily from Supabase): if it loads,
   // swap the driver-data source to DB-backed methods so the page runs purely
   // off DB data (race results, standings, driver names/teams). Otherwise fall
@@ -427,13 +437,12 @@ body::before {
 
     var html = '';
     Object.keys(byTeam).forEach(function(teamName) {
-      var team = BTG.teamByName(teamName);
-      var color = team ? team.color : '185,29,46';
+      var color = dbTeamRgb(teamName) || '185,29,46';
       html += '<div class="dp-picker__group"><div class="dp-picker__team">'
         + BTG.teamLogoImg(teamName, activeSeries, 12)
         + BTG.esc(teamDisplayName(teamName))
         + '</div>';
-      var color2 = team ? (team.colorSecondary || '') : '';
+      var color2 = dbTeamRgb(teamName, true);
       byTeam[teamName].forEach(function(d) {
         var num = d.standings ? d.standings.pos : '—';
         html += '<button class="dp-picker__chip' + (d.id===selectedDriverId?' dp-picker__chip--active':'') + '" data-id="'+BTG.esc(d.id)+'" data-color="'+color+'" data-color2="'+color2+'">'
@@ -491,10 +500,9 @@ body::before {
   function renderDetail(driverId) {
     var d = drivers.find(function(x){return x.id===driverId;});
     if (!d) return;
-    var team = BTG.teamByName(d.team);
     var acadName = d.academy && window.BTG && BTG.Roster && BTG.Roster.teamName
       ? (BTG.Roster.teamName(d.academy) || d.academy) : d.academy;
-    var color = team ? team.color : '185,29,46';
+    var color = dbTeamRgb(d.team) || '185,29,46';
     var panel = document.getElementById('detail-panel');
     panel.className = '';
     panel.innerHTML = '';
@@ -648,8 +656,7 @@ body::before {
       html += '<div class="dp-card"><div class="dp-card__title">Past Seasons</div>'
         + '<div class="dp-past-head"><span>Season</span><span>Series</span><span>Team</span><span class="px">Pos</span><span class="px">Wins</span><span class="px">Pods</span><span class="px">Pts</span><span class="ps">Rating</span></div>'
         + d.history.map(function(h) {
-          var hteam = BTG.teamByName(h.team);
-          var hcolor = hteam ? hteam.color : '100,100,100';
+          var hcolor = dbTeamRgb(h.team) || '100,100,100';
           var label = h.team && h.team !== 'Privateer' ? h.team : (h.series || '');
           var logo = h.team && h.team !== 'Privateer' ? BTG.teamLogoImg(h.team, h.series, 14) : '';
           return '<div class="dp-past-row"><span class="yr">'+h.season+'</span>'
@@ -692,8 +699,7 @@ body::before {
       });
 
       var teamBg = function(teamName) {
-        var t = BTG.teamByName(teamName);
-        var c = t ? t.color : '100,100,100';
+        var c = dbTeamRgb(teamName) || '100,100,100';
         return 'rgb(' + c + ')';
       };
 
@@ -730,8 +736,7 @@ body::before {
         // Label row below (team name per run)
         html += '<div class="dp-tl__legend">';
         blocks.forEach(function(b) {
-          var t = BTG.teamByName(b.team);
-          var c = t ? 'rgb(' + t.color + ')' : '#71717a';
+          var c = dbTeamRgb(b.team) ? 'rgb(' + dbTeamRgb(b.team) + ')' : '#71717a';
           var yrsLabel = b.startYear === b.endYear ? b.startYear : b.startYear + '-' + String(b.endYear).slice(2);
           html += '<span class="dp-tl__legend-item" style="display:inline-flex;align-items:center;gap:5px;">'
             + '<span class="dot" style="background:' + c + '"></span>'

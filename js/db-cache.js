@@ -38,10 +38,41 @@
     return t ? str(t.series) : '';
   }
   // DB team colour (hex) by team_key / team_id — the site-wide source of truth.
+  function teamRow(key) {
+    var k = String(key || '').trim().toLowerCase();
+    if (!k) return null;
+    var rows = D && D.teams || [];
+    // Exact first: team_key / team_id / team_name.
+    for (var i = 0; i < rows.length; i++) {
+      var x = rows[i];
+      if (String(x.team_key).toLowerCase() === k || String(x.team_id) === String(key) || String(x.team_name || '').toLowerCase() === k) return x;
+    }
+    // Fuzzy word-boundary so short labels resolve without false hits:
+    // "RB" → "RB" (not "Racing Bulls"), "Williams" → "Williams Racing".
+    var words = k.split(/[^a-z0-9]+/).filter(Boolean);
+    for (var j = 0; j < rows.length; j++) {
+      var y = rows[j];
+      var hay = String(y.team_key).toLowerCase() + ' ' + String(y.team_name || '').toLowerCase();
+      var hit = words.every(function (w) { return w.length > 1 && hay.indexOf(w) !== -1; });
+      if (hit) return y;
+    }
+    return null;
+  }
+  // DB team colour (hex) by team_key / team_id / team_name — site-wide truth.
   function teamColorHex(key) {
-    var k = String(key);
-    var t = (D && D.teams || []).filter(function (x) { return String(x.team_key) === k || String(x.team_id) === k; })[0];
+    var t = teamRow(key);
     return (t && t.color_primary) ? str(t.color_primary) : '';
+  }
+  // DB team colour as "#RRGGBB" -> "r,g,b" comma form (what setTeamColors/
+  // the drivers page chip expects). Empty string when unknown.
+  function teamColorRgb(key, secondary) {
+    var t = teamRow(key);
+    var hex = t ? (secondary ? t.color_secondary : t.color_primary) : '';
+    hex = str(hex).replace('#', '');
+    if (hex.length !== 6) return '';
+    var r = parseInt(hex.slice(0, 2), 16), g = parseInt(hex.slice(2, 4), 16), b = parseInt(hex.slice(4, 6), 16);
+    if ([r, g, b].some(isNaN)) return '';
+    return r + ',' + g + ',' + b;
   }
 
   // Logo filename (under logos/teams/) for a team, from the cached DB — the
@@ -371,8 +402,17 @@
         if (c && teamSort[c] == null) teamSort[c] = fallbackStart + Object.keys(teamSort).length + 1;
       });
 
+      // Team colours: DB cache first (site-wide truth), roster as fallback.
       var teamColorOf = {};
-      rosterTeams.forEach(function (t) { teamColorOf[canon(t.key)] = t.colorRgb || null; });
+      (D && D.teams || []).forEach(function (t) {
+        if (str(t.series) !== series) return;
+        var c = canon(t.team_name) || canon(t.team_key);
+        if (c) teamColorOf[c] = teamColorRgb(t.team_key) || teamColorRgb(t.team_name) || null;
+      });
+      rosterTeams.forEach(function (t) {
+        var c = canon(t.key);
+        if (c && !teamColorOf[c]) teamColorOf[c] = t.colorRgb || null;
+      });
 
       return rows.map(function (d) {
         var team = canon(d.team);
@@ -585,6 +625,8 @@
     buildDriverList: buildDriverList,
     teamName: teamName,
     teamLogo: teamLogo,
+    teamColorHex: teamColorHex,
+    teamColorRgb: teamColorRgb,
     contractHistory: contractHistory,
     driverCareer: driverCareer,
     data: function () { return D; }
