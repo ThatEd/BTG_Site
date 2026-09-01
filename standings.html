@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BeTheGrid — Standings</title>
+<link rel="icon" type="image/x-icon" href="logos/BTG.ico">
+<link rel="stylesheet" href="style.css">
+<style>
+/* ── Standings (TFG-inspired, vanilla port) ──────────────────────────────── */
+:root {
+  --bg-base: #18181b;
+  --bg-card: #101014;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --border-subtle: rgba(255,255,255,0.06);
+  --accent: #b91d2e;
+}
+body { background: var(--bg-base); color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+.st-wrap { max-width: 1400px; margin: 0 auto; padding: 0 16px 90px; }
+.st-controls {
+  display: flex; align-items: center; gap: 12px; padding: 14px 0 4px;
+  border-bottom: 1px solid var(--border-subtle); margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.st-controls .series-bar { background: none; border-bottom: none; padding: 0; }
+.st-controls select {
+  background: #3a3a3a; color: #fff; border: 1px solid #4d4d4d; border-radius: 4px;
+  padding: 6px 10px; font-size: 12px;
+}
+.st-controls select option { background: #3a3a3a; color: #fff; }
+.st-spacer { flex: 1; }
+.st-label { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); }
+
+/* Two-column layout (drivers + constructors), TFG overview style */
+.st-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .st-grid { grid-template-columns: 1fr; } }
+
+.st-col {
+  background: var(--bg-card); border: 1px solid var(--border-subtle);
+  border-radius: 12px; overflow: hidden;
+}
+.st-col__head {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.st-col__title { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.st-col__list { display: flex; flex-direction: column; }
+
+/* Row — mirrors TFG dash-row / team-glow-row */
+.st-row {
+  display: flex; align-items: center; gap: 12px; padding: 9px 14px;
+  border-left: 3px solid transparent; transition: border-color 200ms, background 200ms;
+  cursor: pointer;
+}
+.st-row:hover { background: rgba(255,255,255,0.04); border-left-color: rgb(var(--team-rgb, 99 102 241)) !important; }
+.st-row + .st-row { border-top: 1px solid rgba(255,255,255,0.03); }
+.st-row__pos {
+  width: 24px; height: 24px; flex-shrink: 0; display: grid; place-items: center;
+  border-radius: 50%; border: 1px solid rgba(255,255,255,0.1);
+  font-size: 11px; font-weight: 700; font-family: ui-monospace, Menlo, monospace;
+  background: rgba(255,255,255,0.04); color: var(--text-secondary);
+}
+.st-row__pos--gold { background: rgba(250,204,21,0.15); color: #fde047; border-color: rgba(250,204,21,0.35); }
+.st-row__pos--silver { background: rgba(255,255,255,0.07); color: #e4e4e7; border-color: rgba(255,255,255,0.2); }
+.st-row__pos--bronze { background: rgba(253,186,116,0.12); color: #fdba74; border-color: rgba(253,186,116,0.3); }
+.st-row__flag { width: 18px; height: 12px; object-fit: cover; border-radius: 1px; flex-shrink: 0; }
+.st-row__photo { width: 30px; height: 30px; border-radius: 50%; overflow: hidden; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1); }
+.st-row__photo img { width: 100%; height: 100%; object-fit: cover; }
+.st-row__num { font-size: 10px; color: var(--text-muted); font-family: ui-monospace, monospace; flex-shrink: 0; }
+.st-row__name { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-row__team { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-row__pts { font-size: 12px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; color: #fde047; flex-shrink: 0; }
+.st-row__logo { height: 16px; max-width: 70px; object-fit: contain; flex-shrink: 0; }
+
+.st-empty { padding: 24px; text-align: center; color: var(--text-muted); font-size: 12px; }
+.st-foot { margin-top: 12px; font-size: 11px; color: var(--text-muted); }
+
+.tfg-attrib { position: fixed; bottom: 12px; left: 16px; font-size: 9px; color: #52525b; z-index: 60; font-family: ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', monospace; }
+.tfg-attrib a { color: #52525b; text-decoration: underline; }
+.tfg-attrib a:hover { color: #71717a; }
+</style>
+</head>
+<body data-page="standings">
+
+<nav class="btg-nav" id="btg-nav"></nav>
+
+<div class="st-wrap">
+  <div class="st-controls">
+    <div class="series-bar" id="series-bar" style="border:none;background:none;padding:0;"></div>
+    <span class="st-spacer"></span>
+    <span class="st-label">Season</span>
+    <select id="season-select"></select>
+  </div>
+
+  <div class="st-grid">
+    <div class="st-col">
+      <div class="st-col__head">
+        <span class="st-col__title">Drivers' Championship</span>
+        <span class="st-col__title" id="st-series-name" style="color:var(--text-muted);font-weight:600;"></span>
+      </div>
+      <div class="st-col__list" id="st-drivers">
+        <div class="st-empty">Loading drivers…</div>
+      </div>
+    </div>
+    <div class="st-col">
+      <div class="st-col__head">
+        <span class="st-col__title">Constructors' Championship</span>
+      </div>
+      <div class="st-col__list" id="st-teams">
+        <div class="st-empty">Loading teams…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Driver Modal -->
+<div id="driver-modal" class="modal-overlay" onclick="BTG.bgClose(event,'driver-modal')">
+  <div class="modal">
+    <button class="modal-close" onclick="BTG.closeModal('driver-modal')">&#10005;</button>
+    <div class="modal-driver-team" id="modal-team"></div>
+    <div class="modal-driver-name">
+      <span class="modal-driver-flag" id="modal-flag"></span>
+      <span id="modal-name"></span>
+    </div>
+    <div class="modal-overall" id="modal-overall"></div>
+    <div class="modal-history-title">Lifetime by series</div>
+    <div id="modal-lifetime" class="modal-scroll"></div>
+    <div class="modal-history-title">Contract history</div>
+    <div id="modal-contracts" class="modal-scroll"></div>
+  </div>
+</div>
+
+<div class="tfg-attrib">UI by <a href="https://www.patreon.com/c/TFGTools" target="_blank" rel="noopener">TFGTools</a></div>
+
+<script src="js/common.js"></script>
+<script src="js/border-glow.js"></script>
+<script src="teams/f1.js"></script>
+<script src="js/roster.js"></script>
+<script src="js/db-cache.js"></script>
+<script src="js/data-loader.js"></script>
+<script>
+(function() {
+  var seriesList = [], activeSeries = null, activeSeason = null, seasons = [];
+  var cache = null;
+  var drivers = [], teams = [];
+
+  function hexToRgb(hex) {
+    hex = String(hex || '').replace('#','');
+    if (hex.length !== 6) return '99 102 241';
+    var r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+    if ([r,g,b].some(isNaN)) return '99 102 241';
+    return r + ' ' + g + ' ' + b;
+  }
+
+  function teamRgb(name) {
+    var hex = BTG.DBCache && BTG.DBCache.teamColorHex ? BTG.DBCache.teamColorHex(name) : '';
+    return hexToRgb(hex || '');
+  }
+  function teamColorCss(name) {
+    return 'rgb(' + teamRgb(name).split(' ').join(',') + ')';
+  }
+  function esc(v) { return BTG.esc ? BTG.esc(v) : String(v == null ? '' : v); }
+
+  // Build series bar + season selector (kept from the original page).
+  function buildSeriesBar() {
+    var bar = document.getElementById('series-bar');
+    bar.innerHTML = '';
+    seriesList.forEach(function (s) {
+      var t = document.createElement('div');
+      t.className = 'series-tab' + (s === activeSeries ? ' active' : '');
+      t.style.setProperty('--series-color', BTG.seriesAccent(s));
+      t.setAttribute('data-series', s);
+      t.innerHTML = BTG.seriesLogoImg(s, 26);
+      t.title = s;
+      t.onclick = function () {
+        activeSeries = s;
+        seasons = BTG.Data.getSeasons(s);
+        activeSeason = seasons[0] || 2026;
+        rebuildSeasonSelect();
+        bar.querySelectorAll('.series-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-series') === s); });
+        loadStandings();
+      };
+      bar.appendChild(t);
+    });
+  }
+
+  function rebuildSeasonSelect() {
+    var sel = document.getElementById('season-select');
+    sel.innerHTML = '';
+    seasons.forEach(function (s) { var o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o); });
+    sel.value = activeSeason;
+    sel.onchange = function () { activeSeason = Number(this.value); loadStandings(); };
+  }
+
+  function loadStandings() {
+    var sName = document.getElementById('st-series-name');
+    if (sName) sName.textContent = activeSeries || '';
+    loadDrivers();
+    loadTeams();
+  }
+
+  // ── Drivers ─────────────────────────────────────────────────────────────
+  function loadDrivers() {
+    var listEl = document.getElementById('st-drivers');
+    var list = BTG.Data.buildDriverList(activeSeries, activeSeason, { includeAll: true })
+      .slice().sort(function (a, b) {
+        var pa = (a.standings && a.standings.pos !== '—') ? Number(a.standings.pos) : 999;
+        var pb = (b.standings && b.standings.pos !== '—') ? Number(b.standings.pos) : 999;
+        if (pa !== pb) return pa - pb;
+        var ta = a.teamOrder != null ? a.teamOrder : 99, tb = b.teamOrder != null ? b.teamOrder : 99;
+        if (ta !== tb) return ta - tb;
+        return (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+      });
+    if (!list.length) { listEl.innerHTML = '<div class="st-empty">No standings for ' + esc(activeSeries) + '.</div>'; return; }
+    drivers = list;
+    listEl.innerHTML = list.map(function (d, i) {
+      var pos = (d.standings && d.standings.pos !== '—') ? Number(d.standings.pos) : i + 1;
+      var posMod = pos === 1 ? 'gold' : pos === 2 ? 'silver' : pos === 3 ? 'bronze' : 'normal';
+      var rgb = teamRgb(d.team);
+      var ss = d.seasonStats || {};
+      var num = d.carNumber != null ? d.carNumber : '';
+      var full = d.fullName || d.name;
+      return '<div class="st-row" style="--team-rgb:' + rgb + '" data-name="' + esc(full) + '">'
+        + '<span class="st-row__pos st-row__pos--' + posMod + '">' + (pos > 99 ? '—' : pos) + '</span>'
+        + (d.nation ? '<img class="st-row__flag" src="Flags/' + esc(d.nation) + '.svg" alt="" onerror="this.style.display=\'none\'">' : '')
+        + '<span class="st-row__photo">' + BTG.driverPhotoImg(full, 30, '') + '</span>'
+        + (num ? '<span class="st-row__num">#' + num + '</span>' : '')
+        + '<span class="st-row__name" style="color:' + teamColorCss(d.team) + '">' + esc(full) + '</span>'
+        + '<span class="st-row__team">' + esc(d.team || '') + '</span>'
+        + (ss.wins ? '<span class="st-row__pts" style="color:#4ade80;font-size:10px;">🏆' + ss.wins + '</span>' : '')
+        + '<span class="st-row__pts">' + (d.standings ? d.standings.pts : '—') + ' pts</span>'
+        + '</div>';
+    }).join('');
+    listEl.querySelectorAll('.st-row').forEach(function (el) {
+      el.onclick = function () { showDriverModal(el.getAttribute('data-name')); };
+    });
+  }
+
+  // ── Constructors ────────────────────────────────────────────────────────
+  function loadTeams() {
+    var listEl = document.getElementById('st-teams');
+    var list = BTG.DBCache.getTeamStandings(activeSeries, activeSeason);
+    if (!list.length) { listEl.innerHTML = '<div class="st-empty">No constructors standings for ' + esc(activeSeries) + '.</div>'; return; }
+    teams = list;
+    listEl.innerHTML = list.map(function (t, i) {
+      var pos = Number(t.position) || i + 1;
+      var posMod = pos === 1 ? 'gold' : pos === 2 ? 'silver' : pos === 3 ? 'bronze' : 'normal';
+      var rgb = teamRgb(t.team);
+      return '<div class="st-row" style="--team-rgb:' + rgb + '">'
+        + '<span class="st-row__pos st-row__pos--' + posMod + '">' + pos + '</span>'
+        + (BTG.teamLogoImg ? '<span class="st-row__logo">' + BTG.teamLogoImg(t.team, activeSeries, 18) + '</span>' : '')
+        + '<span class="st-row__name" style="color:' + teamColorCss(t.team) + '">' + esc(t.team) + '</span>'
+        + '<span class="st-row__pts">' + t.points + ' pts</span>'
+        + '</div>';
+    }).join('');
+  }
+
+  // ── Driver modal (same as the original index.html) ──────────────────────
+  function showDriverModal(name) {
+    var d = drivers.find(function (x) { return (x.fullName || x.name) === name; });
+    if (!d) return;
+    if (d.teamColor) {
+      var _t = BTG.teamByName(d.team);
+      BTG.setTeamColors(d.teamColor, _t && _t.colorSecondary);
+    }
+    document.getElementById('modal-name').textContent = d.name;
+    document.getElementById('modal-team').textContent = (d.team || 'Privateer') + ' · ' + (d.series || activeSeries);
+    document.getElementById('modal-overall').textContent = (d.careerRecord && d.careerRecord.avgFinish !== '—') ? d.careerRecord.avgFinish : '—';
+    document.getElementById('modal-flag').innerHTML = BTG.driverPhotoImg(d.fullName || d.name, 48) + ' ' + BTG.flagImg(d.nation, 48, 36);
+    var career = (BTG.DBCache && BTG.DBCache.driverCareer) ? BTG.DBCache.driverCareer(d.name) : [];
+    document.getElementById('modal-lifetime').innerHTML = career.length
+      ? career.map(function (c) {
+          return '<div class="ml-series"><div class="ml-head"><span class="ml-series-logo">' + BTG.seriesLogoImg(c.series, 14) + '</span>'
+            + (c.teamKeys.length ? '<span class="ml-teams">' + c.teamKeys.map(function (t) { return esc(t); }).join(' · ') + '</span>' : '')
+            + '</div><div class="ml-stats">'
+            + '<span>Seasons <b>' + (c.years || '—') + '</b></span>'
+            + '<span>Starts <b>' + c.starts + '</b></span>'
+            + '<span>Wins <b>' + c.wins + '</b></span>'
+            + '<span>Sprint <b>' + (c.sprintWins || '—') + '</b></span>'
+            + '<span>Podiums <b>' + c.podiums + '</b></span>'
+            + '<span>Points <b>' + c.points + '</b></span>'
+            + '<span>Best <b>' + (c.bestPos ? 'P' + c.bestPos : '—') + '</b></span>'
+            + '</div></div>';
+        }).join('')
+      : '<div class="muted">No series yet.</div>';
+    var contracts = (BTG.DBCache && BTG.DBCache.contractHistory) ? BTG.DBCache.contractHistory(d.name) : [];
+    document.getElementById('modal-contracts').innerHTML = contracts.length
+      ? contracts.map(function (h) {
+          var roleLabel = (str0(h.entity_type) === 'tp' ? 'Team Principal' : str0(h.role));
+          return '<div class="mc-row' + (h.is_current ? ' current' : '') + '">'
+            + '<div class="mc-team">' + esc(str0(h.team_key) || '—') + (h.is_current ? ' <span class="tag-pill">current</span>' : '') + '</div>'
+            + '<div class="mc-meta">' + esc(roleLabel) + ' · ' + (h.from_year || '—') + '–' + (h.till_year || '—') + '</div>'
+            + '</div>';
+        }).join('')
+      : '<div class="muted">No contract history.</div>';
+    function str0(v) { return v == null ? '' : String(v); }
+    BTG.openModal('driver-modal');
+  }
+
+  // ── Boot ────────────────────────────────────────────────────────────────
+  BTG.DBCache.init().then(function (dbData) {
+    cache = dbData;
+    if (dbData && dbData.races && dbData.races.length) {
+      BTG.Data.getSeriesList = BTG.DBCache.getSeriesList;
+      BTG.Data.getSeasons = BTG.DBCache.getSeasons;
+      BTG.Data.buildDriverList = BTG.DBCache.buildDriverList;
+    }
+    BTG.Data.init().then(load).catch(function () {
+      seriesList = ['F1']; activeSeries = 'F1'; seasons = [2026]; activeSeason = 2026;
+      buildSeriesBar(); rebuildSeasonSelect(); loadStandings();
+    });
+    BTG.Data.onUpdate(load);
+  });
+
+  function load() {
+    seriesList = BTG.Data.getSeriesList().map(function (s) { return s.id; });
+    if (seriesList.indexOf(activeSeries) === -1) activeSeries = seriesList[0] || 'F1';
+    seasons = BTG.Data.getSeasons(activeSeries);
+    if (seasons.indexOf(activeSeason) === -1) activeSeason = seasons[0] || 2026;
+    buildSeriesBar();
+    rebuildSeasonSelect();
+    loadStandings();
+  }
+})();
+</script>
+</body>
+</html>

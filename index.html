@@ -3,23 +3,197 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BeTheGrid — Standings</title>
+<title>BeTheGrid — Home</title>
 <link rel="icon" type="image/x-icon" href="logos/BTG.ico">
 <link rel="stylesheet" href="style.css">
+<style>
+/* ── Home / Dashboard landing (TFG dashboard-inspired, vanilla port) ─────── */
+:root {
+  --bg-base: #18181b;
+  --bg-card: #101014;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --border-subtle: rgba(255,255,255,0.06);
+  --accent: #b91d2e;
+}
+body { background: var(--bg-base); color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+.home-wrap { max-width: 1400px; margin: 0 auto; padding: 0 16px 90px; }
+.home-controls {
+  display: flex; align-items: center; gap: 12px; padding: 14px 0 4px;
+  border-bottom: 1px solid var(--border-subtle); margin-bottom: 18px; flex-wrap: wrap;
+}
+.home-controls .series-bar { background: none; border-bottom: none; padding: 0; }
+.home-controls select {
+  background: #3a3a3a; color: #fff; border: 1px solid #4d4d4d; border-radius: 4px;
+  padding: 6px 10px; font-size: 12px;
+}
+.home-controls select option { background: #3a3a3a; color: #fff; }
+.home-spacer { flex: 1; }
+.home-label { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); }
+
+/* Headline */
+.home-headline {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 18px;
+  padding: 18px 22px; background: var(--bg-card); border: 1px solid var(--border-subtle);
+  border-radius: 12px; border-left: 4px solid var(--accent);
+}
+.home-headline__badge {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent); border: 1px solid var(--accent); border-radius: 6px;
+  padding: 5px 10px; white-space: nowrap; flex-shrink: 0;
+}
+.home-headline__text { font-size: 15px; line-height: 1.4; color: var(--text-primary); }
+
+/* Highlight cards */
+.home-highlights { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+@media (max-width: 900px) { .home-highlights { grid-template-columns: 1fr; } }
+.home-card {
+  display: flex; align-items: center; gap: 14px; padding: 16px 18px;
+  background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px;
+}
+.home-card__icon { width: 46px; height: 46px; border-radius: 10px; display: grid; place-items: center; font-size: 22px; flex-shrink: 0; }
+.home-card__icon--amber { background: rgba(250,204,21,0.12); }
+.home-card__icon--sky { background: rgba(56,189,248,0.12); }
+.home-card__icon--emerald { background: rgba(52,211,153,0.12); }
+.home-card__body { min-width: 0; }
+.home-card__title { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+.home-card__value { font-size: 16px; font-weight: 800; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-card__sub { font-size: 11px; color: var(--text-secondary); }
+
+/* Championship overview (two columns) */
+.home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+@media (max-width: 900px) { .home-grid { grid-template-columns: 1fr; } }
+.home-col {
+  background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; overflow: hidden;
+}
+.home-col__head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border-subtle); }
+.home-col__title { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.home-col__link { font-size: 10px; color: var(--text-muted); text-decoration: none; }
+.home-col__link:hover { color: var(--text-primary); }
+.home-col__list { display: flex; flex-direction: column; }
+
+/* Row — mirrors TFG dash-row / team-glow-row */
+.home-row {
+  display: flex; align-items: center; gap: 12px; padding: 9px 14px;
+  border-left: 3px solid transparent; transition: border-color 200ms, background 200ms;
+}
+.home-row:hover { background: rgba(255,255,255,0.04); border-left-color: rgb(var(--team-rgb, 99 102 241)) !important; }
+.home-row + .home-row { border-top: 1px solid rgba(255,255,255,0.03); }
+.home-row__pos {
+  width: 24px; height: 24px; flex-shrink: 0; display: grid; place-items: center;
+  border-radius: 50%; border: 1px solid rgba(255,255,255,0.1);
+  font-size: 11px; font-weight: 700; font-family: ui-monospace, Menlo, monospace;
+  background: rgba(255,255,255,0.04); color: var(--text-secondary);
+}
+.home-row__pos--gold { background: rgba(250,204,21,0.15); color: #fde047; border-color: rgba(250,204,21,0.35); }
+.home-row__pos--silver { background: rgba(255,255,255,0.07); color: #e4e4e7; border-color: rgba(255,255,255,0.2); }
+.home-row__pos--bronze { background: rgba(253,186,116,0.12); color: #fdba74; border-color: rgba(253,186,116,0.3); }
+.home-row__flag { width: 18px; height: 12px; object-fit: cover; border-radius: 1px; flex-shrink: 0; }
+.home-row__photo { width: 30px; height: 30px; border-radius: 50%; overflow: hidden; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1); }
+.home-row__photo img { width: 100%; height: 100%; object-fit: cover; }
+.home-row__num { font-size: 10px; color: var(--text-muted); font-family: ui-monospace, monospace; flex-shrink: 0; }
+.home-row__name { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-row__pts { font-size: 12px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; color: #fde047; flex-shrink: 0; }
+.home-row__logo { height: 16px; max-width: 70px; object-fit: contain; flex-shrink: 0; }
+
+/* Quick stats */
+.home-quickstats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+@media (max-width: 900px) { .home-quickstats { grid-template-columns: 1fr; } }
+.home-qs { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 14px 16px; }
+.home-qs__title { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
+.home-qs__row { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-secondary); }
+.home-qs__row + .home-qs__row { margin-top: 8px; }
+.home-qs__label { color: var(--text-muted); width: 56px; flex-shrink: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+.home-qs__val { font-weight: 600; color: var(--text-primary); }
+.home-cal-dots { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.home-cal-dot { width: 22px; height: 14px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; }
+.home-cal-dot--done { border-color: rgba(52,211,153,0.5); box-shadow: inset 0 0 0 1px rgba(52,211,153,0.3); }
+.home-cal-dot--next { border-color: var(--accent); box-shadow: 0 0 8px rgba(185,29,46,0.5); }
+.home-cal-dot img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Form guide + records */
+.home-double { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .home-double { grid-template-columns: 1fr; } }
+.home-section__title { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; }
+.home-form-dots { display: flex; gap: 4px; }
+.home-dot {
+  width: 20px; height: 20px; border-radius: 4px; display: grid; place-items: center;
+  font-size: 9px; font-weight: 700; font-family: ui-monospace, monospace; border: 1px solid rgba(255,255,255,0.08);
+}
+.home-dot--win { background: rgba(250,204,21,0.18); color: #fde047; border-color: rgba(250,204,21,0.35); }
+.home-dot--podium { background: rgba(253,186,116,0.14); color: #fdba74; border-color: rgba(253,186,116,0.3); }
+.home-dot--pts { background: rgba(56,189,248,0.14); color: #7dd3fc; border-color: rgba(56,189,248,0.3); }
+.home-dot--other { background: rgba(255,255,255,0.04); color: var(--text-muted); }
+.home-rec { font-size: 11px; color: var(--text-secondary); }
+
+.tfg-attrib { position: fixed; bottom: 12px; left: 16px; font-size: 9px; color: #52525b; z-index: 60; font-family: ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', monospace; }
+.tfg-attrib a { color: #52525b; text-decoration: underline; }
+.tfg-attrib a:hover { color: #71717a; }
+</style>
 </head>
-<body data-page="standings">
+<body data-page="home">
 
 <nav class="btg-nav" id="btg-nav"></nav>
 
-<div style="max-width:1200px;margin:0 auto;padding:0 16px;">
-  <div class="dp-controls" style="margin-top:12px;">
+<div class="home-wrap">
+  <div class="home-controls">
     <div class="series-bar" id="series-bar" style="border:none;background:none;padding:0;"></div>
-    <span style="flex:1"></span>
-    <span class="label">Season</span>
+    <span class="home-spacer"></span>
+    <span class="home-label">Season</span>
     <select id="season-select"></select>
   </div>
-  <div class="page-section" id="content" style="padding:12px 0 80px;">
-    <div class="muted" style="padding:24px">Loading standings…</div>
+
+  <div class="home-headline">
+    <span class="home-headline__badge" id="home-season">Season</span>
+    <span class="home-headline__text" id="home-headline">Loading…</span>
+  </div>
+
+  <div class="home-highlights" id="home-highlights"></div>
+
+  <div class="home-grid">
+    <div class="home-col">
+      <div class="home-col__head">
+        <span class="home-col__title">Drivers' Championship</span>
+        <a class="home-col__link" href="standings.html">Full standings →</a>
+      </div>
+      <div class="home-col__list" id="home-drivers"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loading…</div></div>
+    </div>
+    <div class="home-col">
+      <div class="home-col__head">
+        <span class="home-col__title">Constructors' Championship</span>
+        <a class="home-col__link" href="standings.html">Full standings →</a>
+      </div>
+      <div class="home-col__list" id="home-teams"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loading…</div></div>
+    </div>
+  </div>
+
+  <div class="home-quickstats">
+    <div class="home-qs">
+      <div class="home-qs__title">🏁 Last Race</div>
+      <div id="home-lastrace"><div class="home-qs__row">Loading…</div></div>
+    </div>
+    <div class="home-qs">
+      <div class="home-qs__title">📅 Calendar</div>
+      <div class="home-cal-dots" id="home-cal"></div>
+      <div class="home-qs__row" id="home-cal-text"></div>
+    </div>
+    <div class="home-qs">
+      <div class="home-qs__title">🔧 Reliability</div>
+      <div id="home-reliability"><div class="home-qs__row">Loading…</div></div>
+    </div>
+  </div>
+
+  <div class="home-double">
+    <div class="home-col">
+      <div class="home-col__head"><span class="home-col__title">📈 Form Guide</span></div>
+      <div class="home-col__list" id="home-form"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loading…</div></div>
+    </div>
+    <div class="home-col">
+      <div class="home-col__head"><span class="home-col__title">🏎 Season Records</span></div>
+      <div class="home-col__list" id="home-records"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loading…</div></div>
+    </div>
   </div>
 </div>
 
@@ -40,138 +214,287 @@
   </div>
 </div>
 
+<div class="tfg-attrib">UI by <a href="https://www.patreon.com/c/TFGTools" target="_blank" rel="noopener">TFGTools</a></div>
+
 <script src="js/common.js"></script>
 <script src="js/border-glow.js"></script>
 <script src="teams/f1.js"></script>
+<script src="js/roster.js"></script>
 <script src="js/db-cache.js"></script>
 <script src="js/data-loader.js"></script>
 <script>
 (function() {
-  var drivers = [], activeSeries = null, seriesList = [], activeSeason = null, seasons = [];
+  var seriesList = [], activeSeries = null, activeSeason = null, seasons = [];
+  var drivers = [];
 
-  // Prefer the DB public cache (built daily from Supabase): if it loads, swap
-  // the driver-data source to DB-backed methods so the page runs purely off
-  // DB data (logos, standings). Otherwise fall back to the static data-loader.
-  BTG.DBCache.init().then(function(dbData) {
-    if (dbData && dbData.races && dbData.races.length) {
-      BTG.Data.getSeriesList = BTG.DBCache.getSeriesList;
-      BTG.Data.getSeasons = BTG.DBCache.getSeasons;
-      BTG.Data.buildDriverList = BTG.DBCache.buildDriverList;
-    }
-    // Load from cache (fast) — init() resolves immediately and auto-discovery
-    // runs in the background, re-triggering load() via onUpdate when it lands.
-    BTG.Data.init().then(load).catch(function() {
-      drivers = [];
-      seriesList = ['F1']; activeSeries = 'F1'; seasons = [2026]; activeSeason = 2026;
-      build();
-    });
-    BTG.Data.onUpdate(load);
-  });
-
-  function load() {
-    seriesList = BTG.Data.getSeriesList().map(function(s){return s.id;});
-    if (seriesList.indexOf(activeSeries) === -1) activeSeries = seriesList[0] || 'F1';
-    seasons = BTG.Data.getSeasons(activeSeries);
-    if (seasons.indexOf(activeSeason) === -1) activeSeason = seasons[0] || 2026;
-    // includeAll → show the full grid in team order even before race results
-    // exist (drivers without a finish show — until the season produces them).
-    drivers = BTG.Data.buildDriverList(activeSeries, activeSeason, { includeAll: true });
-    build();
+  function esc(v) { return BTG.esc ? BTG.esc(v) : String(v == null ? '' : v); }
+  function hexToRgb(hex) {
+    hex = String(hex || '').replace('#','');
+    if (hex.length !== 6) return '99 102 241';
+    var r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+    if ([r,g,b].some(isNaN)) return '99 102 241';
+    return r + ' ' + g + ' ' + b;
   }
+  function teamRgb(name) {
+    var hex = BTG.DBCache && BTG.DBCache.teamColorHex ? BTG.DBCache.teamColorHex(name) : '';
+    return hexToRgb(hex || '');
+  }
+  function teamColorCss(name) { return 'rgb(' + teamRgb(name).split(' ').join(',') + ')'; }
 
-  function build() {
+  function buildSeriesBar() {
     var bar = document.getElementById('series-bar');
-    bar.innerHTML = ''; // clear so re-renders (onUpdate) don't duplicate tabs
-    seriesList.forEach(function(s) {
+    bar.innerHTML = '';
+    seriesList.forEach(function (s) {
       var t = document.createElement('div');
       t.className = 'series-tab' + (s === activeSeries ? ' active' : '');
-      // Accent color derived from the series data — never hardcoded per series name.
       t.style.setProperty('--series-color', BTG.seriesAccent(s));
       t.setAttribute('data-series', s);
-      // Clickable series logo (auto-discovered from logos/{series}.png, clamped)
       t.innerHTML = BTG.seriesLogoImg(s, 26);
       t.title = s;
-      t.onclick = function() {
+      t.onclick = function () {
         activeSeries = s;
         seasons = BTG.Data.getSeasons(s);
         activeSeason = seasons[0] || 2026;
         rebuildSeasonSelect();
-        drivers = BTG.Data.buildDriverList(s, activeSeason, { includeAll: true });
-        bar.querySelectorAll('.series-tab').forEach(function(x){x.classList.toggle('active',x.getAttribute('data-series')===s);});
+        bar.querySelectorAll('.series-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-series') === s); });
         render();
       };
       bar.appendChild(t);
     });
-    rebuildSeasonSelect();
-    render();
   }
-
   function rebuildSeasonSelect() {
     var sel = document.getElementById('season-select');
     sel.innerHTML = '';
-    seasons.forEach(function(s) { var o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o); });
+    seasons.forEach(function (s) { var o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o); });
     sel.value = activeSeason;
-    sel.onchange = function() {
-      activeSeason = Number(this.value);
-      drivers = BTG.Data.buildDriverList(activeSeries, activeSeason, { includeAll: true });
-      render();
-    };
+    sel.onchange = function () { activeSeason = Number(this.value); render(); };
+  }
+
+  function getTopDrivers() {
+    return BTG.Data.buildDriverList(activeSeries, activeSeason, { includeAll: true })
+      .slice().sort(function (a, b) {
+        var pa = (a.standings && a.standings.pos !== '—') ? Number(a.standings.pos) : 999;
+        var pb = (b.standings && b.standings.pos !== '—') ? Number(b.standings.pos) : 999;
+        if (pa !== pb) return pa - pb;
+        var ta = a.teamOrder != null ? a.teamOrder : 99, tb = b.teamOrder != null ? b.teamOrder : 99;
+        if (ta !== tb) return ta - tb;
+        return (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+      });
+  }
+
+  function renderHeadline(topDrivers, topTeams) {
+    document.getElementById('home-season').textContent = 'Season ' + activeSeason;
+    var el = document.getElementById('home-headline');
+    var lead = topDrivers[0], second = topDrivers[1];
+    var teamLead = topTeams[0];
+    if (lead && teamLead) {
+      var gap = (lead.standings ? lead.standings.pts : 0) - (second && second.standings ? second.standings.pts : 0);
+      if (gap > 0) el.textContent = lead.name + ' leads the ' + esc(activeSeries) + ' championship with a ' + gap + '-point gap as ' + teamLead.team + ' top the constructors\' battle.';
+      else if (gap === 0) el.textContent = 'Dead heat at the top — ' + lead.name + ' tied for the championship lead. ' + teamLead.team + ' hold the constructors\' edge.';
+      else el.textContent = teamLead.team + ' top both championships as the ' + activeSeason + ' season unfolds.';
+    } else {
+      el.textContent = 'Season ' + activeSeason + ' — standings available once races are run.';
+    }
+  }
+
+  function renderHighlights(topDrivers, topTeams) {
+    var el = document.getElementById('home-highlights');
+    var cards = [];
+    var lead = topDrivers[0];
+    if (lead) {
+      cards.push({ icon: '👑', iconCls: 'amber', title: 'Championship Leader', value: lead.fullName || lead.name, sub: (lead.standings ? lead.standings.pts : 0) + ' pts' });
+    }
+    if (topTeams[0]) {
+      cards.push({ icon: '🏭', iconCls: 'sky', title: 'Constructors Leader', value: topTeams[0].team, sub: topTeams[0].points + ' pts' });
+    }
+    var topWin = topDrivers.slice().sort(function (a, b) { return (b.seasonStats ? b.seasonStats.wins : 0) - (a.seasonStats ? a.seasonStats.wins : 0); })[0];
+    if (topWin && topWin.seasonStats && topWin.seasonStats.wins > 0) {
+      cards.push({ icon: '🏆', iconCls: 'emerald', title: 'Most Race Wins', value: topWin.fullName || topWin.name, sub: topWin.seasonStats.wins + ' victories' });
+    } else {
+      cards.push({ icon: '⭐', iconCls: 'emerald', title: 'Drivers', value: (topDrivers.length || 0) + ' entered', sub: esc(activeSeries) + ' championship' });
+    }
+    el.innerHTML = cards.map(function (c) {
+      return '<div class="home-card">'
+        + '<div class="home-card__icon home-card__icon--' + c.iconCls + '">' + c.icon + '</div>'
+        + '<div class="home-card__body"><div class="home-card__title">' + esc(c.title) + '</div>'
+        + '<div class="home-card__value">' + esc(c.value) + '</div>'
+        + '<div class="home-card__sub">' + esc(c.sub) + '</div></div></div>';
+    }).join('');
+  }
+
+  function renderDrivers(topDrivers) {
+    var el = document.getElementById('home-drivers');
+    drivers = topDrivers;
+    if (!topDrivers.length) { el.innerHTML = '<div style="padding:20px;color:var(--text-muted);font-size:12px;">No data.</div>'; return; }
+    el.innerHTML = topDrivers.slice(0, 12).map(function (d, i) {
+      var pos = (d.standings && d.standings.pos !== '—') ? Number(d.standings.pos) : i + 1;
+      var posMod = pos === 1 ? 'gold' : pos === 2 ? 'silver' : pos === 3 ? 'bronze' : 'normal';
+      var rgb = teamRgb(d.team);
+      var full = d.fullName || d.name;
+      var num = d.carNumber != null ? d.carNumber : '';
+      return '<div class="home-row" style="--team-rgb:' + rgb + '" data-name="' + esc(full) + '">'
+        + '<span class="home-row__pos home-row__pos--' + posMod + '">' + (pos > 99 ? '—' : pos) + '</span>'
+        + (d.nation ? '<img class="home-row__flag" src="Flags/' + esc(d.nation) + '.svg" alt="" onerror="this.style.display=\'none\'">' : '')
+        + '<span class="home-row__photo">' + BTG.driverPhotoImg(full, 30, '') + '</span>'
+        + (num ? '<span class="home-row__num">#' + num + '</span>' : '')
+        + '<span class="home-row__name" style="color:' + teamColorCss(d.team) + '">' + esc(full) + '</span>'
+        + '<span class="home-row__pts">' + (d.standings ? d.standings.pts : '—') + ' pts</span>'
+        + '</div>';
+    }).join('');
+    el.querySelectorAll('.home-row').forEach(function (r) {
+      r.onclick = function () { showDriverModal(r.getAttribute('data-name')); };
+    });
+  }
+
+  function renderTeams() {
+    var el = document.getElementById('home-teams');
+    var list = BTG.DBCache.getTeamStandings(activeSeries, activeSeason);
+    if (!list.length) { el.innerHTML = '<div style="padding:20px;color:var(--text-muted);font-size:12px;">No data.</div>'; return; }
+    el.innerHTML = list.slice(0, 10).map(function (t, i) {
+      var pos = Number(t.position) || i + 1;
+      var posMod = pos === 1 ? 'gold' : pos === 2 ? 'silver' : pos === 3 ? 'bronze' : 'normal';
+      var rgb = teamRgb(t.team);
+      return '<div class="home-row" style="--team-rgb:' + rgb + '">'
+        + '<span class="home-row__pos home-row__pos--' + posMod + '">' + pos + '</span>'
+        + (BTG.teamLogoImg ? '<span class="home-row__logo">' + BTG.teamLogoImg(t.team, activeSeries, 18) + '</span>' : '')
+        + '<span class="home-row__name" style="color:' + teamColorCss(t.team) + '">' + esc(t.team) + '</span>'
+        + '<span class="home-row__pts">' + t.points + ' pts</span>'
+        + '</div>';
+    }).join('');
+  }
+
+  function renderLastRace() {
+    var el = document.getElementById('home-lastrace');
+    var races = BTG.Data.getRaces(activeSeries, activeSeason) || [];
+    var results = (BTG.DBCache.data() || {}).race_results || [];
+    var last = null;
+    races.forEach(function (r) {
+      if (results.some(function (x) { return String(x.race_id) === String(r.race_id); })) {
+        if (!last || Number(r.round_number) > Number(last.round_number)) last = r;
+      }
+    });
+    if (!last) { el.innerHTML = '<div class="home-qs__row">No races run yet.</div>'; return; }
+    var rows = results.filter(function (x) { return String(x.race_id) === String(last.race_id); });
+    var winner = rows.filter(function (r) { return Number(r.finish_position) === 1; })[0];
+    var pole = rows.filter(function (r) { return Number(r.grid_position) === 1; })[0];
+    var fl = rows.filter(function (r) { return r.fastest_lap_seconds != null; }).sort(function (a, b) { return Number(a.fastest_lap_seconds) - Number(b.fastest_lap_seconds); })[0];
+    el.innerHTML = '<div class="home-qs__row"><span class="home-qs__label">Winner</span><span class="home-qs__val">' + esc(winner ? winner.driver_name : '—') + '</span></div>'
+      + '<div class="home-qs__row"><span class="home-qs__label">Pole</span><span class="home-qs__val">' + esc(pole ? pole.driver_name : '—') + '</span></div>'
+      + '<div class="home-qs__row"><span class="home-qs__label">Fastest</span><span class="home-qs__val">' + esc(fl ? fl.driver_name : '—') + '</span></div>';
+  }
+
+  function renderCalendar() {
+    var el = document.getElementById('home-cal');
+    var txt = document.getElementById('home-cal-text');
+    var races = BTG.Data.getRaces(activeSeries, activeSeason) || [];
+    var results = (BTG.DBCache.data() || {}).race_results || [];
+    var done = 0;
+    var nextIdx = -1;
+    el.innerHTML = races.map(function (r, i) {
+      var has = results.some(function (x) { return String(x.race_id) === String(r.race_id); });
+      if (has) done++;
+      else if (nextIdx === -1) nextIdx = i;
+      var cls = has ? 'home-cal-dot--done' : (i === nextIdx ? 'home-cal-dot--next' : '');
+      var code = String(r.country || '').slice(0, 2).toUpperCase();
+      return '<span class="home-cal-dot ' + cls + '" title="' + esc(r.name || r.circuit || '') + '">'
+        + (code ? '<img src="Flags/' + code + '.svg" alt="" onerror="this.style.display=\'none\'">' : '')
+        + '</span>';
+    }).join('');
+    txt.innerHTML = '<span class="home-qs__label">Progress</span><span class="home-qs__val">' + done + '/' + races.length + ' done · ' + (races.length - done) + ' left</span>';
+  }
+
+  function renderReliability() {
+    var el = document.getElementById('home-reliability');
+    var results = (BTG.DBCache.data() || {}).race_results || [];
+    var races = BTG.Data.getRaces(activeSeries, activeSeason) || [];
+    var raceIds = races.map(function (r) { return String(r.race_id); });
+    var mine = results.filter(function (r) { return raceIds.indexOf(String(r.race_id)) !== -1; });
+    var byTeam = {};
+    mine.forEach(function (r) {
+      var k = String(r.team_id != null ? r.team_id : r.entry_key || '');
+      if (!k) return;
+      byTeam[k] = byTeam[k] || { name: (BTG.DBCache.teamName ? BTG.DBCache.teamName(r.team_id != null ? r.team_id : r.entry_key) : ''), dnf: 0 };
+      if (Number(r.dnf) === 1) byTeam[k].dnf++;
+    });
+    var list = Object.keys(byTeam).map(function (k) { return byTeam[k]; }).sort(function (a, b) { return a.dnf - b.dnf; });
+    if (!list.length) { el.innerHTML = '<div class="home-qs__row">No data.</div>'; return; }
+    el.innerHTML = list.slice(0, 5).map(function (t) {
+      return '<div class="home-qs__row"><span class="home-qs__label">' + esc(t.name || '—') + '</span><span class="home-qs__val">' + t.dnf + ' DNFs</span></div>';
+    }).join('');
+  }
+
+  function renderForm() {
+    var el = document.getElementById('home-form');
+    if (!drivers.length) { el.innerHTML = '<div style="padding:20px;color:var(--text-muted);font-size:12px;">No data.</div>'; return; }
+    el.innerHTML = drivers.slice(0, 12).map(function (d) {
+      var res = (d.seasonStats && d.seasonStats.results) || [];
+      var last5 = res.slice(-5);
+      var rgb = teamRgb(d.team);
+      var full = d.fullName || d.name;
+      return '<div class="home-row" style="--team-rgb:' + rgb + '">'
+        + '<span class="home-row__photo">' + BTG.driverPhotoImg(full, 30, '') + '</span>'
+        + '<span class="home-row__name" style="color:' + teamColorCss(d.team) + '">' + esc(full) + '</span>'
+        + '<span class="home-form-dots">'
+        + (last5.length ? last5.map(function (r) {
+            var p = Number(r.pos);
+            var cls = r.dnf ? 'other' : p === 1 ? 'win' : p <= 3 ? 'podium' : p <= 10 ? 'pts' : 'other';
+            return '<span class="home-dot home-dot--' + cls + '" title="' + esc(r.track || '') + '">' + (r.dnf ? 'DNF' : p) + '</span>';
+          }).join('') : '<span style="color:var(--text-muted);font-size:11px;">—</span>')
+        + '</span>'
+        + '</div>';
+    }).join('');
+  }
+
+  function renderRecords() {
+    var el = document.getElementById('home-records');
+    if (!drivers.length) { el.innerHTML = '<div style="padding:20px;color:var(--text-muted);font-size:12px;">No data.</div>'; return; }
+    el.innerHTML = drivers.slice().sort(function (a, b) {
+      var wa = a.seasonStats ? a.seasonStats.wins : 0, wb = b.seasonStats ? b.seasonStats.wins : 0;
+      if (wb !== wa) return wb - wa;
+      var pa = a.seasonStats ? a.seasonStats.podiums : 0, pb = b.seasonStats ? b.seasonStats.podiums : 0;
+      return pb - pa;
+    }).slice(0, 12).map(function (d) {
+      var ss = d.seasonStats || {};
+      var rgb = teamRgb(d.team);
+      var full = d.fullName || d.name;
+      return '<div class="home-row" style="--team-rgb:' + rgb + '">'
+        + '<span class="home-row__photo">' + BTG.driverPhotoImg(full, 30, '') + '</span>'
+        + '<span class="home-row__name" style="color:' + teamColorCss(d.team) + '">' + esc(full) + '</span>'
+        + '<span class="home-rec">' + (ss.wins ? '🏆' + ss.wins : '') + (ss.poles ? ' ⏱' + ss.poles : '') + (ss.podiums ? ' 🥉' + ss.podiums : '') + '</span>'
+        + '</div>';
+    }).join('');
   }
 
   function render() {
-    // Standings are sorted by championship position (points), then by team order.
-    var list = drivers.slice().sort(function(a,b){
-      var pa = (a.standings&&a.standings.pos!=='—') ? Number(a.standings.pos) : 999;
-      var pb = (b.standings&&b.standings.pos!=='—') ? Number(b.standings.pos) : 999;
-      if (pa !== pb) return pa - pb;
-      var ta = a.teamOrder != null ? a.teamOrder : 99, tb = b.teamOrder != null ? b.teamOrder : 99;
-      if (ta !== tb) return ta - tb;
-      return (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
-    });
-    var c = document.getElementById('content');
-    if (!list.length) { c.innerHTML = '<div class="muted" style="padding:24px">No standings for ' + BTG.esc(activeSeries) + '.</div>'; return; }
-    // Separate columns per entry field (Team and/or Car), derived from the data only.
-    var entryCols = BTG.entryColumns(list, 'team', 'car');
-    var headerCells = entryCols.map(function(col) { return '<th>'+col+'</th>'; }).join('');
-    c.innerHTML = '<table class="btg-table"><thead><tr><th>Pos</th><th></th><th>Driver</th>'+headerCells+'<th>Wins</th><th title="Sprint wins">Sprint</th><th style="text-align:right">Pts</th></tr></thead><tbody>'
-      + list.map(function(d) {
-        var ss = d.seasonStats || {};
-        var entryCells = entryCols.map(function(col) {
-          var label = BTG.entryColLabel(d, col, 'team', 'car');
-          return '<td class="team-cell">'+BTG.entryColLogo(d, col, activeSeries, 14, 'team', 'car')+' '+BTG.esc(label)+'</td>';
-        }).join('');
-        return '<tr><td class="col-pos">'+(d.standings&&d.standings.pos!=='—'?d.standings.pos:'—')+'</td>'
-          + '<td class="flag-cell">'+BTG.flagImg(d.nation,24,18)+'</td>'
-          + '<td><span class="driver-link" data-id="'+BTG.esc(d.id)+'" style="display:inline-flex;align-items:center;gap:8px;">'+BTG.driverPhotoImg(d.fullName || d.name,26)+BTG.esc(d.fullName || d.name)+'</span></td>'
-          + entryCells
-          + '<td class="col-ovr">'+(ss.wins||'—')+'</td>'
-          + '<td class="col-ovr">'+(ss.sprintWins||'—')+'</td>'
-          + '<td class="col-pts">'+(d.standings?d.standings.pts:'—')+'</td></tr>';
-      }).join('') + '</tbody></table>';
-    c._drivers = list;
-    c.querySelectorAll('.driver-link').forEach(function(el) {
-      el.onclick = function() { showModal(this.dataset.id); };
-    });
+    var topDrivers = getTopDrivers();
+    var topTeams = BTG.DBCache.getTeamStandings(activeSeries, activeSeason);
+    renderHeadline(topDrivers, topTeams);
+    renderHighlights(topDrivers, topTeams);
+    renderDrivers(topDrivers);
+    renderTeams();
+    renderLastRace();
+    renderCalendar();
+    renderReliability();
+    renderForm();
+    renderRecords();
   }
 
-  function showModal(id) {
-    var d = (document.getElementById('content')._drivers||drivers).find(function(x){return x.id===id;});
+  function showDriverModal(name) {
+    var d = drivers.find(function (x) { return (x.fullName || x.name) === name; });
     if (!d) return;
     if (d.teamColor) {
       var _t = BTG.teamByName(d.team);
       BTG.setTeamColors(d.teamColor, _t && _t.colorSecondary);
     }
     document.getElementById('modal-name').textContent = d.name;
-    document.getElementById('modal-team').textContent = (d.team||'Privateer')+' · '+(d.series||activeSeries);
-    document.getElementById('modal-overall').textContent = (d.careerRecord&&d.careerRecord.avgFinish!=='—') ? d.careerRecord.avgFinish : '—';
-    document.getElementById('modal-flag').innerHTML = BTG.driverPhotoImg(d.fullName || d.name, 48) + ' ' + BTG.flagImg(d.nation,48,36);
-    // Lifetime stats per series — only the series where this driver has raced
-    // or holds a driving seat. Built from the cached DB (aggregates seasons).
+    document.getElementById('modal-team').textContent = (d.team || 'Privateer') + ' · ' + (d.series || activeSeries);
+    document.getElementById('modal-overall').textContent = (d.careerRecord && d.careerRecord.avgFinish !== '—') ? d.careerRecord.avgFinish : '—';
+    document.getElementById('modal-flag').innerHTML = BTG.driverPhotoImg(d.fullName || d.name, 48) + ' ' + BTG.flagImg(d.nation, 48, 36);
     var career = (BTG.DBCache && BTG.DBCache.driverCareer) ? BTG.DBCache.driverCareer(d.name) : [];
     document.getElementById('modal-lifetime').innerHTML = career.length
       ? career.map(function (c) {
           return '<div class="ml-series"><div class="ml-head"><span class="ml-series-logo">' + BTG.seriesLogoImg(c.series, 14) + '</span>'
-            + (c.teamKeys.length ? '<span class="ml-teams">' + c.teamKeys.map(function (t) { return BTG.esc(t); }).join(' · ') + '</span>' : '')
+            + (c.teamKeys.length ? '<span class="ml-teams">' + c.teamKeys.map(function (t) { return esc(t); }).join(' · ') + '</span>' : '')
             + '</div><div class="ml-stats">'
             + '<span>Seasons <b>' + (c.years || '—') + '</b></span>'
             + '<span>Starts <b>' + c.starts + '</b></span>'
@@ -183,19 +506,43 @@
             + '</div></div>';
         }).join('')
       : '<div class="muted">No series yet.</div>';
-    // Contract history timeline (drivers + TPs, from the cached DB).
     var contracts = (BTG.DBCache && BTG.DBCache.contractHistory) ? BTG.DBCache.contractHistory(d.name) : [];
     document.getElementById('modal-contracts').innerHTML = contracts.length
       ? contracts.map(function (h) {
           var roleLabel = (str0(h.entity_type) === 'tp' ? 'Team Principal' : str0(h.role));
           return '<div class="mc-row' + (h.is_current ? ' current' : '') + '">'
-            + '<div class="mc-team">' + BTG.esc(str0(h.team_key) || '—') + (h.is_current ? ' <span class="tag-pill">current</span>' : '') + '</div>'
-            + '<div class="mc-meta">' + BTG.esc(roleLabel) + ' · ' + (h.from_year || '—') + '–' + (h.till_year || '—') + '</div>'
+            + '<div class="mc-team">' + esc(str0(h.team_key) || '—') + (h.is_current ? ' <span class="tag-pill">current</span>' : '') + '</div>'
+            + '<div class="mc-meta">' + esc(roleLabel) + ' · ' + (h.from_year || '—') + '–' + (h.till_year || '—') + '</div>'
             + '</div>';
         }).join('')
       : '<div class="muted">No contract history.</div>';
     function str0(v) { return v == null ? '' : String(v); }
     BTG.openModal('driver-modal');
+  }
+
+  // ── Boot ────────────────────────────────────────────────────────────────
+  BTG.DBCache.init().then(function (dbData) {
+    if (dbData && dbData.races && dbData.races.length) {
+      BTG.Data.getSeriesList = BTG.DBCache.getSeriesList;
+      BTG.Data.getSeasons = BTG.DBCache.getSeasons;
+      BTG.Data.buildDriverList = BTG.DBCache.buildDriverList;
+      BTG.Data.getRaces = BTG.DBCache.getRaces;
+    }
+    BTG.Data.init().then(load).catch(function () {
+      seriesList = ['F1']; activeSeries = 'F1'; seasons = [2026]; activeSeason = 2026;
+      buildSeriesBar(); rebuildSeasonSelect(); render();
+    });
+    BTG.Data.onUpdate(load);
+  });
+
+  function load() {
+    seriesList = BTG.Data.getSeriesList().map(function (s) { return s.id; });
+    if (seriesList.indexOf(activeSeries) === -1) activeSeries = seriesList[0] || 'F1';
+    seasons = BTG.Data.getSeasons(activeSeries);
+    if (seasons.indexOf(activeSeason) === -1) activeSeason = seasons[0] || 2026;
+    buildSeriesBar();
+    rebuildSeasonSelect();
+    render();
   }
 })();
 </script>
