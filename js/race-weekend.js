@@ -140,6 +140,7 @@ window.BTG = window.BTG || {};
     practiceP1: [], practiceP2: [], practiceP3: [],
     carMap: {},           // driverName → {car, className, team}
     prestigeMap: null,    // driver name → career prestige score (built from DB cache)
+    formMap: null,        // driver name → avg finish over current+previous season
     loading: false
   };
 
@@ -473,6 +474,7 @@ window.BTG = window.BTG || {};
   async function loadCacheRaceData(raceId) {
     var cache = await BTG.DBCache.init();
     state.prestigeMap = buildPrestigeMap(cache);
+    state.formMap = buildFormMap(cache);
     state.raceResult = [];
     state.sprintResult = [];
     state.qualiQ1 = []; state.qualiQ2 = []; state.qualiQ3 = [];
@@ -1461,11 +1463,10 @@ window.BTG = window.BTG || {};
     (cache.races || []).forEach(function (r) { raceSeason[String(r.race_id)] = r.season_id; });
     var rec = function (y) {
       var d = maxYear - y;
-      if (d <= 0) return 1;
-      if (d === 1) return 0.75;
-      if (d === 2) return 0.5;
-      if (d === 3) return 0.3;
-      return 0.15;
+      if (d <= 0) return 1;      // current season
+      if (d === 1) return 0.8;   // previous
+      if (d === 2) return 0.5;   // season before that
+      return 0.2;                // all others
     };
     var add = function (nm, v) {
       var k = String(nm || '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -1496,6 +1497,24 @@ window.BTG = window.BTG || {};
       add(sd.driver_name, (Number(sd.wins) || 0) * 12 * w);
       add(sd.driver_name, (Number(sd.podiums) || 0) * 5 * w);
     });
+    // Consecutive world championships (per series): extra bonus per back-to-back
+    // title (a 3-peat scores +60 twice, a 2-peat +60 once).
+    var champs = {};
+    (cache.season_driver_standings || []).forEach(function (sd) {
+      var info = seasonInfo[String(sd.season_id)];
+      if (!info || Number(sd.position) !== 1) return;
+      var k = String(sd.driver_name || '').toLowerCase().replace(/\s+/g, ' ').trim() + '|' + String(info.series);
+      (champs[k] = champs[k] || []).push(info.year);
+    });
+    Object.keys(champs).forEach(function (k) {
+      var sep = k.indexOf('|');
+      var nm = k.slice(0, sep), series = k.slice(sep + 1);
+      var years = champs[k].slice().sort(function (a, b) { return a - b; });
+      var w = tierW[series] || 0.6;
+      for (var i = 1; i < years.length; i++) {
+        if (years[i] === years[i - 1] + 1) add(nm, 60 * w);
+      }
+    });
     return m;
   }
   function prestigeOf(name) {
@@ -1505,6 +1524,72 @@ window.BTG = window.BTG || {};
     }
     var k = String(name || '').toLowerCase().replace(/\s+/g, ' ').trim();
     return state.prestigeMap[k] || 0;
+  }
+
+  /** Build a recent-form baseline per driver: average finishing position over
+      the current + previous season (recency 1x / 0.8x), weighted by series tier.
+      Used to reward sudden jumps in performance (a driver who has been bad all
+      season suddenly taking a podium = DoTD material). */
+  function buildFormMap(cache) {
+    var m = {};
+    if (!cache) return m;
+    var tierW = {};
+    (cache.series || []).forEach(function (s) {
+      var t = Number(s.tier) || 2;
+      tierW[String(s.series_id)] = t === 1 ? 1 : t === 2 ? 0.8 : 0.6;
+    });
+    var seasonInfo = {};
+    var maxYear = 0;
+    (cache.race_seasons || []).forEach(function (rs) {
+      var y = Number(rs.year) || 0;
+      seasonInfo[String(rs.season_id)] = { series: rs.series_id, year: y };
+      if (y > maxYear) maxYear = y;
+    });
+    var raceSeason = {};
+    (cache.races || []).forEach(function (r) { raceSeason[String(r.race_id)] = r.season_id; });
+    var acc = {}; // key → {sum, weight}
+    var add = function (nm, pos, w) {
+      var k = String(nm || '').toLowerCase().replace(/\s+/g, ' ').trim();
+      if (!k || pos <= 0 || pos >= 99) return;
+      var a = acc[k] = acc[k] || { sum: 0, weight: 0 };
+      a.sum += pos * w;
+      a.weight += w;
+    };
+    (cache.race_results || []).forEach(function (rr) {
+      var info = seasonInfo[raceSeason[String(rr.race_id)]];
+      if (!info) return;
+      var tw = tierW[String(info.series)] || 0.6;
+      var y = info.year;
+      var rec = y === maxYear ? 1 : (maxYear - y === 1 ? 0.8 : 0);
+      if (rec <= 0) return; // only current + previous season
+      add(rr.driver_name, Number(rr.finish_position), rec * tw);
+    });
+    Object.keys(acc).forEach(function (k) {
+      var a = acc[k];
+      if (a.weight > 0) m[k] = a.sum / a.weight;
+    });
+    return m;
+  }
+  function formOf(name) {
+    if (!state.formMap) {
+      var raw = window.BTG && BTG.DBCache && BTG.DBCache.data ? BTG.DBCache.data() : null;
+      state.formMap = buildFormMap(raw);
+    }
+    var k = String(name || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    return state.formMap[k] || null;
+  }
+
+  /** Map a career-prestige score to the finishing position that driver is
+      "expected" to deliver. Higher prestige = harsher standard (8x champion is
+      expected to win), so an ordinary strong finish earns little DoTD credit. */
+  function expectedPosFor(prest) {
+    if (prest >= 400) return 1;
+    if (prest >= 220) return 2;
+    if (prest >= 150) return 3;
+    if (prest >= 100) return 5;
+    if (prest >= 60) return 8;
+    if (prest >= 30) return 11;
+    return 15;
   }
 
   function renderDriverOfDay(rows, isSprint) {
@@ -1527,17 +1612,28 @@ window.BTG = window.BTG || {};
       var underdog = Number.isFinite(carPct) && carPct > 0 ? (100 - carPct) / 100 : 0.5;
       var prest = prestigeOf(r.driverId);
       var overtakes = Number(r.overtakes || 0);
+      var expPos = expectedPosFor(prest);
+      var overPerf = expPos - pos;   // >0 = beat expectation, <0 = underperformed
+      // High prestige shrinks the credit for a high finish (it was expected);
+      // beating expectation restores it, exceeding it boosts it.
+      var expFactor = Math.min(1, Math.max(0.15, 0.35 + overPerf * 0.08));
+      var expectationScore = overPerf > 0 ? Math.min(90, overPerf * 8) : overPerf * 6;
+      var recognitionTerm = Math.min(25, prest * 0.06);
+      // Sudden performance: how far above their recent form (current+previous
+      // season avg finish) they finished today. A big jump = big DoTD bonus.
+      var baseForm = formOf(r.driverId);
+      var formJump = baseForm != null ? baseForm - pos : 0;
+      var surpriseScore = formJump >= 4 ? Math.min(110, formJump * formJump * 1.4) : 0;
 
       var historyScore = (formRaw / 2.35) * 12 + (winsRaw * winsRaw * 2.5) + (podsRaw * 0.5);
       var gainScore = gain > 0 ? gain * gain * 6 : 0;
-      var finishBonus = pos === 1 ? 180 : pos === 2 ? 120 : pos === 3 ? 80 : pos <= 6 ? 35 : pos <= 10 ? 10 : 0;
+      var finishBonus = (pos === 1 ? 180 : pos === 2 ? 120 : pos === 3 ? 80 : pos <= 6 ? 35 : pos <= 10 ? 10 : 0) * expFactor;
       var overtakeScore = overtakes >= 3 ? Math.min(60, overtakes * overtakes * 0.6) : 0;
       var marginBonus = pos === 1 && winMargin >= 5 ? Math.min(120, 40 + winMargin * 3) : 0;
       var carScore = underdog * underdog * 18;
-      var prestigeTerm = Math.min(140, prest * 0.35);
-      var raw = Math.max(1, historyScore + gainScore + finishBonus + overtakeScore + marginBonus + carScore + prestigeTerm);
+      var raw = Math.max(1, historyScore + gainScore + finishBonus + overtakeScore + marginBonus + carScore + expectationScore + recognitionTerm + surpriseScore);
       var dotdScore = Math.pow(raw, 1.35);
-      return { driverId: r.driverId, teamName: r.teamName, teamId: r.teamId, finishingPos: r.finishingPos, positionsGained: r.positionsGained, dotdScore: dotdScore, gainScore: gainScore, overtakeScore: overtakeScore, marginBonus: marginBonus, prestige: prest, carScore: carScore, carPct: null, wins: winsRaw, podiums: podsRaw, isHome: false };
+      return { driverId: r.driverId, teamName: r.teamName, teamId: r.teamId, finishingPos: r.finishingPos, positionsGained: r.positionsGained, dotdScore: dotdScore, gainScore: gainScore, overtakeScore: overtakeScore, marginBonus: marginBonus, prestige: prest, expectationScore: expectationScore, surpriseScore: surpriseScore, formAvg: baseForm, carScore: carScore, carPct: null, wins: winsRaw, podiums: podsRaw, isHome: false };
     }).sort(function(a, b) { return b.dotdScore - a.dotdScore || b.positionsGained - a.positionsGained || a.finishingPos - b.finishingPos; });
 
     var winner = candidates[0];
