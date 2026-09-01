@@ -1089,6 +1089,7 @@ window.BTG = window.BTG || {};
       widths = widths.concat([88, 72, 46, 48, 54, 46]); // Finish, Gap, Start, Finish, Places, Points
       widths.push(hasPitData ? 50 : 0);   // Stops
       widths.push(hasPitData ? 72 : 0);   // Pit Time
+      widths.push(hasPitData ? 64 : 0);   // Fastest Stop
       widths.push(76);                    // Avg Lap
       widths.push(hasOvertakes ? 72 : 0); // Overtakes
       widths.push(82);                    // Best Lap
@@ -1332,13 +1333,13 @@ window.BTG = window.BTG || {};
     // Team and Car are separate columns when the series has both.
     var cols = entryColumns(rows);
     var headers = ['Pos', 'Driver'].concat(cols, ['Finish Time', 'Gap Ahead', 'Start', 'Finish', 'Places', 'Points']);
-    if (!isSprint) headers = headers.concat(['Stops', 'Pit Time', 'Avg Lap', 'Overtakes']);
+    if (!isSprint) headers = headers.concat(['Stops', 'Pit Time', 'Fastest Stop', 'Avg Lap', 'Overtakes']);
     headers.push('Best Lap');
     // Which header cells are collapsed to 0px (matching the template zeroing).
     var hiddenMask = [false, false];
     cols.forEach(function() { hiddenMask.push(false); });
     hiddenMask = hiddenMask.concat([false, false, false, false, false, false, false]);
-    if (!isSprint) hiddenMask = hiddenMask.concat([!hasPitData, !hasPitData, false, !hasOvertakes]);
+    if (!isSprint) hiddenMask = hiddenMask.concat([!hasPitData, !hasPitData, !hasPitData, false, !hasOvertakes]);
     hiddenMask.push(false);
     headers.forEach(function(h, i) {
       html += '<div class="min-w-0 px-1 py-2 leading-tight border-b border-white/10 bg-base-header font-black uppercase tracking-[0.04em] text-muted-text ' + (i === 1 ? 'cell-driver' : i >= 2 && i < 2 + cols.length ? 'cell-team' : 'cell-data') + (hiddenMask[i] ? ' cell-hidden' : '') + '" style="font-size:8px;">' + h + '</div>';
@@ -1360,6 +1361,7 @@ window.BTG = window.BTG || {};
       if (!isSprint) {
         cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono text-secondary-text cell-data border-b border-white/[0.04] ' + rowBg + (!hasPitData ? ' cell-hidden' : '') + '" data-row="' + idx + '">' + (hasPitData ? (r.pitStops || '—') : '—') + '</div>');
         cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono text-secondary-text cell-data border-b border-white/[0.04] ' + rowBg + (!hasPitData ? ' cell-hidden' : '') + '" data-row="' + idx + '">' + (hasPitData ? formatSeconds(r.pitTotal) : '—') + '</div>');
+        cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono ' + (hasPitData && bestPit && r.pitBest > 0 && r.pitBest === bestPit.pitBest ? 'text-emerald-300 font-black' : 'text-secondary-text') + ' cell-data border-b border-white/[0.04] ' + rowBg + (!hasPitData ? ' cell-hidden' : '') + '" data-row="' + idx + '">' + (hasPitData ? (r.pitBest > 0 ? formatSeconds(r.pitBest) : '—') : '—') + '</div>');
         cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono text-secondary-text cell-data border-b border-white/[0.04] ' + rowBg + '" data-row="' + idx + '">' + formatRaceTime(r.avgLap) + '</div>');
         cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono text-secondary-text cell-data border-b border-white/[0.04] ' + rowBg + (!hasOvertakes ? ' cell-hidden' : '') + '" data-row="' + idx + '">' + (r.overtakes == null ? '—' : r.overtakes) + '</div>');
       }
