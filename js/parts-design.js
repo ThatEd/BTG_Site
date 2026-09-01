@@ -41,7 +41,11 @@
   var usedCfd = 0, usedWth = 0;
   var container = null;
   var opts = {};
-  var mfgPartId = null, mfgDesignId = null, mfgQty = 1, mfgApproach = 0; // 0 Normal (fast), 1 Outsource (standard)
+  var mfgPartId = null, mfgDesignId = null, mfgQty = 2, mfgApproach = 0; // 0 Normal (fast), 1 Outsource (standard)
+  // Minimum build quantity per part: 2 of every part, 4 front wings (part 4),
+  // 3 rear wings (part 5) — mirrors the backend.
+  function mfgMinQty(partId) { var p = num(partId); return p === 4 ? 4 : p === 5 ? 3 : 2; }
+  function mfgMaxQty() { return 10; }
 
   var CHECK_SVG = '<svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8 14.5L16 6.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -445,7 +449,7 @@
       + '<div class="pd-maintabs" id="pd-maintabs">'
       + '<div class="pd-maintab active" data-tab="design" id="tab-design">Design Parts</div>'
       + '<div class="pd-maintab" data-tab="development" id="tab-development">In Development <span id="dev-badge" class="pdo-badge" style="display:none">0</span></div>'
-      + '<div class="pd-maintab" data-tab="manufacture" id="tab-manufacture">Manufacture <span id="mfg-badge" class="pdo-badge" style="display:none">0</span></div>'
+      + '<div class="pd-maintab" data-tab="manufacture" id="tab-manufacture">Manufacture</div>'
       + '</div>'
       + '<div id="pd-design-view">'
       + '<div class="pd-parttabs" id="pd-parttabs"></div>'
@@ -493,11 +497,8 @@
       if (['developing', 'delayed', 'tested', 'introduced'].indexOf(str(S.dev[pid].status)) !== -1) devCount++;
     });
     var badge = el('dev-badge');
-    if (devCount > 0) { badge.textContent = devCount; badge.style.display = ''; } else { badge.style.display = 'none'; }
-    var mfgCount = (S && S.orders || []).filter(function (o) { return str(o.status) === 'building'; }).length;
-    var mBadge = el('mfg-badge');
-    if (mBadge) {
-      if (mfgCount > 0) { mBadge.textContent = mfgCount; mBadge.style.display = ''; } else { mBadge.style.display = 'none'; }
+    if (badge) {
+      if (devCount > 0) { badge.textContent = devCount; badge.style.display = ''; } else { badge.style.display = 'none'; }
     }
     el('tab-design').className = 'pd-maintab' + (activeMainTab === 'design' ? ' active' : '');
     el('tab-development').className = 'pd-maintab' + (activeMainTab === 'development' ? ' active' : '');
@@ -904,7 +905,7 @@
       item.innerHTML = (ico ? '<span class="pd-mfg-ico"><img src="' + ico + '" alt=""></span>' : '')
         + '<span class="pd-mfg-nav-name">' + str(p.name) + '</span>'
         + (dCount > 0 ? '<span class="pd-mfg-nav-count">' + dCount + '</span>' : '');
-      item.addEventListener('click', function () { mfgPartId = pid; mfgDesignId = null; renderManufactureView(); });
+      item.addEventListener('click', function () { mfgPartId = pid; mfgDesignId = null; mfgQty = mfgMinQty(pid); renderManufactureView(); });
       nav.appendChild(item);
     });
     lay.appendChild(nav);
@@ -995,6 +996,9 @@
             + '<div class="pd-mfg-meta">' + when + '</div>'
             + '<div class="pdo-progress-track" style="margin-top:0;"><div class="pdo-progress-fill" style="width:' + pct + '%"></div></div>'
             + '<div class="pd-mfg-meta" style="color:var(--copy-faint)">Finishes automatically when the season clock passes this date.</div>'
+            + '<div class="pd-mfg-actions" style="display:flex;gap:8px;margin-top:8px;">'
+            + '<button type="button" class="btn btn-ghost btn-compact" data-cancel-order="' + o.order_id + '"><span>Cancel order</span></button>'
+            + '</div>'
             + '</div>';
         } else {
           oHtml += '<div class="pd-mfg-card">' + head
@@ -1010,10 +1014,10 @@
 
     // Wire up events.
     wrap.querySelectorAll('.pd-design-card').forEach(function (b) {
-      b.addEventListener('click', function () { mfgDesignId = num(b.dataset.design); renderManufactureView(); });
+      b.addEventListener('click', function () { mfgDesignId = num(b.dataset.design); mfgQty = mfgMinQty(mfgPartId); renderManufactureView(); });
     });
     wrap.querySelectorAll('[data-qty]').forEach(function (b) {
-      b.addEventListener('click', function () { mfgQty = clamp(mfgQty + num(b.dataset.qty), 1, 10); renderManufactureView(); });
+      b.addEventListener('click', function () { mfgQty = clamp(mfgQty + num(b.dataset.qty), mfgMinQty(mfgPartId), mfgMaxQty()); renderManufactureView(); });
     });
     wrap.querySelectorAll('[data-approach]').forEach(function (b) {
       b.addEventListener('click', function () { mfgApproach = num(b.dataset.approach); renderManufactureView(); });
@@ -1025,6 +1029,9 @@
     var noteBtn = el('mfg-note-btn');
     if (noteBtn) noteBtn.addEventListener('click', function () {
       if (design) doSetNote(design.source === 'developed' ? { designId: num(design.design_id), note: design.note } : { partId: num(design.part_id), note: design.note });
+    });
+    wrap.querySelectorAll('[data-cancel-order]').forEach(function (b) {
+      b.addEventListener('click', function () { doCancelOrder(num(b.dataset.cancelOrder)); });
     });
   }
 
@@ -1359,6 +1366,13 @@
     var data = await api('partsBuildContinue', { orderId: orderId });
     if (data.ok) { await reload(); renderAll(); }
     else { await alertModal(data.error, 'Build continue failed'); }
+  }
+  async function doCancelOrder(orderId) {
+    var ok = await confirmModal('Cancel this build order? The full cost will be refunded to your team. No parts are produced.', 'Cancel build order');
+    if (!ok) return;
+    var data = await api('partsCancelOrder', { orderId: orderId });
+    if (data.ok) { await reload(); renderAll(); await alertModal('Build order cancelled. <b>$' + Number(data.refunded || 0).toLocaleString() + '</b> refunded.', 'Order cancelled'); }
+    else { await alertModal(data.error, 'Cancel failed'); }
   }
   async function doRunTrack(programId) {
     var data = await api('partsRunTrack', { programId: programId });
