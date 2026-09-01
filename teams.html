@@ -268,10 +268,14 @@ body::before {
     try { var n = BTG.Roster.teamName(k, true); if (n) return n; } catch (e) {}
     return k;
   }
-  /* Official full name for a team in a given season — straight from the DB
-     (team_season_names, keyed team_id+season). Falls back to the base
-     team_name when no per-season row exists. Never hardcoded. */
+  /* Official full name for a team in a given season — straight from the DB.
+     Prefers the "Team Identity" table (per-season Short/Full Name), then
+     team_season_names, then the base team_name. Never hardcoded. */
   function teamFullName(id, year) {
+    if (window.BTG && BTG.DBCache && BTG.DBCache.teamFullName) {
+      var n = BTG.DBCache.teamFullName(id, year);
+      if (n && n !== String(id)) return n;
+    }
     var rows = (D && D.team_season_names || []).filter(function (n) {
       return String(n.team_id) === String(id) && num(n.season) === num(year);
     });

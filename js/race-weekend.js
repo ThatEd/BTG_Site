@@ -355,9 +355,21 @@ window.BTG = window.BTG || {};
   }
 
   /* ── DB cache race data (Supabase) — F2 results/sprints → TFG-style rows ── */
-  function cacheTeamNameMap(cache) {
+  function cacheTeamNameMap(cache, season) {
     var m = {};
-    (cache && cache.teams || []).forEach(function (t) { m[String(t.team_id)] = t.team_name || t.team_key || ''; });
+    // Per-season team names come from "Team Identity" (Short Name / Full Name),
+    // keyed by team_id + Season. Fall back to the Teams table team_name.
+    (cache && cache.team_identity || []).forEach(function (t) {
+      if (season != null && String(t.Season) !== String(season)) return;
+      var id = t.team_id != null ? String(t.team_id) : '';
+      if (!id) return;
+      var n = t['Short Name'] || t['Full Name'] || '';
+      if (n) m[id] = String(n);
+    });
+    (cache && cache.teams || []).forEach(function (t) {
+      var id = String(t.team_id);
+      if (!m[id]) m[id] = t.team_name || t.team_key || '';
+    });
     return m;
   }
   function cacheTimeToSeconds(v) {
@@ -465,7 +477,7 @@ window.BTG = window.BTG || {};
     state.sprintQualiQ1 = []; state.sprintQualiQ2 = []; state.sprintQualiQ3 = [];
     state.practiceP1 = []; state.practiceP2 = []; state.practiceP3 = [];
     if (!cache) return;
-    var teamNames = cacheTeamNameMap(cache);
+    var teamNames = cacheTeamNameMap(cache, state.activeSeason);
     var teamNameOf = function (id) { return teamNames[String(id)] || ''; };
     state.raceResult = (cache.race_results || []).filter(function (r) { return String(r.race_id) === String(raceId); })
       .map(function (r) { return rowFromCacheResult(r, teamNameOf); })
@@ -473,6 +485,43 @@ window.BTG = window.BTG || {};
     state.sprintResult = (cache.race_sprints || []).filter(function (s) { return String(s.race_id) === String(raceId); })
       .map(function (s) { return rowFromCacheSprint(s, teamNameOf); })
       .sort(function (a, b) { return (a.finishingPos || 99) - (b.finishingPos || 99); });
+    state.qualiQ1 = []; state.qualiQ2 = []; state.qualiQ3 = [];
+    // League export: one row per driver, all three times on it; `session` is the
+    // highest session reached (Q1/Q2/Q3). Build the per-session grids from it.
+    var quals = (cache.race_qualifying || []).filter(function (q) { return String(q.race_id) === String(raceId); });
+    var makeQualRow = function (q, time) {
+      return {
+        DriverID: q.driver_name || '',
+        teamName: teamNameOf(q.team_id) || '',
+        TeamID: teamIdFor(teamNameOf(q.team_id) || 'Privateer'),
+        FinishingPos: q.position != null ? Number(q.position) : 0,
+        FastestLap: time != null ? Number(time) : 0,
+        Laps: 0
+      };
+    };
+    quals.forEach(function (q) {
+      if (q.q1_time_seconds != null && Number(q.q1_time_seconds) > 0) state.qualiQ1.push(makeQualRow(q, q.q1_time_seconds));
+      if (q.q2_time_seconds != null && Number(q.q2_time_seconds) > 0) state.qualiQ2.push(makeQualRow(q, q.q2_time_seconds));
+      if (q.q3_time_seconds != null && Number(q.q3_time_seconds) > 0) state.qualiQ3.push(makeQualRow(q, q.q3_time_seconds));
+    });
+    // Practice sessions (1/2/3) — one row per driver per session from race_practice.
+    state.practiceP1 = []; state.practiceP2 = []; state.practiceP3 = [];
+    (cache.race_practice || []).filter(function (p) { return String(p.race_id) === String(raceId); })
+      .forEach(function (p) {
+        var row = {
+          DriverID: p.driver_name || '',
+          teamName: teamNameOf(p.team_id) || '',
+          carName: null,
+          TeamID: teamIdFor(teamNameOf(p.team_id) || 'Privateer'),
+          FastestLap: p.best_lap_seconds != null ? Number(p.best_lap_seconds) : 0,
+          Laps: p.laps != null ? Number(p.laps) : 0,
+          FinishingPos: p.position != null ? Number(p.position) : 0
+        };
+        var sess = p.practice_session != null ? Number(p.practice_session) : 1;
+        if (sess === 1) state.practiceP1.push(row);
+        else if (sess === 2) state.practiceP2.push(row);
+        else state.practiceP3.push(row);
+      });
   }
 
   function fileSlug(file) {

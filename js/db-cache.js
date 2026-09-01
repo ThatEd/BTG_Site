@@ -32,6 +32,25 @@
     var t = (D && D.teams || []).filter(function (x) { return String(x.team_key) === k || String(x.team_id) === k; })[0];
     return (t && t.team_name) || k;
   }
+  // Official per-season team names from the "Team Identity" table (Short Name
+  // and Full Name keyed by team_id + Season). Short name preferred for general
+  // display; pass long=true for the Full Name. Falls back to teamName.
+  function teamIdentity(key, year, long) {
+    var k = String(key);
+    var rows = D && D.team_identity || [];
+    var hit = null;
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      var rid = r.team_id != null ? String(r.team_id) : '';
+      if (rid !== k && String(r.Team_key || '') !== k) continue;
+      if (year != null && String(r.Season) !== String(year)) continue;
+      hit = r; break;
+    }
+    if (!hit) return teamName(key);
+    var n = long ? (hit['Full Name'] || hit['Short Name']) : (hit['Short Name'] || hit['Full Name']);
+    return n ? String(n) : teamName(key);
+  }
+  function teamFullName(key, year) { return teamIdentity(key, year, true); }
   function seriesOfTeam(key) {
     var k = String(key);
     var t = (D && D.teams || []).filter(function (x) { return String(x.team_key) === k || String(x.team_id) === k; })[0];
@@ -624,6 +643,8 @@
     getTeamStandings: getTeamStandings,
     buildDriverList: buildDriverList,
     teamName: teamName,
+    teamIdentity: teamIdentity,
+    teamFullName: teamFullName,
     teamLogo: teamLogo,
     teamColorHex: teamColorHex,
     teamColorRgb: teamColorRgb,
