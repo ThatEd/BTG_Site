@@ -648,11 +648,17 @@ body::before {
     //    reserve (Fabian Stahl is a Haas junior but drives for F2 ART). Their
     //    current contract lives elsewhere, so the contract-based pool alone
     //    would wrongly hide them from their racing team's page.
+    //
+    //    Their SEAT here is a per-season deal: we mark it as expiring at the
+    //    end of the current season (activeSeason), NOT with the longer junior/
+    //    reserve contract they hold at their other team. Otherwise an F2
+    //    driver would show "Until 2027" (their junior deal) instead of the
+    //    EXPIRING status of their actual F2 seat.
     seasonResults.forEach(function (r) {
       var nm = str(r.driver_name);
       if (!nm) return;
       var d = (D.drivers || []).filter(function (dd) { return normName(dd.full_name) === normName(nm); })[0];
-      addDriver(nm, d ? d.driver_number : null, d ? d.ovr : null, null);
+      addDriver(nm, d ? d.driver_number : null, d ? d.ovr : null, activeSeason);
     });
 
     var drivers = poolOrder.map(function (key) {
