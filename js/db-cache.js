@@ -38,13 +38,13 @@
   function teamIdentity(key, year, long) {
     var k = String(key);
     var rows = D && D.team_identity || [];
-    var hit = null;
+    var hit = null, bestSeason = null;
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i];
       var rid = r.team_id != null ? String(r.team_id) : '';
       if (rid !== k && String(r.Team_key || '') !== k) continue;
       if (year != null && String(r.Season) !== String(year)) continue;
-      hit = r; break;
+      if (hit == null || (r.Season != null && (bestSeason == null || Number(r.Season) > Number(bestSeason)))) { hit = r; bestSeason = r.Season; }
     }
     if (!hit) return teamName(key);
     var n = long ? (hit['Full Name'] || hit['Short Name']) : (hit['Short Name'] || hit['Full Name']);
@@ -66,13 +66,15 @@
       var x = rows[i];
       if (String(x.team_key).toLowerCase() === k || String(x.team_id) === String(key) || String(x.team_name || '').toLowerCase() === k) return x;
     }
-    // Fuzzy word-boundary so short labels resolve without false hits:
-    // "RB" → "RB" (not "Racing Bulls"), "Williams" → "Williams Racing".
-    var words = k.split(/[^a-z0-9]+/).filter(Boolean);
+    // Fuzzy word-token match so short labels resolve without false hits:
+    // "RB" → "RB" (not "Racing Bulls"), "ART" → "F2 ART", but "ART" ≠ "Aston Martin".
+    var qwords = k.split(/[^a-z0-9]+/).filter(function (w) { return w.length > 1; });
+    if (!qwords.length) return null;
+    function words(v) { return String(v).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean); }
     for (var j = 0; j < rows.length; j++) {
       var y = rows[j];
-      var hay = String(y.team_key).toLowerCase() + ' ' + String(y.team_name || '').toLowerCase();
-      var hit = words.every(function (w) { return w.length > 1 && hay.indexOf(w) !== -1; });
+      var hay = words(y.team_key).concat(words(y.team_name || ''));
+      var hit = qwords.every(function (w) { return hay.indexOf(w) !== -1; });
       if (hit) return y;
     }
     return null;
@@ -266,11 +268,11 @@
     });
     var years = Object.keys(set).map(Number).sort(function (a, b) { return b - a; });
     if (!years.length) {
-      // No DB seasons for this series yet — fall back to the latest season
-      // year we have (so e.g. F2/GT tabs still show a season).
-      var latest = 0;
-      (D && D.race_seasons || []).forEach(function (s) { if (num(s.year) > latest) latest = num(s.year); });
-      years = latest ? [latest] : [];
+      // No DB seasons for this series yet — fall back to the current app year
+      // (in-universe season) so roster-only tabs still show a season.
+      var appYear = 0;
+      if (D && D.app_state && D.app_state.length) appYear = num(D.app_state[0].year);
+      years = appYear ? [appYear] : [];
     }
     return years;
   }
@@ -304,10 +306,12 @@
     // DB (cache drivers) is the fallback source of truth when the roster CSV
     // has no match (e.g. name encoding mismatches).
     try {
+      var nm = String(name || '').trim().toLowerCase();
+      if (!nm) return '';
       var rows = (D && D.drivers) || [];
       for (var i = 0; i < rows.length; i++) {
         var x = rows[i];
-        if (str(x.full_name) === name || str(x.driver_name) === name) return str(x.nation) || '';
+        if (String(x.full_name || '').trim().toLowerCase() === nm || String(x.driver_name || '').trim().toLowerCase() === nm) return str(x.nation) || '';
       }
     } catch (e) {}
     return '';
@@ -315,10 +319,12 @@
   function dbDriverNumber(name) {
     // Driver's car number from the DB drivers table (per driver).
     try {
+      var nm = String(name || '').trim().toLowerCase();
+      if (!nm) return null;
       var rows = (D && D.drivers) || [];
       for (var i = 0; i < rows.length; i++) {
         var x = rows[i];
-        if (str(x.full_name) === name || str(x.driver_name) === name) {
+        if (String(x.full_name || '').trim().toLowerCase() === nm || String(x.driver_name || '').trim().toLowerCase() === nm) {
           var n = num(x.driver_number);
           return n > 0 ? n : null;
         }
@@ -563,7 +569,7 @@
           races: racesCount, points: sd ? num(sd.points) : 0,
           pos: sd ? num(sd.position) : '—',
           wins: wins, podiums: podiums, dnfs: dnfs,
-          avgFinish: racesCount ? (finishSum / racesCount).toFixed(1) : '—'
+          avgFinish: finishes.length ? (finishSum / finishes.length).toFixed(1) : '—'
         });
       }
       // Reserve contracts appear in the career history (Past Seasons) too, but are
@@ -598,7 +604,7 @@
           races: racesCount, wins: wins, podiums: podiums, sprints: mySprints.length,
           sprintWins: sprintWins, sprintPodiums: sprintPodiums, sprintPts: sprintPts, dnfs: dnfs,
           bestFinish: bestFinish < 99 ? bestFinish : '—',
-          avgFinish: racesCount ? (finishSum / racesCount).toFixed(1) : '—',
+          avgFinish: finishes.length ? (finishSum / finishes.length).toFixed(1) : '—',
           avgGrid: avgGrid != null ? avgGrid.toFixed(1) : '—',
           poles: poles,
           paceMedianMs: paceMs,
@@ -619,7 +625,7 @@
           starts: racesCount, wins: wins, podiums: podiums,
           points: sd ? num(sd.points) : 0, dnfs: dnfs,
           bestFinish: bestFinish < 99 ? bestFinish : '—',
-          avgFinish: racesCount ? (finishSum / racesCount).toFixed(1) : '—',
+          avgFinish: finishes.length ? (finishSum / finishes.length).toFixed(1) : '—',
           yrs: teamNameStr ? 1 : 0, yrsAtTeam: teamNameStr ? 1 : 0
         }
       };
@@ -650,7 +656,7 @@
       ready = fetch('cache/public-data.json')
         .then(function (r) { if (!r.ok) throw new Error('cache ' + r.status); return r.json(); })
         .then(function (d) { D = d; return d; })
-        .catch(function () { D = null; return null; });
+        .catch(function () { ready = null; D = null; return null; });
       return ready;
     },
     isReady: function () { return !!D; },

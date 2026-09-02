@@ -445,11 +445,11 @@ body::before {
       var color2 = dbTeamRgb(teamName, true);
       byTeam[teamName].forEach(function(d) {
         var num = d.standings ? d.standings.pos : '—';
-        html += '<button class="dp-picker__chip' + (d.id===selectedDriverId?' dp-picker__chip--active':'') + '" data-id="'+BTG.esc(d.id)+'" data-color="'+color+'" data-color2="'+color2+'">'
+        html += '<button class="dp-picker__chip' + (d.id===selectedDriverId?' dp-picker__chip--active':'') + '" data-id="'+BTG.esc(d.id)+'" data-color="'+BTG.esc(color)+'" data-color2="'+BTG.esc(color2)+'">'
           + '<span class="dp-picker__num">'+num+'</span>'
           + BTG.flagImg(d.nation, 14, 11)
           + '<span class="dp-picker__name">'+BTG.esc(d.fullName || d.name)+'</span>'
-          + (d.academy ? '<span class="dp-picker__acad"'+(d.academyColor ? ' style="color:'+d.academyColor+'"' : '')+'>'+BTG.teamLogoImg(d.academy, activeSeries, 9)+BTG.esc(d.academy)+'</span>' : '')
+          + (d.academy ? '<span class="dp-picker__acad"'+(d.academyColor ? ' style="color:'+BTG.esc(d.academyColor)+'"' : '')+'>'+BTG.teamLogoImg(d.academy, activeSeries, 9)+BTG.esc(d.academy)+'</span>' : '')
           + '</button>';
       });
       html += '</div>';
@@ -533,7 +533,7 @@ body::before {
       + BTG.entryLogoImg(d.team, d.car, d.series || activeSeries, 18)
       + '<span>'+BTG.esc(BTG.entryLabel(d.team, d.car))+'</span>'
       + '</div>'
-      + (d.academy ? '<div class="dp-hero__academy"'+(d.academyColor ? ' style="color:'+d.academyColor+'"' : '')+'>'
+      + (d.academy ? '<div class="dp-hero__academy"'+(d.academyColor ? ' style="color:'+BTG.esc(d.academyColor)+'"' : '')+'>'
           + BTG.teamLogoImg(d.academy, d.series || activeSeries, 12)
           + '<span>'+BTG.esc(acadName)+(d.academyRole === 'Reserve' ? ' Reserve' : ' Academy')+'</span></div>' : '')
       + '</div></div>';

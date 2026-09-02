@@ -40,7 +40,12 @@ function contentType(file) {
 
 const server = http.createServer((req, res) => {
   // Normalize URL, default to index.html
-  let urlPath = decodeURIComponent(req.url.split('?')[0]);
+  let urlPath;
+  try {
+    urlPath = decodeURIComponent(req.url.split('?')[0]);
+  } catch (e) {
+    res.writeHead(400, { 'Content-Type': 'text/plain' }); res.end('Bad Request'); return;
+  }
   if (urlPath === '/' || urlPath === '') urlPath = '/index.html';
 
   // API: list series folders under Data/ (auto-discovery)
@@ -63,8 +68,15 @@ const server = http.createServer((req, res) => {
   if (urlPath === '/api/series-files') {
     const url = new URL(req.url, 'http://localhost');
     const series = url.searchParams.get('series');
-    if (!series) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end('{"error":"missing series"}'); return; }
+    if (!series || /[\\/]|\.\./.test(series)) {
+      res.writeHead(400, { 'Content-Type': 'application/json' }); res.end('{"error":"invalid series"}'); return;
+    }
     const dir = path.join(ROOT, 'Data', series);
+    const dataRoot = path.resolve(ROOT, 'Data');
+    const resolvedDir = path.resolve(dir);
+    if (resolvedDir !== dataRoot && !resolvedDir.startsWith(dataRoot + path.sep)) {
+      res.writeHead(403); res.end('Forbidden'); return;
+    }
     // A series may exist only in the roster (e.g. F2 has no folder yet) — in
     // that case there are simply no files to list.
     if (!fs.existsSync(dir)) {
@@ -74,7 +86,9 @@ const server = http.createServer((req, res) => {
     }
     const out = [];
     (function walk(d) {
-      fs.readdirSync(d, { withFileTypes: true }).forEach((e) => {
+      let entries = [];
+      try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { return; }
+      entries.forEach((e) => {
         const full = path.join(d, e.name);
         if (e.isDirectory()) walk(full);
         else if (e.isFile()) out.push(path.relative(dir, full).split(path.sep).join('/'));
@@ -94,7 +108,9 @@ const server = http.createServer((req, res) => {
     const out = [];
     (function walk(d, rel) {
       if (!fs.existsSync(d)) return;
-      fs.readdirSync(d, { withFileTypes: true }).forEach((e) => {
+      let entries = [];
+      try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { return; }
+      entries.forEach((e) => {
         const full = path.join(d, e.name);
         const r = rel ? rel + '/' + e.name : e.name;
         if (e.isDirectory()) walk(full, r);
@@ -106,10 +122,15 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Reject backslashes, parent traversal, and null bytes before touching the disk.
+  if (/[\\]|\.\.|\0|%00/i.test(urlPath)) {
+    res.writeHead(403); res.end('Forbidden'); return;
+  }
+
   let filePath = path.normalize(path.join(ROOT, urlPath));
 
-  // Prevent path traversal outside ROOT
-  if (!filePath.startsWith(ROOT)) {
+  // Prevent path traversal outside ROOT (ROOT itself or a child path only).
+  if (filePath !== ROOT && !filePath.startsWith(ROOT + path.sep)) {
     res.writeHead(403); res.end('Forbidden'); return;
   }
 

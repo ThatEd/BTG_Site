@@ -113,6 +113,7 @@ body {
 
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
   function str(v) { return v == null ? '' : String(v); }
+  function escAttr(v) { return str(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
   function colorFor(s) { return SERIES_COLORS[s] || '#8a8a8a'; }
   function seriesColor(s) {
@@ -267,14 +268,14 @@ body {
       var gpName = circuit ? BTG.gpNameFor(circuit, r.format) : (str(r.name) || '');
       var img = trackImg(circuit);
       var flag = flagUrl(circuit);
-      var bg = img ? 'background-image:url(' + img + ')' : '';
+      var bg = img ? 'background-image:url(' + escAttr(img) + ')' : '';
 
       var html = '<div class="cal-card" style="box-shadow:' + boxShadow + ';">'
         + '<div class="cal-media" style="' + bg + '">'
         + '<div class="cal-shade"></div>'
         + '<div class="cal-name">'
         + '<div class="cal-pill">' + BTG.esc(gpName) + '</div>'
-        + (flag ? '<img src="' + flag + '" alt="" onerror="this.style.display=\'none\'">' : '')
+        + (flag ? '<img src="' + escAttr(flag) + '" alt="" onerror="this.style.display=\'none\'">' : '')
         + '</div>'
         + '<div class="cal-bottom">'
         + '<div class="cal-raceinfo">'

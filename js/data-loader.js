@@ -17,6 +17,7 @@
 window.BTG = window.BTG || {};
 
 BTG.Data = { series: {}, drivers: {}, circuits: {}, cars: {} };
+var FALLBACK_YEAR = new Date().getFullYear();
 
 /* ── Update notifications ───────────────────────────────────────────────────
    Cache-first loading means init() resolves with cached data so pages paint
@@ -59,9 +60,9 @@ function ensureRoster() {
   });
 }
 
-/** Newest season year seen in a store (defaults to 2024). */
+/** Newest season year seen in a store (defaults to current year). */
 function latestYear(store) {
-  var y = 2024;
+  var y = FALLBACK_YEAR;
   Object.keys((store && store.series) || {}).forEach(function(sid) {
     Object.keys((store.series[sid] && store.series[sid].years) || {}).forEach(function(k) {
       var v = Number(k); if (v > y) y = v;
@@ -299,7 +300,7 @@ async function loadSeasonStats(store, seriesId, files) {
   if (!m || !m.seasonStatistics || !m.seasonStatistics.driverStandings) return false;
 
   // Year from seasonName ("Season 1 2024") or seasonStartDate
-  var year = 2024;
+  var year = FALLBACK_YEAR;
   var yMatch = m.season && String(m.season.seasonName).match(/(20\d{2})/);
   if (!yMatch && m.season && m.season.seasonStartDate) yMatch = String(m.season.seasonStartDate).match(/(20\d{2})/);
   if (yMatch) year = Number(yMatch[1]);
@@ -364,7 +365,7 @@ async function loadRltEvents(store, seriesId, files) {
       var res = await fetch('Data/' + encodeURIComponent(seriesId) + '/' + eventFiles[i]);
       if (!res.ok) continue;
       var m = await res.json();
-      var year = 2024;
+      var year = FALLBACK_YEAR;
       var yMatch = m.season && String(m.season.seasonName).match(/(20\d{2})/);
       if (yMatch) year = Number(yMatch[1]);
       registerSeries(store, seriesId, year);
@@ -549,7 +550,7 @@ function guessYearFromFile(store, seriesId, file) {
     var ys = Object.keys(s.years).map(Number).sort(function(a,b){return b-a;});
     if (ys.length) return ys[0];
   }
-  return 2024;
+  return FALLBACK_YEAR;
 }
 
 /** Full country name → IOC 3-letter code (for SeasonStatistics manifests). */
@@ -591,7 +592,7 @@ function argbToRgb(hex) {
 BTG.Data.buildDriverList = function(targetSeries, targetSeason, opts) {
   opts = opts || {};
   var seriesId = targetSeries || Object.keys(BTG.Data.series)[0] || 'F1';
-  var season = targetSeason || getLatestSeason(seriesId) || 2024;
+  var season = targetSeason || getLatestSeason(seriesId) || FALLBACK_YEAR;
   var list = [];
 
   // Resolve team keys / raw names to the canonical display name from the CSV
@@ -609,7 +610,7 @@ BTG.Data.buildDriverList = function(targetSeries, targetSeason, opts) {
     // roster lists them in this series.
     if (!sr && !(d.roster && d.roster.series === seriesId)) return;
 
-    var team = BTG.teamByName(sr ? sr.latestTeam : null);
+    var team = (BTG.teamByName ? BTG.teamByName(sr ? sr.latestTeam : null) : null);
     var teamColor = (sr && sr.teamColor) || (team ? team.color : null);
     var nation = (sr && sr.nation) || rosterNation(name) || guessNation(name);
 
@@ -734,7 +735,7 @@ BTG.Data.getSeriesList = function() {
 
 BTG.Data.getSeasons = function(seriesId) {
   var s = BTG.Data.series[seriesId];
-  return s ? Object.keys(s.years).sort(function(a,b){return Number(b)-Number(a);}).map(Number) : [2024];
+  return s ? Object.keys(s.years).sort(function(a,b){return Number(b)-Number(a);}).map(Number) : [FALLBACK_YEAR];
 };
 
 /* ── Internal ─────────────────────────────────────────────────────────────── */
@@ -797,8 +798,8 @@ function processRaceData(store, seriesId, year, race, isSprint) {
 
     if (isSprint) {
       sr.sprints++;
-      if (entry.Position === 1) sr.sprintWins++;
-      if (entry.Position <= 3) sr.sprintPodiums++;
+      if (entry.Position > 0 && entry.Position === 1) sr.sprintWins++;
+      if (entry.Position > 0 && entry.Position <= 3) sr.sprintPodiums++;
       sr.sprintPts += sprintPts(entry.Position);
     } else {
       sr.results.push({
@@ -812,10 +813,10 @@ function processRaceData(store, seriesId, year, race, isSprint) {
       sr.races++;
       sr.gridSum += (entry.GridPosition || 20);
       sr.finishSum += (entry.Position || 20);
-      if (entry.Position === 1) sr.wins++;
-      if (entry.Position <= 3) sr.podiums++;
+      if (entry.Position > 0 && entry.Position === 1) sr.wins++;
+      if (entry.Position > 0 && entry.Position <= 3) sr.podiums++;
       if (entry.Status === 'DNF' || entry.Status === 'DNF ') sr.dnfs++;
-      if (entry.Position < sr.bestFinish) sr.bestFinish = entry.Position;
+      if (entry.Position > 0 && entry.Position < sr.bestFinish) sr.bestFinish = entry.Position;
       if (entry.GridPosition === 1) sr.poles++;
       sr.points += racePts(entry.Position);
     }
@@ -823,38 +824,37 @@ function processRaceData(store, seriesId, year, race, isSprint) {
 }
 
 function computeAllStandings(store) {
+  var buckets = {}; // seriesId -> year -> { explicit: [], calc: [] }
   Object.keys(store.drivers).forEach(function(name) {
     var d = store.drivers[name];
-    Object.keys(d.seasons).forEach(function(seriesId) {
+    Object.keys(d.seasons || {}).forEach(function(seriesId) {
+      if (!buckets[seriesId]) buckets[seriesId] = {};
       Object.keys(d.seasons[seriesId]).forEach(function(year) {
         var sr = d.seasons[seriesId][year];
-
-        // Explicit standings (SeasonStatistics): keep position if set,
-        // otherwise rank by points (drivers may have no race files).
+        if (!buckets[seriesId][year]) buckets[seriesId][year] = { explicit: [], calc: [] };
         if (sr.explicitStandings) {
-          if (sr.standingPos) return;
-          var ranked = [];
-          Object.keys(store.drivers).forEach(function(n) {
-            var od = store.drivers[n];
-            var osr = od.seasons[seriesId] && od.seasons[seriesId][year];
-            if (osr && osr.explicitStandings) ranked.push({ name: n, pts: osr.points, order: osr.manifestOrder || 0 });
-          });
-          ranked.sort(function(a,b) { return b.pts - a.pts || a.order - b.order; });
-          var idx = ranked.findIndex(function(r) { return r.name === name; });
-          sr.standingPos = idx >= 0 ? idx + 1 : '—';
-          return;
+          if (!sr.standingPos) {
+            buckets[seriesId][year].explicit.push({ name: name, pts: sr.points, order: sr.manifestOrder || 0 });
+          }
+        } else if (sr.races) {
+          buckets[seriesId][year].calc.push({ name: name, pts: sr.points });
         }
+      });
+    });
+  });
 
-        // Calculated standings (race-file format)
-        var ranked = [];
-        Object.keys(store.drivers).forEach(function(n) {
-          var od = store.drivers[n];
-          var osr = od.seasons[seriesId] && od.seasons[seriesId][year];
-          if (osr && osr.races) ranked.push({ name: n, pts: osr.points });
-        });
-        ranked.sort(function(a,b) { return b.pts - a.pts; });
-        var idx = ranked.findIndex(function(r) { return r.name === name; });
-        sr.standingPos = idx >= 0 ? idx + 1 : '—';
+  Object.keys(buckets).forEach(function(seriesId) {
+    Object.keys(buckets[seriesId]).forEach(function(year) {
+      var bucket = buckets[seriesId][year];
+      bucket.explicit.sort(function(a, b) { return b.pts - a.pts || a.order - b.order; });
+      bucket.explicit.forEach(function(r, idx) {
+        var sr = store.drivers[r.name].seasons[seriesId][year];
+        if (sr && !sr.standingPos) sr.standingPos = idx + 1;
+      });
+      bucket.calc.sort(function(a, b) { return b.pts - a.pts; });
+      bucket.calc.forEach(function(r, idx) {
+        var sr = store.drivers[r.name].seasons[seriesId][year];
+        if (sr) sr.standingPos = idx + 1;
       });
     });
   });

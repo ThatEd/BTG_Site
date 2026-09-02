@@ -93,6 +93,8 @@
     var demonym = c ? c.gp.replace(/ Grand Prix$/, '') : (circuit || '');
     var noun = (c && c.noun) ? c.noun : demonym;
     var tpl = template || '{name} Grand Prix';
+    // Special endurance races already include their distance in the GP name.
+    if (c && /\d$/.test(c.gp) && /\{name\}\s*Grand Prix/.test(tpl)) return c.gp;
     return tpl.replace('{name}', demonym).replace('{country}', noun);
   };
 })();

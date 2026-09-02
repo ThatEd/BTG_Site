@@ -156,7 +156,8 @@ BTG.flagImg = function(ioc, w, h) {
 
 BTG.SKILL_WEIGHTS = {
   cornering: 0.20, braking: 0.18, accuracy: 0.15, control: 0.14,
-  reactions: 0.11, overtaking: 0.08, defending: 0.07, smoothness: 0.05
+  reactions: 0.11, overtaking: 0.08, defending: 0.07, smoothness: 0.05,
+  adaptability: 0.02
 };
 
 /** Compute weighted OVR from skills object. */
@@ -173,7 +174,7 @@ BTG.computeOvr = function(skills) {
 BTG.fmtOvr = function(v) { return (v || 0).toFixed(1); };
 
 BTG.esc = function(str) {
-  if (!str) return '';
+  if (str == null) return '';
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

@@ -470,7 +470,7 @@ window.BTG = window.BTG || {};
           flag: c ? c.flag : '',
           tag: (c && c.img) ? c.img.slice(0, 3).toUpperCase() : circuit.slice(0, 3).toUpperCase(),
           day: i,
-          isSprintWeekend: true,
+          isSprintWeekend: (cache.race_sprints || []).some(function (x) { return String(x.race_id) === String(r.race_id); }) || /sprint/i.test(String(r.weekend_type)),
           cacheRace: true,
           hasResults: hasResults
         });
@@ -1163,7 +1163,7 @@ window.BTG = window.BTG || {};
     if (!q1.length && !q2.length && !q3.length) {
       return '<div class="text-center text-sm text-muted-text py-8">No qualifying data available</div>';
     }
-    var grid = buildQualiGridMeta(viewportWidth, entryColumns(rows));
+    var grid;
     var rows = [];
 
     // build driver map keyed by DriverID (name)
@@ -1196,6 +1196,7 @@ window.BTG = window.BTG || {};
     });
     rows.sort(function(a, b) { return a.pos - b.pos; });
     var cols = entryColumns(rows);
+    grid = buildQualiGridMeta(viewportWidth, cols);
     var header = ['Pos', 'Driver'].concat(cols, ['Q1', 'Q2', 'Q3', 'Gap to Pole']);
 
     var html = '<div class="overflow-x-auto max-w-full rounded border border-white/[0.07] bg-white/[0.03]">';
@@ -1812,8 +1813,8 @@ window.BTG = window.BTG || {};
     var urls = [];
     bases.forEach(function (b) { urls.push(b.replace('logos/drivers/', 'logos/drivers/thumbs/') + '.webp'); });
     bases.forEach(function (b) { urls.push(b + '.webp'); urls.push(b + '.png'); });
-    var chain = urls.map(function (u) { return u.replace(/"/g, '&quot;'); }).join('|');
-    return '<span class="rw-photo" style="width:' + size + 'px;height:' + size + 'px;"><img src="' + urls[0] + '" onload="this.style.opacity=1" style="opacity:0;width:100%;height:100%;object-fit:cover;" data-logos="' + chain + '" data-logo-idx="0" onerror="BTG.driverPhotoStep(this)"></span>';
+    var chain = escAttr(urls.join('|'));
+    return '<span class="rw-photo" style="width:' + size + 'px;height:' + size + 'px;"><img src="' + escAttr(urls[0]) + '" onload="this.style.opacity=1" style="opacity:0;width:100%;height:100%;object-fit:cover;" data-logos="' + chain + '" data-logo-idx="0" onerror="BTG.driverPhotoStep(this)"></span>';
   }
 
   function teamLogoHtml(teamName, size) {

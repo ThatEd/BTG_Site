@@ -36,6 +36,14 @@
   var S = null;            // catalog payload from the server
   var activePartId = null;
   var focusState = {};
+  function syncDevFromList() {
+    if (!S) return;
+    S.dev = (S.devList || []).reduce(function (acc, p) {
+      var pid = num(p.program_id);
+      if (pid) acc[pid] = p;
+      return acc;
+    }, {});
+  }
   var baselineState = {};
   var activeMainTab = 'design';
   var usedCfd = 0, usedWth = 0;
@@ -76,7 +84,7 @@
     Qatar: { flag: 'qa', short: 'QAT' },
     YasMarina: { flag: 'ae', short: 'UAE' }
   };
-  function raceMeta(name) { return RACE_META[name] || { flag: '', short: str(name).slice(0, 3).toUpperCase() }; }
+  function raceMeta(name) { var n = raw(name); return RACE_META[n] || { flag: '', short: n.slice(0, 3).toUpperCase() }; }
 
   // Client-side setup programmes — for parts that haven't been committed yet, we
   // keep a stable object per part so the target race / CFD / WTH selections
@@ -126,7 +134,12 @@
   /* ── helpers ───────────────────────────────────────────────────────── */
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
-  function str(v) { return v == null ? '' : String(v); }
+  function raw(v) { return v == null ? '' : String(v); }
+  function str(v) {
+    var s = raw(v);
+    if (BTG && BTG.esc) return BTG.esc(s);
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
   function pctFmt(v) { return (v > 0 ? '+' : '') + v.toFixed(1) + '%'; }
   function fmtVal(v, unit, dec) {
     var n = Number(v).toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec });
@@ -178,7 +191,7 @@
   }
   function activeDevList() {
     return (S && S.devList || []).filter(function (p) {
-      return ['developing', 'delayed', 'tested', 'introduced'].indexOf(str(p.status)) !== -1;
+      return ['developing', 'delayed', 'tested', 'introduced'].indexOf(raw(p.status)) !== -1;
     });
   }
   function focusMulFor(prog) {
@@ -213,11 +226,6 @@
     if (!base) return 0;
     var factor = 1 - 0.2 * (factoryLevel() - 1) / 4; // level 1 = base, level 5 = −20%
     return Math.max(1, Math.round(base * factor));
-  }
-  function daysBetween(dateA, dateB) {
-    if (!dateA || !dateB) return 0;
-    var a = new Date(dateA), b = new Date(dateB);
-    return Math.max(0, Math.round((b - a) / (24 * 60 * 60 * 1000)));
   }
   function factoryLevel() {
     var f = S && S.facilities && S.facilities.Factory;
@@ -400,7 +408,7 @@
   function showModal(title, message, buttons) {
     return new Promise(function (resolve) {
       var root = modalRoot();
-      root.innerHTML = '<div class="pd-overlay"><div class="pd-modal"><div class="pd-modal-head"><span>' + title + '</span><button class="pd-modal-x" type="button">&times;</button></div><div class="pd-modal-body"><p class="pd-modal-text">' + message + '</p></div><div class="pd-modal-actions"></div></div></div>';
+      root.innerHTML = '<div class="pd-overlay"><div class="pd-modal"><div class="pd-modal-head"><span>' + str(title) + '</span><button class="pd-modal-x" type="button">&times;</button></div><div class="pd-modal-body"><p class="pd-modal-text">' + str(message) + '</p></div><div class="pd-modal-actions"></div></div></div>';
       var close = function (val) { root.innerHTML = ''; resolve(val); };
       root.querySelector('.pd-modal-x').addEventListener('click', function () { close(null); });
       root.addEventListener('click', function (e) { if (e.target === root.firstChild) close(null); });
@@ -419,7 +427,7 @@
   function promptModal(message, title, initial) {
     return new Promise(function (resolve) {
       var root = modalRoot();
-      root.innerHTML = '<div class="pd-overlay"><div class="pd-modal"><div class="pd-modal-head"><span>' + (title || 'Note') + '</span><button class="pd-modal-x" type="button">&times;</button></div><div class="pd-modal-body"><p class="pd-modal-text">' + message + '</p><input type="text" id="pd-prompt-input" class="pd-modal-input" maxlength="200" value=""></div><div class="pd-modal-actions"></div></div></div>';
+      root.innerHTML = '<div class="pd-overlay"><div class="pd-modal"><div class="pd-modal-head"><span>' + str(title || 'Note') + '</span><button class="pd-modal-x" type="button">&times;</button></div><div class="pd-modal-body"><p class="pd-modal-text">' + str(message) + '</p><input type="text" id="pd-prompt-input" class="pd-modal-input" maxlength="200" value=""></div><div class="pd-modal-actions"></div></div></div>';
       var input = root.querySelector('#pd-prompt-input');
       input.value = initial || '';
       var close = function (val) { root.innerHTML = ''; resolve(val); };
@@ -494,7 +502,7 @@
   function renderMainTabs() {
     var devCount = 0;
     Object.keys(S && S.dev || {}).forEach(function (pid) {
-      if (['developing', 'delayed', 'tested', 'introduced'].indexOf(str(S.dev[pid].status)) !== -1) devCount++;
+      if (['developing', 'delayed', 'tested', 'introduced'].indexOf(raw(S.dev[pid].status)) !== -1) devCount++;
     });
     var badge = el('dev-badge');
     if (badge) {
@@ -548,7 +556,7 @@
       return;
     }
     var prog = progFor(part.part_id);
-    var active = programsForPart(part.part_id).filter(function (p) { return ['developing', 'delayed', 'tested', 'introduced'].indexOf(str(p.status)) !== -1; });
+    var active = programsForPart(part.part_id).filter(function (p) { return ['developing', 'delayed', 'tested', 'introduced'].indexOf(raw(p.status)) !== -1; });
     var maxed = active.length >= 2;
     var card = document.createElement('div'); card.className = 'pd-programme';
     var head = document.createElement('div'); head.className = 'pdp-head';
@@ -734,16 +742,16 @@
       + '<span class="pd-tl-title">Development timeline</span>'
       + '<span class="pd-tl-legend"><i style="background:' + c1 + '"></i>Design ' + designDays + 'd</span>'
       + '<span class="pd-tl-legend"><i style="background:' + c2 + '"></i>Manufacture ' + mfg + 'd</span>'
-      + (race ? '<span class="pd-tl-legend pd-tl-target">➜ ' + str(raceMeta(str(race.name)).short) + ' ' + str(race.race_date).slice(0, 10) + '</span>' : '')
+      + (race ? '<span class="pd-tl-legend pd-tl-target">➜ ' + str(raceMeta(race.name).short) + ' ' + str(race.race_date).slice(0, 10) + '</span>' : '')
       + '</div>'
       + '<div class="pd-tl-track">'
       + '<div class="pd-tl-bar" style="left:0%; width:' + pct(designEnd) + '%; background:' + c1 + '"></div>'
       + '<div class="pd-tl-bar pd-tl-mfg" style="left:' + pct(designEnd) + '%; width:' + Math.max(0, pct(mfgEnd) - pct(designEnd)) + '%; background:' + c2 + '"></div>'
       + '<div class="pd-tl-now" style="left:0%"></div>';
     cal.forEach(function (c) {
-      if (race && str(c.race_date) > str(race.race_date)) return;
+      if (race && raw(c.race_date) > raw(race.race_date)) return;
       var x = pct(daysBetween(now, c.race_date));
-      var meta = raceMeta(str(c.name));
+      var meta = raceMeta(c.name);
       var isTarget = race && num(c.round) === num(race.round);
       html += '<div class="pd-tl-marker' + (isTarget ? ' target' : '') + '" style="left:' + x + '%">'
         + '<span class="pd-tl-flag">' + (meta.flag ? '<img src="Flags/' + meta.flag + '.svg" alt="" onerror="this.style.display=\'none\'">' : '') + '</span>'
@@ -791,7 +799,9 @@
         if (cp) cp.focus = Object.assign({}, focusState);
       }
     }
-    activePartId = id; var part = partById(id); if (part && !part.locked) initPartState(part);
+    activePartId = id; var part = partById(id);
+    if (!part) { renderPartTabs(); renderHeader(null); renderProgramme(null); renderCategories(null); renderCarPerformance(); syncEditButtons(null); return; }
+    if (!part.locked) initPartState(part);
     renderPartTabs(); renderHeader(part); renderProgramme(part); renderCategories(part); renderCarPerformance();
     syncEditButtons(part);
   }
@@ -828,7 +838,7 @@
       var group = document.createElement('div'); group.className = 'pdo-group';
       var head = document.createElement('div'); head.className = 'pdo-group-head';
       head.innerHTML = '<div class="pdo-group-title"><h3>' + (part ? str(part.name) : ('Part ' + g.part_id)) + '</h3><span>' + g.progs.length + ' versions</span></div>';
-      if (str(headProg.status) === 'developing' || str(headProg.status) === 'delayed') {
+      if (raw(headProg.status) === 'developing' || raw(headProg.status) === 'delayed') {
         var fsl = document.createElement('div'); fsl.className = 'pdo-group-focus';
         fsl.innerHTML = focusSliderHtml(num(headProg.program_id), num(headProg.focus_share));
         head.appendChild(fsl);
@@ -846,7 +856,7 @@
   function renderScrapped() {
     var wrap = el('pd-scrapped');
     if (!wrap) return;
-    var scrapped = (S && S.devList || []).filter(function (p) { return str(p.status) === 'scrapped'; });
+    var scrapped = (S && S.devList || []).filter(function (p) { return raw(p.status) === 'scrapped'; });
     wrap.innerHTML = '';
     if (!scrapped.length) return;
     var card = document.createElement('div'); card.className = 'pd-programme';
@@ -1100,7 +1110,7 @@
         + '<span class="pd-tl-legend"><i style="background:' + c1 + '"></i>Development · Week ' + num(prog.weeks_elapsed) + '/' + num(prog.target_weeks) + '</span>'
         + '<span class="pd-tl-legend"><i style="background:' + c2 + '"></i>Manufacture ' + mfgDays + 'd</span>'
         + '<span class="pd-tl-legend">' + daysLeft + ' days left</span>'
-        + (race ? '<span class="pd-tl-legend pd-tl-target">➜ ' + str(raceMeta(str(race.name)).short) + ' ' + str(race.race_date).slice(0, 10) + '</span>' : '')
+        + (race ? '<span class="pd-tl-legend pd-tl-target">➜ ' + str(raceMeta(race.name).short) + ' ' + str(race.race_date).slice(0, 10) + '</span>' : '')
         + '</div>'
         + '<div class="pd-tl-track">'
         + '<div class="pd-tl-bar" style="left:0%; width:' + designEndPct + '%; background:' + c1 + ';"></div>'
@@ -1108,7 +1118,7 @@
         + '<div class="pd-tl-bar" style="left:0%; width:' + nowPct + '%; background:rgba(0,0,0,0.6); opacity:1; border-radius:0;"></div>'
         + '<div class="pd-tl-now" style="left:' + nowPct + '%"></div>'
         + '<div class="pd-tl-marker" style="left:' + nowPct + '%;"><span class="pd-tl-name">Now</span></div>'
-        + (race ? '<div class="pd-tl-marker target" style="left:100%;"><span class="pd-tl-name">' + str(raceMeta(str(race.name)).short) + '</span></div>' : '')
+        + (race ? '<div class="pd-tl-marker target" style="left:100%;"><span class="pd-tl-name">' + str(raceMeta(race.name).short) + '</span></div>' : '')
         + '</div></div>';
     }
 
@@ -1277,6 +1287,7 @@
     var data = await api('partsCatalog', { team: opts.team || '' });
     if (data.ok) {
       S = data;
+      syncDevFromList();
       resetProgCache();
       updateResourceUsage();
       if (activePartId == null && S.catalog && S.catalog.length) activePartId = num(S.catalog[0].part_id);
@@ -1310,7 +1321,7 @@
   function syncEditButtons(part) {
     var commit = el('btn-commit'), reset = el('btn-reset');
     if (!commit || !reset) return;
-    var activeCount = part ? programsForPart(part.part_id).filter(function (p) { return ['developing', 'delayed', 'tested', 'introduced'].indexOf(str(p.status)) !== -1; }).length : 0;
+    var activeCount = part ? programsForPart(part.part_id).filter(function (p) { return ['developing', 'delayed', 'tested', 'introduced'].indexOf(raw(p.status)) !== -1; }).length : 0;
     var canEdit = part && !part.locked && activeCount < 2;
     commit.disabled = !canEdit; reset.disabled = !canEdit;
   }

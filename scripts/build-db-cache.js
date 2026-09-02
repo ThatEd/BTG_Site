@@ -17,10 +17,14 @@
    Output:
      cache/public-data.json
        { generatedAt, version,
-         series, teams, drivers, race_seasons, races, race_results,
-         race_sprints, race_qualifying, race_pit_stops, race_grid_penalties,
-         season_driver_standings, season_team_standings, race_car_performance,
-         team_engine_history, team_staff, team_part_stats, series_points }
+         series, teams, team_season_names, team_identity, drivers,
+         race_seasons, races, app_state,
+         race_results, race_sprints, race_qualifying, race_pit_stops,
+         race_practice, race_grid_penalties,
+         season_driver_standings, season_team_standings,
+         series_points, series_bonus_points,
+         race_car_performance, team_engine_history, team_staff,
+         team_part_stats, contract_history }
    ═══════════════════════════════════════════════════════════════════════════ */
 
 'use strict';
@@ -70,22 +74,51 @@ const SITE_ROOT = path.resolve(process.env.BTG_SITE_ROOT || (function () {
 const OUT_FILE = path.join(SITE_ROOT, 'cache', 'public-data.json');
 
 async function readTable(name) {
-  const url = SUPABASE_URL + '/rest/v1/' + encodeURIComponent(name) +
-    '?select=*&limit=100000';
-  const res = await fetch(url, {
-    headers: {
-      'apikey': ANON_KEY,
-      'Authorization': 'Bearer ' + ANON_KEY,
-      'Accept': 'application/json'
+  const pageSize = 1000;
+  const baseUrl = SUPABASE_URL + '/rest/v1/' + encodeURIComponent(name) + '?select=*';
+  const all = [];
+  let from = 0;
+  let total = Infinity;
+
+  while (from <= total) {
+    const to = from + pageSize - 1;
+    const res = await fetch(baseUrl, {
+      signal: (typeof AbortSignal !== 'undefined' && AbortSignal.timeout)
+        ? AbortSignal.timeout(30000)
+        : undefined,
+      headers: {
+        'apikey': ANON_KEY,
+        'Authorization': 'Bearer ' + ANON_KEY,
+        'Accept': 'application/json',
+        'Range-Unit': 'items',
+        'Range': from + '-' + to
+      }
+    });
+    if (!res.ok) throw new Error('table ' + name + ' -> HTTP ' + res.status + ' ' + res.statusText);
+    const rows = await res.json();
+    if (!Array.isArray(rows)) throw new Error('table ' + name + ' -> non-array response');
+    all.push(...rows);
+
+    const rangeHdr = res.headers.get('Content-Range') || '';
+    const m = rangeHdr.match(/^(?:items\s+)?(\d+)-(\d+)\/(\d+|\*)$/i);
+    if (!m) {
+      if (rows.length < pageSize) break;
+      from += pageSize;
+      continue;
     }
-  });
-  if (!res.ok) throw new Error('table ' + name + ' -> HTTP ' + res.status + ' ' + res.statusText);
-  return res.json();
+    const lastTo = Number(m[2]);
+    const t = m[3];
+    total = t === '*' ? Infinity : Number(t);
+    if (rows.length === 0 || lastTo >= total - 1) break;
+    from = lastTo + 1;
+  }
+  return all;
 }
 
 async function main() {
   console.log('Reading public tables from', SUPABASE_URL);
   const data = { generatedAt: new Date().toISOString(), version: 1 };
+  const failedKeys = [];
   let directFailed = false;
 
   for (const [dbTable, key] of TABLES) {
@@ -95,12 +128,13 @@ async function main() {
       console.log('  ' + dbTable + ' -> ' + data[key].length + ' rows');
     } catch (e) {
       directFailed = true;
+      failedKeys.push(key);
       console.log('  ' + dbTable + ' -> DENIED (' + (e && e.message) + ')');
       data[key] = [];
     }
   }
 
-  // If the direct (anon) path failed for the critical tables, fall back to the
+  // If the direct (anon) path failed for any tables, fall back to the
   // consolidated edge-function snapshot (service-role server-side).
   if (directFailed) {
     const edgeUrl = process.env.BTG_API_URL ||
@@ -108,7 +142,12 @@ async function main() {
     console.log('Direct anon read incomplete — falling back to edge snapshot:', edgeUrl);
     try {
       const res = await fetch(edgeUrl, {
-        headers: { 'User-Agent': 'curl/8.0', 'Accept': 'application/json' }
+        headers: {
+          'User-Agent': 'curl/8.0',
+          'Accept': 'application/json',
+          'apikey': ANON_KEY,
+          'Authorization': 'Bearer ' + ANON_KEY
+        }
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const snap = await res.json();
@@ -127,12 +166,18 @@ async function main() {
     }
   }
 
-  if (!Array.isArray(data.races)) throw new Error('No race data could be fetched from any source.');
+  if (!Array.isArray(data.races) || data.races.length === 0) {
+    throw new Error('No race data could be fetched from any source.');
+  }
 
+  // Atomic write: temp file then rename so readers never see a partial cache.
   fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });
-  fs.writeFileSync(OUT_FILE, JSON.stringify(data));
+  const tmpFile = OUT_FILE + '.tmp';
+  fs.writeFileSync(tmpFile, JSON.stringify(data));
+  fs.renameSync(tmpFile, OUT_FILE);
 
   console.log('Wrote', OUT_FILE);
+  if (failedKeys.length) console.log('Failed direct reads (filled from edge if possible):', failedKeys.join(', '));
   const counts = {};
   Object.keys(data).forEach(function (k) {
     if (Array.isArray(data[k])) counts[k] = data[k].length;

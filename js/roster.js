@@ -322,6 +322,9 @@
       if (text == null) return;
       parseDriverCsv(text).forEach(function (d) {
         var existing = (d.id && byId[d.id]) || byKey[d.nameKey] || byName[d.name];
+        if (existing && existing.id && d.id && existing.id !== d.id) {
+          existing = null; // same name key but a different driver ID
+        }
         if (existing) {
           mergeDriver(existing, d);
           byName[existing.name] = existing;

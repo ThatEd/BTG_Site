@@ -41,6 +41,7 @@
     if (!results.length) return null;
     var byTrack = {};
     results.forEach(function (r) {
+      if (r.pos == null || r.pos <= 0) return;
       if (!byTrack[r.track]) byTrack[r.track] = { sum: 0, count: 0, best: 99, bestCount: 0 };
       var t = byTrack[r.track];
       t.sum += r.pos; t.count++;
@@ -102,7 +103,7 @@
     if (team) {
       peers = list.filter(function (x) { return x.id !== d.id && x.team === team && x.series === d.series; });
     }
-    if (!peers || !peers.length) {
+    if ((!peers || !peers.length) && car) {
       peers = list.filter(function (x) { return x.id !== d.id && x.car === car && x.series === d.series; });
       isSameCar = true;
     }
@@ -148,6 +149,7 @@
 
   function seasonVerdict(d, ss) {
     var pos = d.standings ? d.standings.pos : 99;
+    if (pos == null || pos === '—' || isNaN(Number(pos)) || Number(pos) >= 99) return '—';
     if (pos <= 3) return 'Championship Contender';
     if (pos <= 6) return 'Strong Season';
     if (pos <= 10) return 'Midfield Battle';
@@ -246,18 +248,18 @@
       html += '<div class="dp-left">';
 
       var heroInner = '<div class="dp-card dp-hero">'
-        + '<div class="dp-hero__number">' + (d.standings ? d.standings.pos : '') + '</div>'
+        + '<div class="dp-hero__number">' + BTG.esc(d.standings ? d.standings.pos : '') + '</div>'
         + '<div class="dp-hero__photo" style="border-color:rgb(' + color + ');box-shadow:0 0 24px rgb(' + color + ' / 0.2)">'
         + BTG.driverPhotoImg(d.fullName || d.name, 76)
         + '</div>'
         + '<div class="dp-hero__info">'
-        + '<div class="dp-hero__name"><span class="dp-hero__first">' + (nameParts.slice(0, -1).join(' ') || '') + '</span><span class="dp-hero__last">' + (nameParts.slice(-1)[0] || '') + '</span></div>'
+        + '<div class="dp-hero__name"><span class="dp-hero__first">' + BTG.esc(nameParts.slice(0, -1).join(' ') || '') + '</span><span class="dp-hero__last">' + BTG.esc(nameParts.slice(-1)[0] || '') + '</span></div>'
         + '<div class="dp-hero__meta">' + BTG.esc(d.nation || '') + (d.carNumber ? '<span class="dp-hero__sep">·</span>#' + BTG.esc(d.carNumber) : '') + '</div>'
         + '<div class="dp-hero__team" style="color:rgb(' + color + ')">'
         + BTG.entryLogoImg(d.team, d.car, d.series || series, 18)
         + '<span>' + BTG.esc(BTG.entryLabel(d.team, d.car)) + '</span>'
         + '</div>'
-        + (d.academy ? '<div class="dp-hero__academy"' + (d.academyColor ? ' style="color:' + d.academyColor + '"' : '') + '>'
+        + (d.academy ? '<div class="dp-hero__academy"' + (d.academyColor ? ' style="color:' + BTG.esc(d.academyColor) + '"' : '') + '>'
           + BTG.teamLogoImg(d.academy, d.series || series, 12)
           + '<span>' + BTG.esc(acadName) + (d.academyRole === 'Reserve' ? ' Reserve' : ' Academy') + '</span></div>' : '')
         + '</div></div>';
@@ -274,7 +276,7 @@
 
       var tenure = '—';
       var firstSeasonWithTeam = (d.history || []).find(function (h) { return h.series === d.series && h.team && h.team === d.team; });
-      if (firstSeasonWithTeam) tenure = 'since ' + firstSeasonWithTeam.season;
+      if (firstSeasonWithTeam) tenure = 'since ' + BTG.esc(firstSeasonWithTeam.season);
       html += '<div class="dp-card"><div class="dp-card__title">Contract</div>'
         + '<div class="dp-contract">'
         + '<div class="dp-contract__row"><span class="dp-contract__label">Team Tenure</span><span class="dp-contract__val">' + tenure + '</span></div>'
@@ -283,7 +285,7 @@
         + '</div></div>';
 
       html += '<div class="dp-card"><div class="dp-card__title">Season Position</div>'
-        + '<div class="dp-pos"><span class="dp-pos__rank">' + (d.standings ? 'P' + d.standings.pos : '—') + '</span><span class="dp-pos__pts">' + (d.standings ? d.standings.pts + ' pts' : '—') + '</span></div></div>';
+        + '<div class="dp-pos"><span class="dp-pos__rank">' + (d.standings ? 'P' + BTG.esc(d.standings.pos) : '—') + '</span><span class="dp-pos__pts">' + (d.standings ? BTG.esc(d.standings.pts) + ' pts' : '—') + '</span></div></div>';
 
       if (season != null) {
         var ls = (d.history || []).find(function (h) { return h.series === d.series && h.season === season - 1; });
@@ -302,7 +304,7 @@
       var fav = computeFavoriteTrack(d);
       html += '<div class="dp-card"><div class="dp-card__title">Favorite Track</div>'
         + '<div class="dp-fav-track">'
-        + '<div><div class="dp-fav-track__name">' + (fav ? fav.track : '—') + '</div><div class="dp-fav-track__note">' + (fav ? (fav.bestCount > 0 ? 'Best: P' + fav.best + ' · ' + fav.bestCount + 'x' : '—') : '—') + '</div></div></div></div>';
+        + '<div><div class="dp-fav-track__name">' + (fav ? BTG.esc(fav.track) : '—') + '</div><div class="dp-fav-track__note">' + (fav ? (fav.bestCount > 0 ? 'Best: P' + BTG.esc(fav.best) + ' · ' + BTG.esc(fav.bestCount) + 'x' : '—') : '—') + '</div></div></div></div>';
 
       html += '</div>'; // left
 
@@ -368,14 +370,14 @@
             var hcolor = dbTeamRgb(h.team) || '100,100,100';
             var label = h.team && h.team !== 'Privateer' ? h.team : (h.series || '');
             var logo = h.team && h.team !== 'Privateer' ? BTG.teamLogoImg(h.team, h.series, 14) : '';
-            return '<div class="dp-past-row"><span class="yr">' + h.season + '</span>'
+            return '<div class="dp-past-row"><span class="yr">' + BTG.esc(h.season) + '</span>'
               + '<span class="st">' + BTG.esc(h.series || '—') + '</span>'
               + '<span class="tm">' + logo + BTG.esc(label) + (h.role === 'Reserve' ? '<span class="sx">Reserve</span>' : '') + '</span>'
-              + '<span class="px">' + (h.pos && h.pos !== '—' ? 'P' + h.pos : '—') + '</span>'
-              + '<span class="px">' + (h.wins ? h.wins : '—') + '</span>'
-              + '<span class="px">' + (h.podiums ? h.podiums : '—') + '</span>'
-              + '<span class="px">' + (h.points != null ? h.points : '—') + '</span>'
-              + '<span class="ps">' + (h.grade || '—') + '</span></div>';
+              + '<span class="px">' + (h.pos && h.pos !== '—' ? 'P' + BTG.esc(h.pos) : '—') + '</span>'
+              + '<span class="px">' + (h.wins ? BTG.esc(h.wins) : '—') + '</span>'
+              + '<span class="px">' + (h.podiums ? BTG.esc(h.podiums) : '—') + '</span>'
+              + '<span class="px">' + (h.points != null ? BTG.esc(h.points) : '—') + '</span>'
+              + '<span class="ps">' + BTG.esc(h.grade || '—') + '</span></div>';
           }).join('') + '</div>';
       }
 

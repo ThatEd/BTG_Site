@@ -15,13 +15,20 @@
 
 let audioCtx;
 function getCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!audioCtx) {
+    try {
+      var C = window.AudioContext || window.webkitAudioContext;
+      if (C) audioCtx = new C();
+    } catch (e) { audioCtx = null; }
+  }
   return audioCtx;
 }
 
 /** Unlock the AudioContext — call from a user-gesture handler. */
 function initNotificationAudio() {
-  try { getCtx().resume().catch(function () {}); } catch (e) {}
+  var ctx = getCtx();
+  if (!ctx || !ctx.resume) return;
+  try { ctx.resume().catch(function () {}); } catch (e) {}
 }
 
 function tone(ctx, freq, startTime, duration, gainPeak) {
@@ -44,6 +51,7 @@ function tone(ctx, freq, startTime, duration, gainPeak) {
  */
 function playNewMailSound(opts = {}) {
   const ctx = getCtx();
+  if (!ctx) return;
   const f1 = opts.freq1 ?? 1467;
   const f2 = opts.freq2 ?? 731;
   const gapMs = opts.gap ?? 35;
@@ -59,6 +67,7 @@ function playNewMailSound(opts = {}) {
  */
 function playNewMessageSound(opts = {}) {
   const ctx = getCtx();
+  if (!ctx) return;
   const startFreq = opts.start ?? 872;
   const endFreq = opts.end ?? 2004;
   const duration = (opts.duration ?? 215) / 1000;

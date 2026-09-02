@@ -1792,12 +1792,19 @@ function fmtMoney(n) {
   if (a >= 1000) return sign + '$' + Math.round(a / 1000) + 'K';
   return sign + '$' + Math.round(a);
 }
+function parseMoney(s) {
+  if (s == null || s === '') return null;
+  var n = Number(String(s).replace(/[$,\s]/g, ''));
+  return isNaN(n) ? NaN : n;
+}
+function validYear(s) { var y = Number(s); return !isNaN(y) && y >= 1990 && y <= 2100; }
 function setMonthPill() {
   const pill = document.getElementById('month-pill');
   const label = document.getElementById('month-pill-label');
   if (DASH && DASH.month) {
     pill.classList.remove('hidden');
-    label.textContent = MONTH_NAMES[DASH.month - 1] + ' ' + (CURRENT_YEAR || 2024);
+    var mn = MONTH_NAMES[DASH.month - 1] || ('Month ' + DASH.month);
+    label.textContent = mn + ' ' + (CURRENT_YEAR || 2024);
   } else {
     pill.classList.add('hidden');
   }
@@ -2088,7 +2095,12 @@ async function renderPartOrders() {
   if (wrap.dataset.mountedTeam === teamKey) return; // already mounted for this team
   wrap.dataset.mountedTeam = teamKey;
   wrap.innerHTML = '<div class="pd-locked-notice">Loading parts design…</div>';
-  await window.PartsDesign.mount(wrap, { team: teamKey });
+  try {
+    await window.PartsDesign.mount(wrap, { team: teamKey });
+  } catch (e) {
+    delete wrap.dataset.mountedTeam;
+    wrap.innerHTML = '<p class="muted">Could not load parts design. <button class="action action-quiet action-compact" onclick="renderPartOrders()"><span>Retry</span></button></p>';
+  }
 }
 
 /* ---------- parts allocation (TP: who gets what parts) ---------- */
@@ -2486,6 +2498,7 @@ function renderContracts() {
   var offers = (DASH.offers || []);
   if (role === 'tp') { var stk2 = selectedTpTeam(); offers = offers.filter(function (o) { return o.team === stk2 || o.target === stk2 || o.loanTeam === stk2; }); }
   else if (role === 'admin') offers = offers.filter(function (o) { return offerStatus(o) === 'On Hold'; });
+  else if (role === 'driver') offers = offers.filter(function (o) { return o.target === (SELECTED && SELECTED.driver); });
   var offerHtml = '';
   offers.forEach(function (o, i) {
     const st = offerStatus(o);
@@ -2496,7 +2509,7 @@ function renderContracts() {
       + (o.message ? '<div class="offer-body">' + BTG.esc(o.message) + '</div>' : '')
       + (o.promise ? '<div class="offer-body">Promise: seat in <b>' + BTG.esc(o.promise.series) + '</b>' + (o.promise.by ? ' by <b>' + BTG.esc(o.promise.by) + '</b>' : '') + '</div>' : '')
       + (o.bonus > 0 ? '<div class="offer-body">Signing bonus: <b>' + fmtMoney(o.bonus) + '</b></div>' : '')
-      + offerActionsHtml(o, i, role)
+      + offerActionsHtml(o, role)
       + '</div>';
   });
 
@@ -2618,15 +2631,29 @@ function renderContracts() {
     sendBtn.onclick = async function () {
       const resultEl = document.getElementById('c-result');
       const salary = document.getElementById('c-salary').value.trim();
+      const from = document.getElementById('c-from').value.trim();
+      const till = document.getElementById('c-till').value.trim();
+      const bonus = document.getElementById('c-bonus').value.trim();
+      const comp = document.getElementById('c-comp').value.trim();
+      const promiseBy = document.getElementById('c-promise-by').value.trim();
       resultEl.style.display = 'none';
       if (role === 'tp' && !document.getElementById('c-driver').value) { showResult(resultEl, false, 'Choose a driver.'); return; }
       if (role === 'driver' && !document.getElementById('c-team').value.trim()) { showResult(resultEl, false, 'Enter a team.'); return; }
       if (!salary) { showResult(resultEl, false, 'Enter a salary.'); return; }
+      var salaryNum = parseMoney(salary);
+      if (salaryNum == null || isNaN(salaryNum)) { showResult(resultEl, false, 'Salary must be a number.'); return; }
+      if (from && !validYear(from)) { showResult(resultEl, false, 'From year must be between 1990 and 2100.'); return; }
+      if (till && !validYear(till)) { showResult(resultEl, false, 'Till year must be between 1990 and 2100.'); return; }
+      if (from && till && Number(till) < Number(from)) { showResult(resultEl, false, 'Till year must be the same or later than From year.'); return; }
+      var bonusNum = parseMoney(bonus); if (isNaN(bonusNum)) bonusNum = 0;
+      var compNum = parseMoney(comp); if (isNaN(compNum)) compNum = 0;
+      var promiseByNum = promiseBy ? Number(promiseBy) : null;
+      if (promiseBy && (isNaN(promiseByNum) || !validYear(promiseBy))) { showResult(resultEl, false, 'Promise "by" year must be a valid year.'); return; }
       sendBtn.disabled = true;
       try {
         const payload = role === 'tp'
-          ? { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team-tp').value, target: document.getElementById('c-driver').value, salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim(), promiseSeries: document.getElementById('c-promise-series').value, promiseBy: document.getElementById('c-promise-by').value.trim(), signingBonus: document.getElementById('c-bonus').value.trim(), parentCompensation: document.getElementById('c-comp').value.trim() }
-          : { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team').value.trim(), salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim(), promiseSeries: document.getElementById('c-promise-series').value, promiseBy: document.getElementById('c-promise-by').value.trim(), signingBonus: document.getElementById('c-bonus').value.trim() };
+          ? { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team-tp').value, target: document.getElementById('c-driver').value, salary: salaryNum, from: from, till: till, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim(), promiseSeries: document.getElementById('c-promise-series').value, promiseBy: promiseBy, signingBonus: bonusNum || null, parentCompensation: compNum || null }
+          : { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team').value.trim(), salary: salaryNum, from: from, till: till, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim(), promiseSeries: document.getElementById('c-promise-series').value, promiseBy: promiseBy, signingBonus: bonusNum || null };
         const data = await callGateway(role === 'tp' ? 'sendContractOffer' : 'sendDriverOffer', payload);
         if (data.ok) { showResult(resultEl, true, '✓ Offer sent.'); }
         else { showResult(resultEl, false, '✗ ' + data.error); }
@@ -2647,14 +2674,21 @@ function renderContracts() {
       const driver = document.getElementById('l-driver').value;
       const team = document.getElementById('l-team').value.trim();
       const salary = document.getElementById('l-salary').value.trim();
+      const lFrom = document.getElementById('l-from').value.trim();
+      const lTill = document.getElementById('l-till').value.trim();
       resultEl.style.display = 'none';
       if (!driver || !team || !salary) { showResult(resultEl, false, 'Choose driver, loan team and salary.'); return; }
+      var salaryNum = parseMoney(salary);
+      if (salaryNum == null || isNaN(salaryNum)) { showResult(resultEl, false, 'Salary must be a number.'); return; }
+      if (lFrom && !validYear(lFrom)) { showResult(resultEl, false, 'From year must be between 1990 and 2100.'); return; }
+      if (lTill && !validYear(lTill)) { showResult(resultEl, false, 'Till year must be between 1990 and 2100.'); return; }
+      if (lFrom && lTill && Number(lTill) < Number(lFrom)) { showResult(resultEl, false, 'Till year must be the same or later than From year.'); return; }
       lBtn.disabled = true;
       try {
         const data = await callGateway('sendLoanOffer', {
           username: CURRENT_USER.username, password: CURRENT_USER.password,
           parentTeam: document.getElementById('c-team-tp').value, driver: driver, loanTeam: team,
-          salary: salary, from: document.getElementById('l-from').value, till: document.getElementById('l-till').value,
+          salary: salaryNum, from: lFrom, till: lTill,
           percent: document.getElementById('l-percent').value, parentRole: document.getElementById('l-parent-role').value
         });
         if (data.ok) { showResult(resultEl, true, '✓ Loan offer sent.'); }
@@ -2673,11 +2707,13 @@ function renderContracts() {
       const amount = document.getElementById('p-amount').value.trim();
       resultEl.style.display = 'none';
       if (!team || !target || !amount) { showResult(resultEl, false, 'Fill in team, driver and amount.'); return; }
+      var amountNum = parseMoney(amount);
+      if (amountNum == null || isNaN(amountNum) || amountNum <= 0) { showResult(resultEl, false, 'Amount must be a positive number.'); return; }
       pBtn.disabled = true;
       try {
         const data = await callGateway('sendPayForSeat', {
           username: CURRENT_USER.username, password: CURRENT_USER.password,
-          team: team, targetDriver: target, amount: amount, role: document.getElementById('p-role').value, message: document.getElementById('p-message').value.trim()
+          team: team, targetDriver: target, amount: amountNum, role: document.getElementById('p-role').value, message: document.getElementById('p-message').value.trim()
         });
         if (data.ok) { showResult(resultEl, true, '✓ Pay-for-seat offer sent.'); }
         else { showResult(resultEl, false, '✗ ' + data.error); }
@@ -3430,7 +3466,7 @@ function impBuildAndPreview() {
         // League DBs carry everything — no series/champ selection required.
         impBuildAndPreview();
       } else {
-        if (!IMP.series) { showResult(resEl, false, '✗ Choose the series first.'); return; }
+        if (!IMP.series) { showResult(resEl, false, '✗ Choose the series first.'); setStatus('ready', 'Ready'); return; }
         impPopulateChamps();
       }
       setStatus('ok', 'Database analysed');
@@ -4605,7 +4641,7 @@ function isGtTeamKey(teamKey) {
 
 function seatCategoryLabel_(seat, teamKey) {
   var s = Number(seat);
-  if (isNaN(s)) return '—';
+  if (isNaN(s) || s <= 0) return '—';
   if (s <= 8 && isGtTeamKey(teamKey)) return 'Driving';
   if (s <= 2) return 'Driving';
   if (s <= 5) return 'Reserve';
@@ -4615,7 +4651,16 @@ function seatCategoryLabel_(seat, teamKey) {
 
 function offerStatus(o) { return o.status || ''; }
 
-function loanOfferActionsHtml(o, i, role, st, tpTeams) {
+/** Stable offer lookup by DB offer_id. renderMailbox/renderContracts filter
+ *  the offers array, so array indices are unsafe; every action keys by row. */
+function offerByRow(row) {
+  var arr = (DASH && DASH.offers) || [];
+  for (var i = 0; i < arr.length; i++) { if (arr[i].row === row) return arr[i]; }
+  return null;
+}
+
+function loanOfferActionsHtml(o, role, st, tpTeams) {
+  var row = o.row;
   if (st === 'Accepted') return '<div class="offer-actions"><span class="tag-pill">Loaned</span></div>';
   if (st === 'Rejected') return '<div class="offer-actions"><span class="tag-pill denied">Rejected</span></div>';
   var isLoanTeam = role === 'tp' && tpTeams.indexOf(o.loanTeam) !== -1;
@@ -4623,60 +4668,61 @@ function loanOfferActionsHtml(o, i, role, st, tpTeams) {
   if (role === 'driver') {
     if (!o.driverAccepted) {
       return '<div class="offer-actions">'
-        + '<button class="action action-lead action-compact" onclick="respondOffer(' + i + ', \'accept\')"><span>Accept loan</span></button>'
-        + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Decline</span></button></div>';
+        + '<button class="action action-lead action-compact" onclick="respondOffer(' + row + ', \'accept\')"><span>Accept loan</span></button>'
+        + '<button class="action action-quiet action-compact" onclick="respondOffer(' + row + ', \'decline\')"><span>Decline</span></button></div>';
     }
     return '<div class="offer-actions"><span class="tag-pill warn">Waiting on ' + BTG.esc(o.loanTeam) + '</span></div>';
   }
   if (isLoanTeam) {
     if (!o.loanTeamAccepted) {
       return '<div class="offer-actions">'
-        + '<button class="action action-lead action-compact" onclick="respondLoanTeam(' + i + ', true)"><span>Accept (' + (o.loanPercent || 0) + '% of salary)</span></button>'
-        + '<button class="action action-quiet action-compact" onclick="respondLoanTeam(' + i + ', false)"><span>Reject</span></button></div>';
+        + '<button class="action action-lead action-compact" onclick="respondLoanTeam(' + row + ', true)"><span>Accept (' + (o.loanPercent || 0) + '% of salary)</span></button>'
+        + '<button class="action action-quiet action-compact" onclick="respondLoanTeam(' + row + ', false)"><span>Reject</span></button></div>';
     }
     return '<div class="offer-actions"><span class="tag-pill warn">Waiting on driver</span></div>';
   }
   if (isParentTeam) {
     return '<div class="offer-actions"><span class="tag-pill warn">Awaiting acceptance</span>'
-      + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Withdraw</span></button></div>';
+      + '<button class="action action-quiet action-compact" onclick="respondOffer(' + row + ', \'decline\')"><span>Withdraw</span></button></div>';
   }
   return '<div class="offer-actions"><span class="tag-pill">Loan offer</span></div>';
 }
 
-function offerActionsHtml(o, i, role) {
+function offerActionsHtml(o, role) {
   var st = offerStatus(o);
+  var row = o.row;
   var tpTeams = (DASH && DASH.tp && DASH.tp.teams) ? DASH.tp.teams.map(function (t) { return t.key; }) : [];
   var isMyTpTeam = role === 'tp' && tpTeams.indexOf(o.team) !== -1;
-  if (o.offerKind === 'loan') return loanOfferActionsHtml(o, i, role, st, tpTeams);
+  if (o.offerKind === 'loan') return loanOfferActionsHtml(o, role, st, tpTeams);
   if (st === '') {
     var isDriverInitiated = /driver-initiated/i.test(o.terms || '');
     if (role === 'driver') {
       if (isDriverInitiated) {
         return '<div class="offer-actions">'
-          + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Withdraw</span></button>'
+          + '<button class="action action-quiet action-compact" onclick="respondOffer(' + row + ', \'decline\')"><span>Withdraw</span></button>'
           + '</div>';
       }
       return '<div class="offer-actions">'
-        + '<button class="action action-lead action-compact" onclick="respondOffer(' + i + ', \'accept\')"><span>Accept</span></button>'
-        + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Decline</span></button>'
-        + ((o.hasCounter) ? '' : '<button class="action action-quiet action-compact" onclick="promptCounter(' + i + ')"><span>Counter</span></button>')
+        + '<button class="action action-lead action-compact" onclick="respondOffer(' + row + ', \'accept\')"><span>Accept</span></button>'
+        + '<button class="action action-quiet action-compact" onclick="respondOffer(' + row + ', \'decline\')"><span>Decline</span></button>'
+        + ((o.hasCounter) ? '' : '<button class="action action-quiet action-compact" onclick="promptCounter(' + row + ')"><span>Counter</span></button>')
         + '</div>';
     }
     if (isMyTpTeam) {
       if (isDriverInitiated) {
         return '<div class="offer-actions">'
-          + '<button class="action action-lead action-compact" onclick="respondOffer(' + i + ', \'accept\')"><span>Accept</span></button>'
-          + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Decline</span></button>'
+          + '<button class="action action-lead action-compact" onclick="respondOffer(' + row + ', \'accept\')"><span>Accept</span></button>'
+          + '<button class="action action-quiet action-compact" onclick="respondOffer(' + row + ', \'decline\')"><span>Decline</span></button>'
           + '</div>';
       }
       if (o.hasCounter) {
         return '<div class="offer-actions">'
-          + '<button class="action action-lead action-compact" onclick="respondCounter(' + i + ', true)"><span>Accept counter</span></button>'
-          + '<button class="action action-quiet action-compact" onclick="respondCounter(' + i + ', false)"><span>Reject counter</span></button>'
+          + '<button class="action action-lead action-compact" onclick="respondCounter(' + row + ', true)"><span>Accept counter</span></button>'
+          + '<button class="action action-quiet action-compact" onclick="respondCounter(' + row + ', false)"><span>Reject counter</span></button>'
           + '</div>';
       }
       return '<div class="offer-actions">'
-        + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Withdraw</span></button>'
+        + '<button class="action action-quiet action-compact" onclick="respondOffer(' + row + ', \'decline\')"><span>Withdraw</span></button>'
         + '</div>';
     }
     return '';
@@ -4689,22 +4735,22 @@ function offerActionsHtml(o, i, role) {
     if (isMyParentTeam) {
       var compTxt = (o.parentCompensation > 0) ? ' (+' + fmtMoney(o.parentCompensation) + ')' : '';
       return '<div class="offer-actions">' + pill
-        + '<button class="action action-lead action-compact" onclick="respondParentOffer(' + i + ', true)"><span>Approve' + compTxt + '</span></button>'
-        + '<button class="action action-quiet action-compact" onclick="respondParentOffer(' + i + ', false)"><span>Reject</span></button></div>';
+        + '<button class="action action-lead action-compact" onclick="respondParentOffer(' + row + ', true)"><span>Approve' + compTxt + '</span></button>'
+        + '<button class="action action-quiet action-compact" onclick="respondParentOffer(' + row + ', false)"><span>Reject</span></button></div>';
     }
     return '<div class="offer-actions">' + pill + '</div>';
   }
   if (st === 'On Hold') {
     if (role === 'driver') {
-      return '<div class="offer-actions">' + pill + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Reject</span></button></div>';
+      return '<div class="offer-actions">' + pill + '<button class="action action-quiet action-compact" onclick="respondOffer(' + row + ', \'decline\')"><span>Reject</span></button></div>';
     }
     if (isMyTpTeam) {
-      return '<div class="offer-actions">' + pill + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Reject</span></button></div>';
+      return '<div class="offer-actions">' + pill + '<button class="action action-quiet action-compact" onclick="respondOffer(' + row + ', \'decline\')"><span>Reject</span></button></div>';
     }
     if (role === 'admin') {
       return '<div class="offer-actions">' + pill
-        + '<button class="action action-lead action-compact" onclick="adminResolveOffer(' + i + ', true)"><span>Approve</span></button>'
-        + '<button class="action action-quiet action-compact" onclick="adminResolveOffer(' + i + ', false)"><span>Deny</span></button></div>';
+        + '<button class="action action-lead action-compact" onclick="adminResolveOffer(' + row + ', true)"><span>Approve</span></button>'
+        + '<button class="action action-quiet action-compact" onclick="adminResolveOffer(' + row + ', false)"><span>Deny</span></button></div>';
     }
     return '<div class="offer-actions">' + pill + '</div>';
   }
@@ -4745,28 +4791,31 @@ function onMailSearch(el) {
 function renderMailbox() {
   const root = document.getElementById('mailbox-offers');
   const mailEl = document.getElementById('mailbox-mail');
+  if (!root || !mailEl) return;
   mailEl.innerHTML = '';
   var offers = (DASH && DASH.offers) || [];
   const mail = (DASH && DASH.mail) || [];
   const role = CURRENT_USER && CURRENT_USER.role;
 
-  // Admins only need offers awaiting their approve/deny.
+  // Admins only need offers awaiting their approve/deny; drivers only their own.
   if (role === 'admin') offers = offers.filter(function (o) { return offerStatus(o) === 'On Hold'; });
+  else if (role === 'driver') offers = offers.filter(function (o) { return o.target === ((DASH && DASH.driver && DASH.driver.driver) || ''); });
 
   const offerItems = offers.map(function (o, i) {
     const st = offerStatus(o);
     const open = st === '';
+    var counter = o.counter || null;
     var body = (o.message ? o.message + '\n\n' : '')
       + 'Salary: ' + fmtMoney(o.salary)
       + '\nPeriod: ' + (o.from || '—') + '–' + (o.till || '—')
       + (o.role ? '\nRole: ' + o.role : '')
       + (o.terms ? '\nTerms: ' + o.terms : '')
-      + (o.hasCounter
-          ? '\n' + (role === 'tp' ? 'Driver counter: ' : 'Your counter: ') + fmtMoney(o.counter.salary) + (o.counter.role ? ' · ' + o.counter.role : '')
+      + (counter
+          ? '\n' + (role === 'tp' ? 'Driver counter: ' : 'Your counter: ') + fmtMoney(counter.salary) + (counter.role ? ' · ' + counter.role : '')
           : '');
     return {
       idx: i, kind: 'offer', open: open, status: st, row: o.row,
-      hasCounter: !!o.hasCounter,
+      hasCounter: !!counter,
       from: o.team || '?', to: o.target || '?',
       subject: (o.modify ? 'Contract change — ' : 'Contract offer — ') + fmtMoney(o.salary) + (o.role ? ' · ' + o.role : ''),
       body: body
@@ -4908,7 +4957,8 @@ function renderMailbox() {
       + '<div style="font-size:12px;color:var(--copy-faint)">' + (sel.kind === 'offer' ? 'Contract offer' : 'Message') + '</div></div></div>'
       + '<div class="read-body">' + BTG.esc(sel.body) + '</div>';
     if (sel.kind === 'offer') {
-      html += offerActionsHtml(offers[sel.idx], sel.idx, role);
+      var selOffer = offerByRow(sel.row);
+      html += offerActionsHtml(selOffer || offers[sel.idx], role);
     } else if (sel.kind === 'mail' || sel.kind === 'sent') {
       var replyTo = sel.kind === 'mail' ? sel.from : sel.to;
       var canBlock = sel.kind === 'mail' && role !== 'admin' && sel.from && sel.from !== 'BTG Officials';
@@ -5524,7 +5574,18 @@ function scoutRender() {
 
   var profile = scoutRenderDetail(SCOUT.selected);
 
+  var activeEl = document.activeElement;
+  var activeId = activeEl && activeEl.id;
+  var selStart = activeEl && activeEl.selectionStart;
+  var selEnd = activeEl && activeEl.selectionEnd;
   root.innerHTML = '<div class="scout-main">' + filters + table + '</div>' + profile;
+  if (activeId) {
+    var restored = document.getElementById(activeId);
+    if (restored) {
+      restored.focus();
+      try { restored.setSelectionRange(selStart, selEnd); } catch (e) {}
+    }
+  }
 
   // wire up controls
   root.querySelectorAll('.scout-role-tab').forEach(function (t) {
@@ -5720,13 +5781,17 @@ function renderScouting() {
 
 function renderAdminMonth() {
   const el = document.getElementById('admin-month');
-  if (DASH && DASH.month) el.textContent = MONTH_NAMES[DASH.month - 1] + ' ' + (CURRENT_YEAR || 2024);
-  else el.textContent = '—';
+  if (DASH && DASH.month) {
+    var mn = MONTH_NAMES[DASH.month - 1] || ('Month ' + DASH.month);
+    el.textContent = mn + ' ' + (CURRENT_YEAR || 2024);
+  } else el.textContent = '—';
 }
 
-async function respondOffer(index, response) {
-  const o = DASH && DASH.offers && DASH.offers[index];
+async function respondOffer(offerRow, response) {
+  const o = offerByRow(offerRow);
   if (!o || !CURRENT_USER) return;
+  if (window._offerActionPending) return;
+  window._offerActionPending = true;
   try {
     const data = await callGateway('respondContractOffer', {
       username: CURRENT_USER.username, password: CURRENT_USER.password,
@@ -5742,12 +5807,16 @@ async function respondOffer(index, response) {
     }
   } catch (e) {
     alert('✗ Could not reach the gateway script.');
+  } finally {
+    window._offerActionPending = false;
   }
 }
 
-async function adminResolveOffer(index, approve) {
-  const o = DASH && DASH.offers && DASH.offers[index];
+async function adminResolveOffer(offerRow, approve) {
+  const o = offerByRow(offerRow);
   if (!o || !CURRENT_USER) return;
+  if (window._offerActionPending) return;
+  window._offerActionPending = true;
   try {
     const data = await callGateway('adminResolveOffer', {
       username: CURRENT_USER.username, password: CURRENT_USER.password,
@@ -5763,12 +5832,16 @@ async function adminResolveOffer(index, approve) {
     }
   } catch (e) {
     alert('✗ Could not reach the gateway script.');
+  } finally {
+    window._offerActionPending = false;
   }
 }
 
-async function respondParentOffer(index, accept) {
-  const o = DASH && DASH.offers && DASH.offers[index];
+async function respondParentOffer(offerRow, accept) {
+  const o = offerByRow(offerRow);
   if (!o || !CURRENT_USER) return;
+  if (window._offerActionPending) return;
+  window._offerActionPending = true;
   try {
     const data = await callGateway('parentOffer', {
       username: CURRENT_USER.username, password: CURRENT_USER.password,
@@ -5784,12 +5857,16 @@ async function respondParentOffer(index, accept) {
     }
   } catch (e) {
     alert('✗ Could not reach the gateway script.');
+  } finally {
+    window._offerActionPending = false;
   }
 }
 
-async function respondLoanTeam(index, accept) {
-  const o = DASH && DASH.offers && DASH.offers[index];
+async function respondLoanTeam(offerRow, accept) {
+  const o = offerByRow(offerRow);
   if (!o || !CURRENT_USER) return;
+  if (window._offerActionPending) return;
+  window._offerActionPending = true;
   try {
     const data = await callGateway('respondLoanTeam', {
       username: CURRENT_USER.username, password: CURRENT_USER.password,
@@ -5805,12 +5882,16 @@ async function respondLoanTeam(index, accept) {
     }
   } catch (e) {
     alert('✗ Could not reach the gateway script.');
+  } finally {
+    window._offerActionPending = false;
   }
 }
 
-async function respondCounter(index, accept) {
-  const o = DASH && DASH.offers && DASH.offers[index];
+async function respondCounter(offerRow, accept) {
+  const o = offerByRow(offerRow);
   if (!o || !CURRENT_USER) return;
+  if (window._offerActionPending) return;
+  window._offerActionPending = true;
   try {
     const data = await callGateway('respondCounter', {
       username: CURRENT_USER.username, password: CURRENT_USER.password,
@@ -5818,7 +5899,7 @@ async function respondCounter(index, accept) {
     });
     if (data.ok) {
       o.status = data.result || '';
-      if (!accept) { o.counter = null; }
+      if (!accept) { o.counter = null; o.hasCounter = false; }
       renderMailbox();
       renderContracts();
       if (CURRENT_USER) buildDashSidebar(CURRENT_USER.role);
@@ -5827,6 +5908,8 @@ async function respondCounter(index, accept) {
     }
   } catch (e) {
     alert('✗ Could not reach the gateway script.');
+  } finally {
+    window._offerActionPending = false;
   }
 }
 
@@ -5865,21 +5948,26 @@ async function markMailReadItem(row) {
   }
 }
 
-function promptCounter(index) {
-  const o = DASH && DASH.offers && DASH.offers[index];
+function promptCounter(offerRow) {
+  const o = offerByRow(offerRow);
   if (!o) return;
   var salary = prompt('Counter salary', o.salary ? String(o.salary) : '');
   if (salary === null) return;
+  var salaryNum = parseMoney(salary);
+  if (salaryNum == null || isNaN(salaryNum)) { alert('✗ Salary must be a number.'); return; }
   var from = prompt('Counter from (year)', String(CURRENT_YEAR || 2024));
   if (from === null) return;
+  if (from && !validYear(from)) { alert('✗ From year must be between 1990 and 2100.'); return; }
   var till = prompt('Counter till (year)', String(o.till || (CURRENT_YEAR || 2024) + 1));
   if (till === null) return;
+  if (till && !validYear(till)) { alert('✗ Till year must be between 1990 and 2100.'); return; }
+  if (from && till && Number(till) < Number(from)) { alert('✗ Till year must be the same or later than From year.'); return; }
   var terms = prompt('Counter extra terms', '') || '';
   var message = prompt('Counter message', '') || '';
   callGateway('respondContractOffer', {
     username: CURRENT_USER.username, password: CURRENT_USER.password,
     offerRow: o.row, response: 'counter',
-    counter: { role: o.role, salary: salary, from: from, till: till, terms: terms, message: message }
+    counter: { role: o.role, salary: salaryNum, from: from, till: till, terms: terms, message: message }
   }).then(function (data) {
     if (data.ok) { renderMailbox(); renderContracts(); }
     else alert('✗ ' + data.error);
@@ -5896,9 +5984,11 @@ document.getElementById('advance-month-btn').addEventListener('click', async () 
     const data = await callGateway('advanceMonth', { username: CURRENT_USER.username, password: CURRENT_USER.password });
     if (data.ok) {
       DASH.month = data.month;
+      if (data.year) CURRENT_YEAR = data.year;
       renderAdminMonth();
       setMonthPill();
-      showResult(resultEl, true, '✓ Advanced to ' + MONTH_NAMES[data.month - 1] + ' ' + (CURRENT_YEAR || 2024) + '. Monthly salary paid.');
+      var mn = MONTH_NAMES[data.month - 1] || ('Month ' + data.month);
+      showResult(resultEl, true, '✓ Advanced to ' + mn + ' ' + (CURRENT_YEAR || 2024) + '. Monthly salary paid.');
     } else {
       showResult(resultEl, false, '✗ ' + data.error);
     }
@@ -6354,6 +6444,7 @@ async function pollMailOnce() {
   if (!CURRENT_USER) return;
   try {
     const data = await callGateway('pollMail', { username: CURRENT_USER.username, password: CURRENT_USER.password, since: MAIL_MAX_ID });
+    if (!data.ok && data.error === 'unauthorized') { showLoginGate(); return; }
     if (data.ok) {
       if (data.maxId > MAIL_MAX_ID) MAIL_MAX_ID = data.maxId;
       if (data.mail && data.mail.length) {
@@ -6418,12 +6509,16 @@ function renderChat() {
 
 async function chatPollOnce() {
   if (!CURRENT_USER || !CHAT) return;
+  var rooms = CHAT.rooms.slice();
   var anyNewFromOthers = false;
-  for (var i = 0; i < CHAT.rooms.length; i++) {
-    var room = CHAT.rooms[i];
+  for (var i = 0; i < rooms.length; i++) {
+    if (!CHAT || !CURRENT_USER) return;
+    var room = rooms[i];
     var st = CHAT.state[room] || { sinceId: 0, messages: [], members: [], unread: 0 };
     try {
       const data = await callGateway('chatPoll', { username: CURRENT_USER.username, password: CURRENT_USER.password, room: room, since: st.sinceId });
+      if (!CURRENT_USER || !CHAT) return;
+      if (!data.ok && data.error === 'unauthorized') { showLoginGate(); return; }
       if (data.ok) {
         if (data.maxId > st.sinceId) st.sinceId = data.maxId;
         if (data.messages && data.messages.length) {
@@ -6439,6 +6534,7 @@ async function chatPollOnce() {
       }
     } catch (e) { /* transient */ }
   }
+  if (!CHAT) return;
   if (anyNewFromOthers && CHAT.everLoaded) playNewMessageSound();
   CHAT.everLoaded = true;
   renderChat();
@@ -6449,10 +6545,13 @@ async function sendChatMessage() {
   const input = document.getElementById('chat-input');
   const msg = (input.value || '').trim();
   if (!msg) return;
-  input.value = '';
+  if (window._chatSendPending) return;
+  window._chatSendPending = true;
   try {
     const data = await callGateway('chatSend', { username: CURRENT_USER.username, password: CURRENT_USER.password, room: CHAT.activeRoom, message: msg });
+    if (!CURRENT_USER || !CHAT) return;
     if (data.ok && data.message) {
+      input.value = '';
       var st = CHAT.state[CHAT.activeRoom] || { sinceId: 0, messages: [], members: [], unread: 0 };
       st.messages = (st.messages || []).concat([data.message]);
       if (data.message.id > st.sinceId) st.sinceId = data.message.id;
@@ -6460,6 +6559,7 @@ async function sendChatMessage() {
       renderChat();
     }
   } catch (e) { /* transient */ }
+  finally { window._chatSendPending = false; }
 }
 
 function startLive() {
@@ -6489,6 +6589,24 @@ function stopLive() {
   if (MAIL_POLL_INTERVAL) { clearInterval(MAIL_POLL_INTERVAL); MAIL_POLL_INTERVAL = null; }
   if (CHAT_POLL_INTERVAL) { clearInterval(CHAT_POLL_INTERVAL); CHAT_POLL_INTERVAL = null; }
   CHAT = null;
+}
+
+function showLoginGate() {
+  stopLive();
+  clearSession();
+  CURRENT_USER = null; DRIVERS = []; TEAMS = []; SELECTED = null; PENDING = {}; DASH = null; MAIL_FILTER = null; TP_TEAM_SEL = null; PARTS_TEAM_SEL = null;
+  const pc = document.getElementById('partorders-console');
+  if (pc) { pc.innerHTML = ''; delete pc.dataset.mountedTeam; }
+  var gate = document.getElementById('gate-section');
+  if (gate) gate.classList.remove('hidden');
+  var dashSide = document.getElementById('dash-side');
+  if (dashSide) dashSide.classList.add('hidden');
+  ALL_DASH_SECTIONS.concat(['driver-hero','driver-meta-row','driver-select-wrap','logout-btn','refresh-btn','month-pill','finances-pill','tp-team-switch'])
+    .forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
+  const tsw = document.getElementById('tp-team-switch');
+  if (tsw) { tsw.value = ''; tsw.innerHTML = ''; }
+  setTeamColors(null);
+  setStatus('locked', 'Locked');
 }
 
 (function () {

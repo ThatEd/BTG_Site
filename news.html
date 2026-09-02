@@ -105,10 +105,44 @@
     return new Date(m[2] + ' ' + m[1] + ', ' + m[3]);
   }
 
+  function sanitizeHtml(html) {
+    if (!html) return '';
+    var allowed = { p:1, br:1, hr:1, strong:1, b:1, em:1, i:1, u:1, s:1, span:1, a:1, ul:1, ol:1, li:1, h1:1, h2:1, h3:1, h4:1, h5:1, h6:1, blockquote:1, img:1 };
+    var attrs = { a: ['href','title','target'], img: ['src','alt','title'], span: ['class'], '*': ['class'] };
+    var tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    function walk(node) {
+      if (node.nodeType === 3) return;
+      if (node.nodeType !== 1) { node.remove(); return; }
+      var tag = node.tagName.toLowerCase();
+      if (!allowed[tag]) {
+        var parent = node.parentNode;
+        while (node.firstChild) parent.insertBefore(node.firstChild, node);
+        parent.removeChild(node);
+        return;
+      }
+      Array.prototype.slice.call(node.attributes).forEach(function(at) {
+        var ok = (attrs[tag] && attrs[tag].indexOf(at.name) !== -1) || (attrs['*'] && attrs['*'].indexOf(at.name) !== -1);
+        if (!ok) node.removeAttribute(at.name);
+      });
+      if (tag === 'a') {
+        var h = node.getAttribute('href') || '';
+        if (/^javascript:/i.test(h)) node.removeAttribute('href');
+      }
+      if (tag === 'img') {
+        var s = node.getAttribute('src') || '';
+        if (/^javascript:/i.test(s)) node.removeAttribute('src');
+      }
+      Array.prototype.slice.call(node.childNodes).forEach(walk);
+    }
+    Array.prototype.slice.call(tpl.content.childNodes).forEach(walk);
+    return tpl.innerHTML;
+  }
+
   function extractSnippet(html) {
     if (!html) return '';
     var tmp = document.createElement('div');
-    tmp.innerHTML = html;
+    tmp.innerHTML = sanitizeHtml(html);
     var text = (tmp.textContent || '').trim();
     return text.length > 160 ? text.substring(0, 157) + '…' : text;
   }
@@ -281,7 +315,7 @@
       +   (a.section ? '<div class="article-section">' + esc(a.section) + '</div>' : '')
       +   (a.meta ? '<div class="article-meta">' + esc(a.meta) + '</div>' : '')
       +   (img ? '<figure class="article-figure"><img class="article-img" src="' + attr(img) + '" alt="' + attr(a.title || '') + '" loading="lazy"><figcaption>' + esc(a.caption || '') + '</figcaption></figure>' : '')
-      +   '<div class="article-body">' + (a.body || '') + '</div>'
+      +   '<div class="article-body">' + sanitizeHtml(a.body) + '</div>'
       +   ((a.tags && a.tags.length) ? '<div class="article-tags">' + a.tags.map(function(t){ return '<span class="article-tag">' + esc(t) + '</span>'; }).join('') + '</div>' : '')
       + '</article>';
     var articleEl = c.querySelector('.article');
