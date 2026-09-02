@@ -5179,14 +5179,36 @@ var SCOUT_CHAMP_BONUS_RATIO = 0.3;
 function scoutSeriesOf(d) {
   return String((d && d.series) || '').toUpperCase();
 }
+function scoutSeriesList(d) {
+  // Every series the driver holds a contract in, primary racing series first.
+  var out = [];
+  ((d && d.contracts) || []).forEach(function (c) {
+    var s = String((c && c.series) || '').toUpperCase();
+    if (s && out.indexOf(s) === -1) out.push(s);
+  });
+  var primary = scoutSeriesOf(d);
+  if (primary) {
+    var i = out.indexOf(primary);
+    if (i === -1) out.unshift(primary);
+    else if (i > 0) { out.splice(i, 1); out.unshift(primary); }
+  }
+  return out;
+}
+function scoutMatchesSeries(d, sid) {
+  return scoutSeriesList(d).indexOf(sid) !== -1;
+}
+function scoutMatchesCategory(d, cat) {
+  return scoutSeriesList(d).some(function (sid) { return scoutSeriesInfo(sid).cat === cat; });
+}
 function scoutSeriesInfo(sid) {
   return SCOUT_SERIES[sid] || { label: sid || '?', cat: 'Other', color: '#8a8a8a' };
 }
 function scoutActiveSeries(list) {
   var seen = {}, out = [];
   (list || []).forEach(function (d) {
-    var s = scoutSeriesOf(d);
-    if (s && !seen[s]) { seen[s] = true; out.push(s); }
+    scoutSeriesList(d).forEach(function (s) {
+      if (s && !seen[s]) { seen[s] = true; out.push(s); }
+    });
   });
   out.sort(function (a, b) {
     var ca = SCOUT_CATEGORIES.indexOf(scoutSeriesInfo(a).cat);
@@ -5201,11 +5223,31 @@ function scoutActiveCategories(activeSeriesIds) {
   (activeSeriesIds || []).forEach(function (sid) { seen[scoutSeriesInfo(sid).cat] = true; });
   return SCOUT_CATEGORIES.filter(function (c) { return seen[c]; });
 }
-function scoutSeriesTag(d) {
-  var sid = scoutSeriesOf(d);
-  if (!sid) return '<span class="muted">—</span>';
+function scoutSeriesTagHtml(sid) {
   var info = scoutSeriesInfo(sid);
   return '<span class="scout-series-tag" style="color:' + info.color + ';border-color:' + info.color + '66;background:' + info.color + '1f;">' + BTG.esc(info.label) + '</span>';
+}
+function scoutSeriesTags(d) {
+  var list = scoutSeriesList(d);
+  if (!list.length) return '<span class="muted">—</span>';
+  return list.map(scoutSeriesTagHtml).join('');
+}
+function scoutEndsHtml(d) {
+  // Series → end year, one tag per series the driver is contracted to.
+  var bySeries = {};
+  ((d && d.contracts) || []).forEach(function (c) {
+    var sid = String((c && c.series) || '').toUpperCase();
+    if (!sid) return;
+    var e = (c && c.ends) != null ? Number(c.ends) : null;
+    if (bySeries[sid] == null || (e != null && e > bySeries[sid])) bySeries[sid] = e;
+  });
+  var sids = Object.keys(bySeries);
+  if (!sids.length) return d.ends != null ? d.ends : '—';
+  if (sids.length === 1) return bySeries[sids[0]] != null ? bySeries[sids[0]] : '—';
+  return sids.map(function (sid) {
+    var info = scoutSeriesInfo(sid);
+    return '<span class="scout-series-tag" style="color:' + info.color + ';border-color:' + info.color + '66;background:' + info.color + '1f;">' + BTG.esc(info.label) + ' ' + (bySeries[sid] != null ? bySeries[sid] : '—') + '</span>';
+  }).join(' ');
 }
 /* Estimated annual cost from RACE RESULTS (not standings): the driver starts
  * at the series average and their average finish nudges it up/down, shrunk by
@@ -5262,7 +5304,7 @@ function scoutSeriesButtons(all) {
     + '<button class="' + (SCOUT.series === 'all' ? 'active' : '') + '" data-series="all">All <span class="cnt">' + all.length + '</span></button>';
   items.forEach(function (it) {
     var count = all.filter(function (d) {
-      return mode === 'category' ? scoutSeriesInfo(scoutSeriesOf(d)).cat === it : scoutSeriesOf(d) === it;
+      return mode === 'category' ? scoutMatchesCategory(d, it) : scoutMatchesSeries(d, it);
     }).length;
     var dot = mode === 'category' ? '' : '<span class="scout-series-dot" style="background:' + scoutSeriesInfo(it).color + ';"></span>';
     html += '<button class="' + (SCOUT.series === it ? 'active' : '') + '" data-series="' + BTG.esc(it) + '">' + dot + BTG.esc(it) + ' <span class="cnt">' + count + '</span></button>';
@@ -5282,12 +5324,13 @@ function scoutFiltered() {
     if (SCOUT.view === 'fav' && !d.fav) return false;
     if (SCOUT.soon && !(d.ends && d.ends <= (CURRENT_YEAR || 2024))) return false;
     if (SCOUT.series && SCOUT.series !== 'all') {
-      if (mode === 'category') { if (scoutSeriesInfo(scoutSeriesOf(d)).cat !== SCOUT.series) return false; }
-      else if (scoutSeriesOf(d) !== SCOUT.series) return false;
+      if (mode === 'category') { if (!scoutMatchesCategory(d, SCOUT.series)) return false; }
+      else if (!scoutMatchesSeries(d, SCOUT.series)) return false;
     }
     if (SCOUT.search) {
       var q = SCOUT.search.toLowerCase();
-      if (!((d.name || '').toLowerCase().indexOf(q) !== -1 || (d.team || '').toLowerCase().indexOf(q) !== -1 || (d.series || '').toLowerCase().indexOf(q) !== -1)) return false;
+      var seriesText = scoutSeriesList(d).join(' ').toLowerCase();
+      if (!((d.name || '').toLowerCase().indexOf(q) !== -1 || (d.team || '').toLowerCase().indexOf(q) !== -1 || seriesText.indexOf(q) !== -1)) return false;
     }
     return true;
   });
@@ -5370,9 +5413,9 @@ function scoutRender() {
       + '<td><div class="scout-nat">' + scoutNationFlag(d.nation) + BTG.esc(d.nation || '—') + '</div></td>'
       + '<td class="scout-end">' + (d.years != null ? d.years : '—') + '</td>'
       + '<td class="scout-end">' + BTG.esc(d.team || '—') + '</td>'
-      + '<td>' + scoutSeriesTag(d) + '</td>'
+      + '<td>' + scoutSeriesTags(d) + '</td>'
       + '<td class="scout-money">' + scoutMoney(d.est) + '</td>'
-      + '<td class="scout-end">' + (d.ends || '—') + '</td>'
+      + '<td class="scout-end">' + scoutEndsHtml(d) + '</td>'
       + '</tr>';
   }).join('');
 
