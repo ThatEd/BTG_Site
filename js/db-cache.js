@@ -147,13 +147,13 @@
   // Lifetime stats PER SERIES for a driver — only the series where they have
   // actually been a driver (race results, standings, or a driving contract).
   function driverCareer(name) {
-    var raceToSeason = {}, seasonSeries = {};
+    var raceToSeason = {}, seasonSeries = {}, seasonYear = {};
     (D && D.races || []).forEach(function (r) { raceToSeason[String(r.race_id)] = String(r.season_id); });
-    (D && D.race_seasons || []).forEach(function (rs) { seasonSeries[String(rs.season_id)] = str(rs.series_id); });
+    (D && D.race_seasons || []).forEach(function (rs) { seasonSeries[String(rs.season_id)] = str(rs.series_id); seasonYear[String(rs.season_id)] = num(rs.year); });
     var dbNum = dbDriverNumber(name);
     var out = {};
     function acc(series) {
-      if (!out[series]) out[series] = { series: series, years: 0, starts: 0, wins: 0, sprintWins: 0, podiums: 0, dnfs: 0, points: 0, bestPos: null, teams: {}, teamKeys: [], numbers: dbNum != null ? [dbNum] : [] };
+      if (!out[series]) out[series] = { series: series, years: 0, starts: 0, wins: 0, sprintWins: 0, podiums: 0, dnfs: 0, points: 0, bestPos: null, champYears: [], finishSum: 0, classified: 0, teams: {}, teamKeys: [], numbers: dbNum != null ? [dbNum] : [] };
       return out[series];
     }
     function teamOf(name) {
@@ -170,6 +170,7 @@
       var st = acc(series);
       st.starts++;
       var p = num(r.finish_position);
+      if (p > 0) { st.finishSum += p; st.classified++; }
       if (p === 1) st.wins++;
       if (p >= 1 && p <= 3) st.podiums++;
       if (num(r.dnf) === 1 || /dnf/i.test(str(r.status))) st.dnfs++;
@@ -188,6 +189,7 @@
       st.points += num(s.points);
       var pos = num(s.position);
       if (pos > 0 && (st.bestPos == null || pos < st.bestPos)) st.bestPos = pos;
+      if (pos === 1) st.champYears.push(seasonYear[String(s.season_id)] || 0);
     });
     (D && D.contract_history || []).filter(function (h) {
       return str(h.entity_type) === 'driver' && str(h.entity_name) === name && str(h.role) === 'Driving';
