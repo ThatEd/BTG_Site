@@ -2521,6 +2521,7 @@ function renderContracts() {
       + '</select></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="8,000,000"></div></div>'
       + '<div class="muted" id="tp-minpay" style="margin-bottom:10px;"></div>'
       + '<div class="field-row"><div class="field"><label for="c-bonus">Signing bonus</label><input type="text" id="c-bonus" placeholder="500,000"></div></div>'
+      + '<div class="field-row"><div class="field"><label for="c-comp">Compensation to current team</label><input type="text" id="c-comp" placeholder="Optional - paid to current team"></div></div>'
       + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div><div class="field"><label for="c-role">Role</label><select id="c-role">' + ROLE_OPTIONS + '</select></div></div>'
       + '<div class="field-row"><div class="field"><label for="c-promise-series">Promise seat in</label><select id="c-promise-series">' + PROMISE_SERIES_OPTIONS + '</select></div><div class="field"><label for="c-promise-by">By (year)</label><input type="text" id="c-promise-by" placeholder="2027"></div></div>'
       + '<p class="muted" style="margin-bottom:10px;">Only drivers on a Reserve contract can be used as reserves in races.</p>'
@@ -2616,7 +2617,7 @@ function renderContracts() {
       sendBtn.disabled = true;
       try {
         const payload = role === 'tp'
-          ? { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team-tp').value, target: document.getElementById('c-driver').value, salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim(), promiseSeries: document.getElementById('c-promise-series').value, promiseBy: document.getElementById('c-promise-by').value.trim(), signingBonus: document.getElementById('c-bonus').value.trim() }
+          ? { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team-tp').value, target: document.getElementById('c-driver').value, salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim(), promiseSeries: document.getElementById('c-promise-series').value, promiseBy: document.getElementById('c-promise-by').value.trim(), signingBonus: document.getElementById('c-bonus').value.trim(), parentCompensation: document.getElementById('c-comp').value.trim() }
           : { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team').value.trim(), salary: salary, from: document.getElementById('c-from').value, till: document.getElementById('c-till').value, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim(), promiseSeries: document.getElementById('c-promise-series').value, promiseBy: document.getElementById('c-promise-by').value.trim(), signingBonus: document.getElementById('c-bonus').value.trim() };
         const data = await callGateway(role === 'tp' ? 'sendContractOffer' : 'sendDriverOffer', payload);
         if (data.ok) { showResult(resultEl, true, '✓ Offer sent.'); }
@@ -4617,6 +4618,16 @@ function offerActionsHtml(o, i, role) {
   var pill = st === 'Accepted' ? '<span class="tag-pill">Accepted</span>'
     : st === 'Rejected' ? '<span class="tag-pill denied">Rejected</span>'
     : '<span class="tag-pill warn">' + BTG.esc(st) + '</span>';
+  if (st === 'Parent Approval') {
+    var isMyParentTeam = role === 'tp' && tpTeams.indexOf(o.parentTeam) !== -1;
+    if (isMyParentTeam) {
+      var compTxt = (o.parentCompensation > 0) ? ' (+' + fmtMoney(o.parentCompensation) + ')' : '';
+      return '<div class="offer-actions">' + pill
+        + '<button class="action action-lead action-compact" onclick="respondParentOffer(' + i + ', true)"><span>Approve' + compTxt + '</span></button>'
+        + '<button class="action action-quiet action-compact" onclick="respondParentOffer(' + i + ', false)"><span>Reject</span></button></div>';
+    }
+    return '<div class="offer-actions">' + pill + '</div>';
+  }
   if (st === 'On Hold') {
     if (role === 'driver') {
       return '<div class="offer-actions">' + pill + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Reject</span></button></div>';
@@ -5165,9 +5176,9 @@ var SCOUT_CATEGORY_MIN_SERIES = 6;
 // Estimated-cost scale per series: a driver is the series AVERAGE by default,
 // and their race RESULTS nudge them between FLOOR and TOP (the no-title cap).
 // Early in a season few races have run, so the nudge stays tiny (SCOUT_RESULTS_K).
-var SCOUT_SALARY_BASE = { F1: 8500000, F2: 800000, XGT: 500000, GPP2: 700000, GT3: 450000, GT4: 380000, TCR: 400000 };
-var SCOUT_SALARY_TOP = { F1: 10000000, F2: 1000000, XGT: 600000, GPP2: 800000, GT3: 500000, GT4: 400000, TCR: 450000 };
-var SCOUT_SALARY_FLOOR = { F1: 5000000, F2: 400000, XGT: 250000, GPP2: 350000, GT3: 250000, GT4: 220000, TCR: 230000 };
+var SCOUT_SALARY_BASE = { F1: 8500000, F2: 800000, XGT: 1500000, GPP2: 1200000, GT3: 1100000, GT4: 750000, TCR: 850000 };
+var SCOUT_SALARY_TOP = { F1: 10000000, F2: 1000000, XGT: 1800000, GPP2: 1500000, GT3: 1300000, GT4: 900000, TCR: 1000000 };
+var SCOUT_SALARY_FLOOR = { F1: 5000000, F2: 400000, XGT: 900000, GPP2: 700000, GT3: 650000, GT4: 450000, TCR: 500000 };
 // Grid size per series (normalises average finish into −1..+1).
 var SCOUT_GRID = { F1: 20, F2: 20, XGT: 8, GPP2: 20, GT3: 20, GT4: 20, TCR: 20 };
 // Races needed for ~full confidence in a driver's results. After 2 races the
@@ -5675,6 +5686,27 @@ async function adminResolveOffer(index, approve) {
     const data = await callGateway('adminResolveOffer', {
       username: CURRENT_USER.username, password: CURRENT_USER.password,
       offerRow: o.row, approve: approve
+    });
+    if (data.ok) {
+      o.status = data.result || '';
+      renderMailbox();
+      renderContracts();
+      if (CURRENT_USER) buildDashSidebar(CURRENT_USER.role);
+    } else {
+      alert('✗ ' + data.error);
+    }
+  } catch (e) {
+    alert('✗ Could not reach the gateway script.');
+  }
+}
+
+async function respondParentOffer(index, accept) {
+  const o = DASH && DASH.offers && DASH.offers[index];
+  if (!o || !CURRENT_USER) return;
+  try {
+    const data = await callGateway('parentOffer', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      offerRow: o.row, accept: accept
     });
     if (data.ok) {
       o.status = data.result || '';
