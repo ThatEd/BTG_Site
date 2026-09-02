@@ -620,11 +620,15 @@ function drawCardToCanvas(ctx, card) {
         const ey = spaceTop + Math.round((logoBottom - spaceTop - eH) / 2);
         ctx.drawImage(card.logoImage, art.left, art.top, srcW, srcH, ex, ey, eW, eH);
       } else {
-        // Nudge down only if the centered art clips the text; never let the art
-        // bottom cross the separator.
+        // Crop the draw to the visible art so full-size logos (with large
+        // transparent padding) size/position like the tightly-cropped mini
+        // logos used for F1/F2. The art bottom never crosses the separator.
+        const srcW = artW, srcH = art.bottom - art.top + 1;
         const artTop = Math.min(Math.max(centeredTop, minTop), logoBottom - artH);
-        const y = artTop - Math.round(art.top * scale);
-        ctx.drawImage(card.logoImage, x, y, dw, dh);
+        const dispW = Math.max(1, Math.round(srcW * scale));
+        const dispH = Math.max(1, artH);
+        const dx = W - Math.round(22 * sc) - dispW;
+        ctx.drawImage(card.logoImage, art.left, art.top, srcW, srcH, dx, artTop, dispW, dispH);
       }
     }
   } else {
