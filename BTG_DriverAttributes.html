@@ -6,6 +6,7 @@
 <title>Be The Grid — Dashboard</title>
 <link rel="icon" type="image/x-icon" href="logos/BTG.ico">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="css/driver-profile.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -421,8 +422,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 .field textarea:focus-visible{outline:none; box-shadow:var(--focus-ring);}
 
 /* ════════ Scouting window (TP driver search / admin Drivers tab) ════════ */
-.scout-wrap{display:grid; grid-template-columns: 1fr 320px; gap:16px; align-items:start;}
-@media (max-width: 1000px){ .scout-wrap{grid-template-columns:1fr;} }
+.scout-wrap{display:flex; flex-direction:column; gap:16px;}
 .scout-main{display:flex; flex-direction:column; gap:16px; min-width:0;}
 .scout-card{background:var(--card); border:1px solid var(--edge); overflow:hidden;}
 .scout-card + .scout-card{margin-top:0;}
@@ -1034,7 +1034,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
       <div class="section-head-body">
         <span class="section-head-num">02H2 — Scouting</span>
         <h2>Scouting</h2>
-        <p class="muted" style="margin-top:6px;">Search for new drivers, designers and race engineers. Drivers on watch stay pinned to the top of your list.</p>
+        <p class="muted" style="margin-top:6px;">Search for new drivers. Drivers on watch stay pinned to the top of your list.</p>
       </div>
     </div>
     <div id="scouting-root" class="scout-wrap"></div>
@@ -1494,10 +1494,12 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 </div>
 
 <script src="js/common.js"></script>
+<script src="js/border-glow.js"></script>
 <script src="teams/f1.js"></script>
 <script src="js/roster.js"></script>
 <script src="js/data-loader.js"></script>
 <script src="js/db-cache.js"></script>
+<script src="js/driver-profile.js"></script>
 <script src="js/circuits.js"></script>
 <script src="js/notification-sounds.js"></script>
 <script src="js/parts-design.js"></script>
@@ -5141,34 +5143,12 @@ function scoutMoney(n) {
   if (n >= 1000) return '€' + Math.round(n / 1000) + 'K';
   return '€' + Math.round(n);
 }
-function scoutGrade(v) { if (v >= 90) return 'A'; if (v >= 80) return 'B+'; if (v >= 70) return 'B'; if (v >= 60) return 'C+'; if (v >= 50) return 'C'; if (v >= 40) return 'D+'; if (v >= 30) return 'D'; return 'F'; }
-
-/** Whole-career rating (0–100) from ACTUAL race performance — aggregate
- *  starts/wins/podiums/points/best across every series a driver has raced.
- *  NOT the current season's grade. Returns null when no race data exists. */
-function scoutCareerRating(name) {
-  try {
-    var career = (BTG.DBCache && BTG.DBCache.driverCareer) ? BTG.DBCache.driverCareer(name) : [];
-    if (!career || !career.length) return null;
-    var starts = 0, wins = 0, podiums = 0, dnfs = 0, points = 0, bestPos = 99;
-    career.forEach(function (s) {
-      starts += s.starts || 0; wins += s.wins || 0; podiums += s.podiums || 0; dnfs += s.dnfs || 0; points += s.points || 0;
-      if (s.bestPos && s.bestPos < bestPos) bestPos = s.bestPos;
-    });
-    if (!starts) return null;
-    var score = 0;
-    score += (wins / starts) * 50;                 // win rate → up to 50
-    score += (podiums / starts) * 25;              // podium rate → up to 25
-    score += Math.min(15, points / starts);        // points per start → up to 15
-    score += Math.max(0, 100 - ((bestPos - 1) * 6)) * 0.10; // best finish position → up to 10
-    score -= (dnfs / starts) * 8;                  // reliability penalty
-    return Math.max(0, Math.min(100, Math.round(score)));
-  } catch (e) { return null; }
-}
 
 function scoutList() {
   var s = (DASH && DASH.scouting) || { drivers: [], staff: [], engineers: [] };
-  return s[SCOUT.role] || [];
+  // SCOUT.role is 'driver'|'staff'|'engineer'; the payload keys are plural.
+  var key = SCOUT.role === 'engineer' ? 'engineers' : (SCOUT.role === 'staff' ? 'staff' : 'drivers');
+  return s[key] || [];
 }
 function scoutFiltered() {
   var list = scoutList().filter(function (d) {
@@ -5202,8 +5182,11 @@ function scoutTableCols() {
 }
 
 function scoutAvatarHtml(d) {
-  var photo = BTG.driverPhotoImg(d.name, 28, '');
-  if (photo && photo.indexOf('<img') !== -1) return photo;
+  // Only drivers have real photos; staff/engineers get an initials avatar.
+  if (d.targetType === 'driver') {
+    var photo = BTG.driverPhotoImg(d.name, 28, '');
+    if (photo && photo.indexOf('<img') !== -1) return photo;
+  }
   return scoutInitials(d.name);
 }
 
@@ -5217,9 +5200,25 @@ function scoutRender() {
 
   var roles = ['driver', 'staff', 'engineer'];
   var roleTabs = roles.map(function (r) {
-    var n = (DASH && DASH.scouting || {})[r] || [];
+    var rk = r === 'engineer' ? 'engineers' : (r === 'staff' ? 'staff' : 'drivers');
+    var n = (DASH && DASH.scouting || {})[rk] || [];
     return '<div class="scout-role-tab' + (SCOUT.role === r ? ' active' : '') + '" data-role="' + r + '">' + roleLabels[r] + ' <span class="cnt">' + n.length + '</span></div>';
   }).join('');
+
+  // Staff + Race Engineers are "to be added" placeholder pages — no data yet.
+  if (SCOUT.role !== 'driver') {
+    root.innerHTML = '<div class="scout-main">'
+      + '<div class="scout-card"><div class="scout-card-body"><div class="scout-role-tabs">' + roleTabs + '</div></div></div>'
+      + '<div class="scout-card"><div class="scout-detail-empty" style="padding:56px 16px;">'
+      + '<div style="font-family:var(--head-face);font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--copy);margin-bottom:6px;">' + roleLabels[SCOUT.role] + ' — to be added</div>'
+      + '<div style="color:var(--copy-faint);">This page is coming soon.</div>'
+      + '</div></div>'
+      + '</div>';
+    root.querySelectorAll('.scout-role-tab').forEach(function (t) {
+      t.addEventListener('click', function () { SCOUT.role = t.dataset.role; SCOUT.selected = null; SCOUT.view = 'all'; SCOUT.search = ''; SCOUT.soon = false; SCOUT.sort = { key: 'years', dir: -1 }; scoutRender(); });
+    });
+    return;
+  }
 
   var list = scoutFiltered();
   var rows = list.map(function (d) {
@@ -5265,16 +5264,9 @@ function scoutRender() {
     + '<div class="scout-footer"><div class="scout-result-count"><b>' + list.length + '</b> match your filters</div><button class="scout-clear" id="scout-clear">Clear all filters</button></div>'
     + '</div></div></div>';
 
-  var detail = scoutRenderDetail(SCOUT.selected);
+  var profile = scoutRenderDetail(SCOUT.selected);
 
-  var legend = '<div class="scout-card"><div class="scout-card-head"><h4>Legend</h4></div><div class="scout-legend">'
-    + '<div class="scout-legend-row"><span class="scout-legend-swatch" style="background:var(--ember-hot);"></span> Break contract cost, paid to current team</div>'
-    + '<div class="scout-legend-row"><span class="scout-legend-swatch" style="background:var(--moss);"></span> Cost per race for a new contract</div>'
-    + '<div class="scout-legend-row"><span class="scout-legend-swatch" style="background:var(--team-accent-hot);"></span> Career rating — actual race performance</div>'
-    + (isTp ? '<div class="scout-legend-row"><span class="scout-legend-swatch" style="background:var(--brass);"></span> ★ Watch — pinned to the top of your list</div>' : '')
-    + '</div></div>';
-
-  root.innerHTML = '<div class="scout-main">' + filters + table + '</div><div class="scout-side">' + detail + legend + '</div>';
+  root.innerHTML = '<div class="scout-main">' + filters + table + '</div>' + profile;
 
   // wire up controls
   root.querySelectorAll('.scout-role-tab').forEach(function (t) {
@@ -5305,6 +5297,8 @@ function scoutRender() {
       if (e.target.closest('.scout-fav')) return;
       SCOUT.selected = tr.dataset.name;
       scoutRender();
+      var profile = document.getElementById('scout-profile');
+      if (profile) profile.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
   root.querySelectorAll('[data-fav]').forEach(function (b) {
@@ -5322,6 +5316,9 @@ function scoutRender() {
   root.querySelectorAll('[data-approach]').forEach(function (b) {
     b.addEventListener('click', function () { scoutApproach(b.dataset.approach); });
   });
+
+  // Mount the full career profile into the placeholder (if a driver is selected).
+  scoutMountProfile();
 }
 
 function scoutTargetOf(name) {
@@ -5335,81 +5332,94 @@ function scoutTargetOf(name) {
   return { type: SCOUT.role, id: null, name: name };
 }
 
+/** Resolve the full buildDriverList record + peer list for a driver name
+ *  (using their scouting series + latest season). Returns null if unresolvable. */
+function scoutBuildDriver(name) {
+  var d = scoutList().filter(function (x) { return x.name === name; })[0];
+  if (!d || d.targetType !== 'driver') return null;
+  var series = d.series || 'F1';
+  var seasons = BTG.DBCache && BTG.DBCache.getSeasons ? BTG.DBCache.getSeasons(series) : [];
+  var year = (seasons && seasons.length) ? seasons[0] : (CURRENT_YEAR || 2024);
+  var allDrivers = [];
+  try { allDrivers = BTG.DBCache.buildDriverList(series, year, { includeAll: true }) || []; } catch (e) { allDrivers = []; }
+  var found = null;
+  var lower = String(name).toLowerCase();
+  for (var i = 0; i < allDrivers.length; i++) {
+    var dd = allDrivers[i];
+    if (String(dd.fullName || dd.name).toLowerCase() === lower) { found = dd; break; }
+  }
+  if (!found) {
+    // staff name may differ from race name (e.g. accents) — match on surname
+    var surname = lower.split(/\s+/).pop();
+    for (var j = 0; j < allDrivers.length; j++) {
+      var dd2 = allDrivers[j];
+      var parts2 = String(dd2.fullName || dd2.name).toLowerCase().split(/\s+/);
+      if (parts2.length && parts2[parts2.length - 1] === surname) { found = dd2; break; }
+    }
+  }
+  return found ? { driver: found, allDrivers: allDrivers, series: series, year: year } : null;
+}
+
 function scoutRenderDetail(name) {
   var d = scoutList().filter(function (x) { return x.name === name; })[0];
-  if (!d) return '<div class="scout-card"><div class="scout-card-head"><h4>Scouting Detail</h4></div><div class="scout-detail-empty">Select someone from the list to view their full career profile.</div></div>';
+  if (!d) return '';
   var isTp = CURRENT_USER && CURRENT_USER.role === 'tp';
-  var isDriver = d.targetType === 'driver';
   var col = scoutColorFor(d.name);
 
-  var rating = isDriver ? scoutCareerRating(d.name) : null;
+  var actionBar = '';
+  if (isTp) {
+    actionBar = '<div class="scout-card" style="margin-top:0;"><div class="scout-card-body" style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;">'
+      + '<span class="scout-name-txt" style="font-size:15px;">' + BTG.esc(d.name) + '</span>'
+      + '<span style="flex:1;"></span>'
+      + '<button class="scout-btn scout-btn-primary" style="flex:none;padding:9px 16px;" data-approach="' + BTG.esc(d.name) + '">Approach Driver</button>'
+      + '<button class="scout-btn scout-btn-ghost" style="flex:none;padding:9px 16px;" data-watch="' + BTG.esc(d.name) + '">' + (d.watch ? '✓ On Watch' : '★ Watch') + '</button>'
+      + '</div></div>';
+  }
 
+  // Drivers → full drivers-tab career profile (+ whole-career rating)
+  if (d.targetType === 'driver') {
+    var built = scoutBuildDriver(d.name);
+    if (built) {
+      return actionBar + '<div class="scout-card" id="scout-profile"><div class="scout-card-head"><h4>Career — ' + BTG.esc(d.name) + '</h4></div>'
+        + '<div id="scout-profile-body"></div></div>';
+    }
+  }
+
+  // Fallback / staff / engineers — compact summary card
+  var photoHtml = '';
+  if (d.targetType === 'driver') {
+    photoHtml = BTG.driverPhotoImg(d.name, 56, '');
+  }
+  if (!photoHtml || photoHtml.indexOf('<img') === -1) photoHtml = '<span style="font-size:19px;font-weight:700;">' + scoutInitials(d.name) + '</span>';
   var stats = '<div class="scout-stats">'
-    + '<div class="scout-stat"><div class="l">Team</div><div class="v" style="font-size:13px; font-weight:600;">' + BTG.esc(d.team || '—') + '</div></div>'
-    + '<div class="scout-stat"><div class="l">Series</div><div class="v" style="font-size:12px; font-weight:600;">' + BTG.esc(d.series || '—') + '</div></div>'
+    + '<div class="scout-stat"><div class="l">Team</div><div class="v" style="font-size:13px;font-weight:600;">' + BTG.esc(d.team || '—') + '</div></div>'
+    + '<div class="scout-stat"><div class="l">Series</div><div class="v" style="font-size:12px;font-weight:600;">' + BTG.esc(d.series || '—') + '</div></div>'
     + '<div class="scout-stat"><div class="l">Years in Motorsport</div><div class="v">' + (d.years != null ? d.years : '—') + '</div></div>'
+    + '<div class="scout-stat"><div class="l">Role</div><div class="v" style="font-size:12px;font-weight:600;">' + BTG.esc(d.role || '—') + '</div></div>'
     + '<div class="scout-stat"><div class="l">Cost / Race</div><div class="v money-v">' + scoutMoney(d.cost) + '</div></div>'
     + '<div class="scout-stat"><div class="l">Break Contract</div><div class="v break-v">' + scoutMoney(d.break) + '</div></div>'
     + '<div class="scout-stat"><div class="l">Contract Ends</div><div class="v">' + (d.ends || '—') + '</div></div>'
     + '</div>';
-
-  // Driver career record — actual race performance (per-series + aggregate)
-  var careerHtml = '';
-  if (isDriver) {
-    var career = [];
-    try { career = (BTG.DBCache && BTG.DBCache.driverCareer) ? BTG.DBCache.driverCareer(d.name) || [] : []; } catch (e) { career = []; }
-    var starts = 0, wins = 0, podiums = 0, dnfs = 0, pts = 0;
-    career.forEach(function (s) { starts += s.starts || 0; wins += s.wins || 0; podiums += s.podiums || 0; dnfs += s.dnfs || 0; pts += s.points || 0; });
-    var bestFinish = null;
-    career.forEach(function (s) { if (s.bestPos && (bestFinish == null || s.bestPos < bestFinish)) bestFinish = s.bestPos; });
-    var grid = '<div class="scout-career-grid">'
-      + '<div class="scout-ccell"><div class="v">' + starts + '</div><div class="l">Starts</div></div>'
-      + '<div class="scout-ccell"><div class="v">' + wins + '</div><div class="l">Wins</div></div>'
-      + '<div class="scout-ccell"><div class="v">' + podiums + '</div><div class="l">Podiums</div></div>'
-      + '<div class="scout-ccell"><div class="v">' + Math.round(pts) + '</div><div class="l">Points</div></div>'
-      + '<div class="scout-ccell"><div class="v">' + (bestFinish ? 'P' + bestFinish : '—') + '</div><div class="l">Best</div></div>'
-      + '</div>';
-    var seasonRows = career.map(function (s) {
-      var pos = s.bestPos ? 'P' + s.bestPos : '—';
-      return '<div class="scout-season"><span class="ser">' + BTG.esc(s.series) + '</span><span class="tm">' + (s.years || 0) + 'y</span><span class="rt' + (s.bestPos && s.bestPos <= 3 ? ' top3' : '') + '">' + pos + '</span><span class="w">' + (s.wins || 0) + '</span><span>' + (s.podiums || 0) + '</span><span>' + (s.starts || 0) + '</span><span class="scout-end">' + Math.round(s.points || 0) + '</span></div>';
-    }).join('') || '<div class="scout-detail-empty">No race data yet.</div>';
-    var seasonHead = '<div class="scout-career-sec"><h5>Career by series</h5><div class="scout-seasons">'
-      + '<div class="scout-season" style="color:var(--copy-faint);font-size:10px;text-transform:uppercase;"><span class="ser">Series</span><span class="tm">Years</span><span>Best</span><span>Wins</span><span>Pods</span><span>Starts</span><span>Pts</span></div>'
-      + seasonRows + '</div></div>';
-    careerHtml = '<div class="scout-career">' + grid + seasonHead + '</div>';
-  } else {
-    careerHtml = '<div class="scout-career"><div class="scout-career-sec"><h5>Role</h5>'
-      + '<div class="scout-season" style="grid-template-columns:1fr;"><span class="tm">' + BTG.esc(d.role || 'Staff') + '</span></div></div></div>';
-  }
-
-  var ratingHtml = '';
-  if (rating != null) {
-    ratingHtml = '<div class="scout-rating"><div><div class="scout-rating-num">' + rating + '</div><div class="scout-rating-meta">Career rating</div></div>'
-      + '<div class="scout-rating-meta"><span class="scout-rating-grade">' + scoutGrade(rating) + '</span><br>whole-career performance</div></div>';
-  } else if (isDriver) {
-    ratingHtml = '<div class="scout-rating"><div><div class="scout-rating-num" style="color:var(--copy-faint);">—</div><div class="scout-rating-meta">Career rating</div></div><div class="scout-rating-meta">No race data yet</div></div>';
-  }
-
-  var actions = '<div class="scout-actions">';
-  if (isTp) {
-    actions += '<button class="scout-btn scout-btn-primary" data-approach="' + BTG.esc(d.name) + '">Approach Driver</button>'
-      + '<button class="scout-btn scout-btn-ghost" data-watch="' + BTG.esc(d.name) + '">' + (d.watch ? '✓ On Watch' : '★ Watch') + '</button>';
-  }
-  actions += '</div>';
-
-  var photoHtml = BTG.driverPhotoImg(d.name, 56, '');
-  if (photoHtml.indexOf('<img') === -1) photoHtml = '<span style="font-size:19px;font-weight:700;">' + scoutInitials(d.name) + '</span>';
-
-  return '<div class="scout-card"><div class="scout-card-head"><h4>Scouting Detail</h4></div>'
+  return actionBar + '<div class="scout-card"><div class="scout-card-head"><h4>' + BTG.esc(d.name) + '</h4></div>'
     + '<div class="scout-hero"><div class="scout-hero-photo" style="' + (photoHtml.indexOf('<img') === -1 ? 'background:' + col + ';' : '') + '">' + photoHtml + '</div>'
     + '<div><div class="scout-hero-name">' + BTG.esc(d.name) + '</div>'
     + '<div class="scout-hero-sub">' + scoutNationFlag(d.nation) + BTG.esc(d.nation || '') + ' · ' + (d.years != null ? d.years + 'y in motorsport' : '—') + '</div></div></div>'
-    + ratingHtml + stats + actions + careerHtml + '</div>';
+    + stats + '</div>';
+}
+
+/** Post-render hook: inject the full career profile into the placeholder. */
+function scoutMountProfile() {
+  var body = document.getElementById('scout-profile-body');
+  if (!body || !SCOUT.selected) return;
+  var built = scoutBuildDriver(SCOUT.selected);
+  if (!built || !BTG.DriverProfile) return;
+  BTG.DriverProfile.render(body, built.driver, { allDrivers: built.allDrivers, series: built.series, season: built.year }, { showRating: true });
 }
 
 function scoutRefreshWith(data) {
   if (data && data.ok && data.scouting) { DASH.scouting = data.scouting; }
   scoutRender();
+  scoutMountProfile();
 }
 async function scoutToggleFav(name) {
   if (!CURRENT_USER) return;
@@ -5444,9 +5454,10 @@ function scoutApproach(name) {
 function renderScouting() {
   // ensure cache is ready for career ratings (fire-and-forget)
   if (BTG.DBCache && BTG.DBCache.init && !BTG.DBCache.isReady()) {
-    BTG.DBCache.init().then(function () { scoutRender(); }).catch(function () { scoutRender(); });
+    BTG.DBCache.init().then(function () { scoutRender(); scoutMountProfile(); }).catch(function () { scoutRender(); });
   }
   scoutRender();
+  scoutMountProfile();
 }
 
 function renderAdminMonth() {
