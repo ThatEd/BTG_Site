@@ -130,20 +130,31 @@
     } else {
       quali = perfVal(ss, 100 - ss.avgGrid);
     }
-    var val;
-    if (myPace > 0 && peerPace.length) {
-      val = perfVal(ss, 50 + (pace - 50) * weight);
-    } else {
-      var myAvg = ss && ss.avgFinish && ss.avgFinish !== '—' ? parseFloat(ss.avgFinish) : null;
-      var peerAvgs = peers.map(function (p) { return p.seasonStats && p.seasonStats.avgFinish; }).filter(function (v) { return v && v !== '—'; }).map(parseFloat);
-      if (myAvg != null && peerAvgs.length) {
-        var avgPeer = peerAvgs.reduce(function (a, b) { return a + b; }, 0) / peerAvgs.length;
-        var ratio = myAvg / Math.max(0.1, avgPeer);
-        val = perfVal(ss, 50 + (1 - ratio) * 50 * weight);
-      } else {
-        val = 0;
-      }
-    }
+    // Head-to-head win percentage — compare the driver against each peer
+    // race-by-race (finishing position) and in qualifying (grid position),
+    // matching the Save Viewer driver-profile calculation. A tie = loss.
+    var wins = 0, losses = 0;
+    var peerByRace = {};
+    peers.forEach(function (p) {
+      ((p.seasonStats && p.seasonStats.results) || []).forEach(function (r) {
+        if (r.race == null) return;
+        if (!peerByRace[r.race]) peerByRace[r.race] = [];
+        peerByRace[r.race].push(r);
+      });
+    });
+    ((ss && ss.results) || []).forEach(function (r) {
+      var myPos = Number(r.pos) || 99;
+      var myGrid = r.grid != null ? Number(r.grid) : 0;
+      (peerByRace[r.race] || []).forEach(function (pr) {
+        var tmPos = Number(pr.pos) || 99;
+        if (myPos < tmPos) wins++; else losses++;
+        var tmGrid = pr.grid != null ? Number(pr.grid) : 0;
+        if (myGrid > 0 && tmGrid > 0) {
+          if (myGrid < tmGrid) wins++; else losses++;
+        }
+      });
+    });
+    var val = wins + losses > 0 ? Math.round((wins / (wins + losses)) * 100) : 50;
     return { label: isSameCar ? 'vs Same Car' : 'vs Teammate', val: val, reliability: reliability, pace: pace, quali: quali };
   }
 
@@ -339,7 +350,7 @@
       html += '</div>'; // center
 
       html += '<div class="dp-right">';
-      var h2hScore = (h2h && h2h.val > 0) ? Math.round(h2h.val) : '—';
+      var h2hScore = (h2h && h2h.val != null) ? Math.round(h2h.val) + '%' : '—';
       var teamPts = 0;
       for (var ti = 0; ti < allDrivers.length; ti++) {
         var td = allDrivers[ti];
