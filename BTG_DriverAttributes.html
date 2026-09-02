@@ -419,6 +419,116 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 .readonly-value{font-family:var(--data-face); font-size:14px; color:var(--copy-soft); background:var(--card-high); border:1px solid var(--edge-strong); padding:11px 14px; border-radius:8px;}
 .field textarea{background:var(--card-high); border:1px solid var(--edge-strong); color:var(--copy); font-family:var(--data-face); font-size:14px; padding:11px 14px; width:100%; resize:vertical; min-height:100px;}
 .field textarea:focus-visible{outline:none; box-shadow:var(--focus-ring);}
+
+/* ════════ Scouting window (TP driver search / admin Drivers tab) ════════ */
+.scout-wrap{display:grid; grid-template-columns: 1fr 320px; gap:16px; align-items:start;}
+@media (max-width: 1000px){ .scout-wrap{grid-template-columns:1fr;} }
+.scout-main{display:flex; flex-direction:column; gap:16px; min-width:0;}
+.scout-card{background:var(--card); border:1px solid var(--edge); overflow:hidden;}
+.scout-card + .scout-card{margin-top:0;}
+.scout-card-head{display:flex; align-items:center; justify-content:space-between; padding:13px 16px; border-bottom:1px solid var(--edge);}
+.scout-card-head h4{margin:0; font-family:var(--head-face); font-weight:700; font-size:14px; text-transform:uppercase; letter-spacing:.06em; color:var(--copy);}
+.scout-card-body{padding:14px 16px;}
+.scout-role-tabs{display:flex; gap:8px;}
+.scout-role-tab{flex:1; text-align:center; padding:9px 8px; background:var(--card-high); border:1px solid var(--edge-strong); color:var(--copy-faint); font-family:var(--head-face); font-weight:600; font-size:13px; text-transform:uppercase; letter-spacing:.02em; border-radius:7px; cursor:pointer; transition:.12s;}
+.scout-role-tab:hover{color:var(--copy); border-color:var(--edge-strong);}
+.scout-role-tab.active{background:linear-gradient(180deg, var(--team-accent-hot), var(--team-accent)); color:var(--team-accent-on); border-color:transparent;}
+.scout-filters{display:flex; flex-direction:column; gap:14px;}
+.scout-filter-row{display:grid; grid-template-columns: 1.1fr 1.6fr 1.2fr; gap:16px;}
+@media (max-width:720px){ .scout-filter-row{grid-template-columns:1fr;} }
+.scout-filter-row.two{grid-template-columns: 2fr 1fr;}
+.scout-filter-row.two{grid-template-columns: 2fr 1fr;}
+.scout-fgroup label.ftitle{display:block; font-size:10px; color:var(--copy-faint); text-transform:uppercase; letter-spacing:.1em; margin-bottom:7px; font-weight:600;}
+.scout-seg{display:flex; background:var(--card-high); border:1px solid var(--edge-strong); border-radius:7px; padding:3px; gap:2px; flex-wrap:wrap;}
+.scout-seg button{flex:1; background:transparent; border:none; color:var(--copy-faint); font-size:12px; padding:6px 5px; border-radius:5px; cursor:pointer; font-family:var(--data-face); transition:.12s; white-space:nowrap;}
+.scout-seg button.active{background:var(--card); color:var(--copy); box-shadow:0 0 0 1px var(--edge-strong);}
+.scout-seg button .cnt{display:inline-block; margin-left:4px; font-size:10px; color:var(--copy-faint);}
+.scout-seg button.active .cnt{color:var(--team-accent-hot);}
+.scout-search{position:relative;}
+.scout-search input{width:100%; background:var(--card-high); border:1px solid var(--edge-strong); color:var(--copy); padding:8px 10px 8px 30px; border-radius:7px; font-size:12.5px; font-family:var(--data-face); outline:none;}
+.scout-search input:focus{border-color:var(--edge-strong);}
+.scout-search input::placeholder{color:var(--copy-faint);}
+.scout-search svg{position:absolute; left:9px; top:50%; transform:translateY(-50%); width:13px; height:13px; color:var(--copy-faint);}
+.scout-check{display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; font-size:12px; color:var(--copy-faint); font-family:var(--data-face);}
+.scout-check input{display:none;}
+.scout-check .box{width:15px; height:15px; border-radius:4px; border:1px solid var(--edge-strong); background:var(--card-high); display:flex; align-items:center; justify-content:center; font-size:10px; color:transparent; flex:none;}
+.scout-check input:checked + .box{background:var(--team-accent-hot); border-color:var(--team-accent-hot); color:var(--team-accent-on);}
+.scout-footer{display:flex; align-items:center; justify-content:space-between; padding-top:12px; border-top:1px solid var(--edge);}
+.scout-result-count{font-size:12px; color:var(--copy-faint);}
+.scout-result-count b{color:var(--copy); font-family:var(--data-face);}
+.scout-clear{background:none; border:none; color:var(--copy-faint); font-size:12px; cursor:pointer; text-decoration:underline; text-underline-offset:3px; font-family:var(--data-face);}
+.scout-clear:hover{color:var(--copy);}
+.scout-table-wrap{overflow-x:auto;}
+.scout-table{width:100%; border-collapse:collapse; font-size:13px; min-width:760px;}
+.scout-table thead th{text-align:left; padding:9px 12px; color:var(--copy-faint); font-family:var(--data-face); font-size:10px; text-transform:uppercase; letter-spacing:.07em; border-bottom:1px solid var(--edge); font-weight:600; cursor:pointer; white-space:nowrap; user-select:none;}
+.scout-table thead th:hover{color:var(--copy);}
+.scout-table thead th.active-sort{color:var(--team-accent-hot);}
+.scout-table thead th .arrow{display:inline-block; margin-left:4px; font-size:9px; opacity:.9;}
+.scout-table tbody tr{border-bottom:1px solid var(--edge); cursor:pointer; transition:background .1s;}
+.scout-table tbody tr:hover{background:var(--card-high);}
+.scout-table tbody tr.selected{background:linear-gradient(90deg, color-mix(in oklab, var(--team-accent) 22%, transparent), transparent 65%);}
+.scout-table tbody tr.selected td:first-child{box-shadow:inset 3px 0 0 var(--team-accent);}
+.scout-table td{padding:9px 12px; vertical-align:middle; color:var(--copy-soft);}
+.scout-table tr.watch-row td{background:color-mix(in oklab, var(--brass) 10%, transparent);}
+.scout-fav{color:var(--copy-faint); background:none; border:none; cursor:pointer; padding:2px;}
+.scout-fav.on{color:var(--brass);}
+.scout-fav svg{width:15px; height:15px; display:block;}
+.scout-driver-name{display:flex; align-items:center; gap:9px;}
+.scout-avatar{width:28px; height:28px; border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-family:var(--head-face); font-weight:700; font-size:11px; color:#0a0c10; overflow:hidden; background:var(--card-high);}
+.scout-avatar img{width:100%; height:100%; object-fit:cover; display:block; border-radius:6px;}
+.scout-avatar .dp-hero__placeholder{color:var(--copy-faint);}
+.scout-name-txt{font-weight:600; color:var(--copy);}
+.scout-nat{display:flex; align-items:center; gap:7px; color:var(--copy-faint);}
+.scout-flag{display:inline-block; width:19px; height:13px; border-radius:2px; background-size:cover; background-position:center; border:1px solid rgba(0,0,0,.4); flex-shrink:0;}
+.scout-series-tag{font-size:10.5px; color:var(--copy-faint); background:var(--card-high); border:1px solid var(--edge); padding:2px 7px; border-radius:5px; white-space:nowrap; font-family:var(--data-face);}
+.scout-money{font-family:var(--data-face);}
+.scout-money.break{color:var(--ember-hot);}
+.scout-end{color:var(--copy-faint); font-family:var(--data-face); font-size:12px;}
+.scout-empty td{text-align:center; padding:38px 14px; color:var(--copy-faint); font-size:13px;}
+.scout-watch-tag{display:inline-block; font-size:9px; text-transform:uppercase; letter-spacing:.08em; background:color-mix(in oklab, var(--brass) 25%, transparent); color:var(--brass); border-radius:4px; padding:2px 6px; margin-left:6px; font-family:var(--data-face);}
+.scout-side{display:flex; flex-direction:column; gap:16px; position:sticky; top:14px;}
+.scout-detail-empty{padding:34px 16px; text-align:center; color:var(--copy-faint); font-size:12.5px;}
+.scout-hero{padding:16px 16px 13px; display:flex; gap:13px; align-items:center; border-bottom:1px solid var(--edge);}
+.scout-hero-photo{width:56px; height:56px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-family:var(--head-face); font-weight:700; font-size:19px; color:#0a0c10; overflow:hidden; background:var(--card-high);}
+.scout-hero-photo img{width:100%; height:100%; object-fit:cover; display:block; border-radius:10px;}
+.scout-hero-photo .dp-hero__placeholder{color:var(--copy-faint);}
+.scout-hero-name{font-family:var(--head-face); font-size:19px; font-weight:700; color:var(--copy); line-height:1.1;}
+.scout-hero-sub{font-size:11.5px; color:var(--copy-faint); margin-top:4px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+.scout-rating{display:flex; align-items:center; gap:12px; padding:13px 16px; border-bottom:1px solid var(--edge);}
+.scout-rating-num{font-family:var(--head-face); font-size:38px; font-weight:700; line-height:1; color:var(--team-accent-hot);}
+.scout-rating-meta{font-size:11px; color:var(--copy-faint); line-height:1.5;}
+.scout-rating-grade{display:inline-block; font-family:var(--head-face); font-weight:700; font-size:16px; color:var(--brass); margin-left:6px;}
+.scout-stats{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--edge);}
+.scout-stat{background:var(--card); padding:11px 14px;}
+.scout-stat .l{font-size:9.5px; color:var(--copy-faint); text-transform:uppercase; letter-spacing:.06em; font-family:var(--data-face);}
+.scout-stat .v{font-family:var(--data-face); font-size:14.5px; font-weight:600; margin-top:3px; color:var(--copy);}
+.scout-stat .v.money-v{color:var(--moss);}
+.scout-stat .v.break-v{color:var(--ember-hot);}
+.scout-actions{display:flex; gap:9px; padding:14px 16px 16px;}
+.scout-btn{flex:1; padding:9px 10px; border-radius:7px; border:1px solid var(--edge-strong); font-family:var(--head-face); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.02em; cursor:pointer; transition:.12s; display:flex; align-items:center; justify-content:center; gap:6px;}
+.scout-btn-primary{background:linear-gradient(180deg, var(--team-accent-hot), var(--team-accent)); color:var(--team-accent-on); border:none;}
+.scout-btn-primary:hover{filter:brightness(1.1);}
+.scout-btn-ghost{background:var(--card-high); color:var(--copy);}
+.scout-btn-ghost:hover{border-color:var(--edge-strong);}
+.scout-career{padding:0 0 16px;}
+.scout-career-sec{padding:13px 16px; border-top:1px solid var(--edge);}
+.scout-career-sec h5{margin:0 0 10px; font-family:var(--data-face); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--copy-faint);}
+.scout-career-grid{display:grid; grid-template-columns:repeat(5, 1fr); gap:8px;}
+.scout-ccell{background:var(--card-high); border:1px solid var(--edge); border-radius:6px; padding:9px 6px; text-align:center;}
+.scout-ccell .v{font-family:var(--head-face); font-weight:700; font-size:17px; color:var(--copy);}
+.scout-ccell .l{font-size:8.5px; color:var(--copy-faint); text-transform:uppercase; letter-spacing:.05em; margin-top:2px; font-family:var(--data-face);}
+.scout-seasons{display:flex; flex-direction:column;}
+.scout-season{display:grid; grid-template-columns: 44px 52px 1fr 40px 40px 40px 52px; gap:8px; align-items:center; padding:8px 16px; border-top:1px solid var(--edge); font-family:var(--data-face); font-size:12px; color:var(--copy-soft);}
+.scout-season:first-child{border-top:none;}
+.scout-season .yr{color:var(--copy); font-weight:600;}
+.scout-season .ser{color:var(--copy-faint); font-size:11px;}
+.scout-season .tm{color:var(--copy); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.scout-season .rt{font-family:var(--head-face); font-weight:700; font-size:14px;}
+.scout-season .rt.top3{color:var(--brass);}
+.scout-season .w{color:var(--moss);}
+.scout-legend{padding:13px 16px 15px; display:flex; flex-direction:column; gap:8px; font-family:var(--data-face);}
+.scout-legend-row{display:flex; align-items:center; gap:9px; font-size:11.5px; color:var(--copy-faint);}
+.scout-legend-swatch{width:10px; height:10px; border-radius:3px; flex-shrink:0;}
 </style>
 </head>
 <body data-page="dashboard">
@@ -915,6 +1025,19 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
       </div>
     </div>
     <div id="contracts-content"></div>
+  </section>
+
+  <!-- 02H2 · SCOUTING (driver/staff/race-engineer search window) -->
+  <section id="scouting-section" class="hidden">
+    <div class="section-head">
+      <div class="section-head-mark"></div>
+      <div class="section-head-body">
+        <span class="section-head-num">02H2 — Scouting</span>
+        <h2>Scouting</h2>
+        <p class="muted" style="margin-top:6px;">Search for new drivers, designers and race engineers. Drivers on watch stay pinned to the top of your list.</p>
+      </div>
+    </div>
+    <div id="scouting-root" class="scout-wrap"></div>
   </section>
 
   <!-- 02I · PART ORDERS (Parts Design Console for F1 teams) -->
@@ -1759,7 +1882,7 @@ async function tryAutoLogin() {
 }
 
 /* ---------- dashboard sidebar / tabs ---------- */
-const ALL_DASH_SECTIONS = ['overview-section','mailbox-section','chat-section','salary-section','transactions-section','driver-section','attr-section','aggr-section','submit-section','admin-roster-section','admin-team-section','admin-results-section','admin-override-section','tp-section','contracts-section','partorders-section','partsallocation-section','carorders-section','manufacturercontracts-section','sponsors-section','season-section','account-section'];
+const ALL_DASH_SECTIONS = ['overview-section','mailbox-section','chat-section','salary-section','transactions-section','driver-section','attr-section','aggr-section','submit-section','admin-roster-section','admin-team-section','admin-results-section','admin-override-section','tp-section','contracts-section','scouting-section','partorders-section','partsallocation-section','carorders-section','manufacturercontracts-section','sponsors-section','season-section','account-section'];
 
 const DASH_TABS = {
   driver: [
@@ -1774,7 +1897,7 @@ const DASH_TABS = {
     { id: 'overview', label: 'Overview', sections: ['overview-section','transactions-section'] },
     { id: 'mail', label: 'Mail', sections: ['mailbox-section'] },
     { id: 'chat', label: 'Chat', sections: ['chat-section'] },
-    { id: 'contracts', label: 'Contracts', sections: ['contracts-section'] },
+    { id: 'contracts', label: 'Contracts', sections: ['contracts-section','scouting-section'] },
     { id: 'partorders', label: 'Part Orders', sections: ['partorders-section'] },
     { id: 'partsallocation', label: 'Parts allocation', sections: ['partsallocation-section'] },
     { id: 'carorders', label: 'Car Orders', sections: ['carorders-section'] },
@@ -1785,6 +1908,7 @@ const DASH_TABS = {
   admin: [
     { id: 'roster', label: 'Roster', sections: ['admin-roster-section'] },
     { id: 'teams', label: 'Teams', sections: ['admin-team-section'] },
+    { id: 'drivers', label: 'Drivers', sections: ['scouting-section'] },
     { id: 'ratings', label: 'Ratings', sections: ['driver-section','attr-section','aggr-section','submit-section','admin-override-section'] },
     { id: 'season', label: 'Season', sections: ['season-section'] },
     { id: 'results', label: 'Race Results', sections: ['admin-results-section'] },
@@ -2126,6 +2250,7 @@ function showDashTab(tabId) {
   if (tabId === 'partsallocation') renderPartsAllocation();
   if (tabId === 'season') { loadSeasonClock(); loadSeasonClockUI(); }
   if (tabId === 'overview') renderTransactions();
+  if (tabId === 'drivers' || (role === 'tp' && tabId === 'contracts')) renderScouting();
 }
 
 /* ---------- transactions / money log ---------- */
@@ -2568,6 +2693,7 @@ function onLoginSuccess(data) {
     teamPrincipals: data.teamPrincipals || [],
     chatRooms: data.chatRooms || [],
     importantSenders: data.importantSenders || [],
+    scouting: data.scouting || null,
     finances: data.finances || null
   };
   if (data.year) CURRENT_YEAR = data.year;
@@ -4987,6 +5113,340 @@ function renderTp() {
   const y = CURRENT_YEAR || 2024;
   document.getElementById('tp-offer-from').value = y;
   document.getElementById('tp-offer-till').value = y + 2;
+}
+
+/* ════════ Scouting window (TP contract page + admin Drivers tab) ════════ */
+var SCOUT = { role: 'driver', view: 'all', search: '', soon: false, sort: { key: 'years', dir: -1 }, selected: null };
+
+var SCOUT_NATION_TO_IOC = {
+  'UnitedStates': 'USA', 'United Kingdom': 'GBR', 'UnitedKingdom': 'GBR', 'Czech Republic': 'CZE', 'CzechRepublic': 'CZE',
+  'United Arab Emirates': 'UAE', 'South Korea': 'KOR', 'Saudi Arabia': 'KSA', 'New Zealand': 'NZL', 'South Africa': 'RSA'
+};
+function scoutNationFlag(n) {
+  if (!n) return '';
+  var code = /^[A-Z]{3}$/.test(n) ? n : (SCOUT_NATION_TO_IOC[n] || n);
+  var img = BTG.flagImg(code, 19, 13);
+  return img || '';
+}
+function scoutInitials(name) { return String(name || '').split(/\s+/).map(function (p) { return p[0]; }).join('').slice(0, 2).toUpperCase() || '?'; }
+var SCOUT_COLORS = ['#4fa8ff', '#35d99b', '#ffb020', '#ff5c6c', '#c48bff', '#3ddcc7'];
+function scoutColorFor(str) {
+  var h = 0; for (var i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+  return SCOUT_COLORS[Math.abs(h) % SCOUT_COLORS.length];
+}
+function scoutMoney(n) {
+  if (n === null || n === undefined || isNaN(Number(n))) return '—';
+  n = Number(n);
+  if (n >= 1000000) return '€' + (n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1) + 'M';
+  if (n >= 1000) return '€' + Math.round(n / 1000) + 'K';
+  return '€' + Math.round(n);
+}
+function scoutGrade(v) { if (v >= 90) return 'A'; if (v >= 80) return 'B+'; if (v >= 70) return 'B'; if (v >= 60) return 'C+'; if (v >= 50) return 'C'; if (v >= 40) return 'D+'; if (v >= 30) return 'D'; return 'F'; }
+
+/** Whole-career rating (0–100) from ACTUAL race performance — aggregate
+ *  starts/wins/podiums/points/best across every series a driver has raced.
+ *  NOT the current season's grade. Returns null when no race data exists. */
+function scoutCareerRating(name) {
+  try {
+    var career = (BTG.DBCache && BTG.DBCache.driverCareer) ? BTG.DBCache.driverCareer(name) : [];
+    if (!career || !career.length) return null;
+    var starts = 0, wins = 0, podiums = 0, dnfs = 0, points = 0, bestPos = 99;
+    career.forEach(function (s) {
+      starts += s.starts || 0; wins += s.wins || 0; podiums += s.podiums || 0; dnfs += s.dnfs || 0; points += s.points || 0;
+      if (s.bestPos && s.bestPos < bestPos) bestPos = s.bestPos;
+    });
+    if (!starts) return null;
+    var score = 0;
+    score += (wins / starts) * 50;                 // win rate → up to 50
+    score += (podiums / starts) * 25;              // podium rate → up to 25
+    score += Math.min(15, points / starts);        // points per start → up to 15
+    score += Math.max(0, 100 - ((bestPos - 1) * 6)) * 0.10; // best finish position → up to 10
+    score -= (dnfs / starts) * 8;                  // reliability penalty
+    return Math.max(0, Math.min(100, Math.round(score)));
+  } catch (e) { return null; }
+}
+
+function scoutList() {
+  var s = (DASH && DASH.scouting) || { drivers: [], staff: [], engineers: [] };
+  return s[SCOUT.role] || [];
+}
+function scoutFiltered() {
+  var list = scoutList().filter(function (d) {
+    if (SCOUT.view === 'fav' && !d.fav) return false;
+    if (SCOUT.soon && !(d.ends && d.ends <= (CURRENT_YEAR || 2024))) return false;
+    if (SCOUT.search) {
+      var q = SCOUT.search.toLowerCase();
+      if (!((d.name || '').toLowerCase().indexOf(q) !== -1 || (d.team || '').toLowerCase().indexOf(q) !== -1 || (d.series || '').toLowerCase().indexOf(q) !== -1)) return false;
+    }
+    return true;
+  });
+  var key = SCOUT.sort.key, dir = SCOUT.sort.dir;
+  list.sort(function (a, b) {
+    // Watched people are ALWAYS pinned to the top, regardless of sort.
+    if (!!a.watch !== !!b.watch) return a.watch ? -1 : 1;
+    var av = a[key], bv = b[key];
+    if (typeof av === 'string') { av = av.toLowerCase(); bv = String(bv).toLowerCase(); }
+    if (av < bv) return -1 * dir;
+    if (av > bv) return 1 * dir;
+    return 0;
+  });
+  return list;
+}
+
+function scoutTableCols() {
+  return [
+    { key: 'name', label: 'Name' }, { key: 'nation', label: 'Nationality' }, { key: 'years', label: 'Years in Motorsport' },
+    { key: 'team', label: 'Team' }, { key: 'series', label: 'Racing Series' },
+    { key: 'cost', label: 'Cost / Race' }, { key: 'break', label: 'Break Contract' }, { key: 'ends', label: 'Contract Ends' }
+  ];
+}
+
+function scoutAvatarHtml(d) {
+  var photo = BTG.driverPhotoImg(d.name, 28, '');
+  if (photo && photo.indexOf('<img') !== -1) return photo;
+  return scoutInitials(d.name);
+}
+
+function scoutRender() {
+  var root = document.getElementById('scouting-root');
+  if (!root) return;
+  var all = scoutList();
+  var favCount = all.filter(function (d) { return d.fav; }).length;
+  var isTp = CURRENT_USER && CURRENT_USER.role === 'tp';
+  var roleLabels = { driver: 'Drivers', staff: 'Staff', engineer: 'Race Engineers' };
+
+  var roles = ['driver', 'staff', 'engineer'];
+  var roleTabs = roles.map(function (r) {
+    var n = (DASH && DASH.scouting || {})[r] || [];
+    return '<div class="scout-role-tab' + (SCOUT.role === r ? ' active' : '') + '" data-role="' + r + '">' + roleLabels[r] + ' <span class="cnt">' + n.length + '</span></div>';
+  }).join('');
+
+  var list = scoutFiltered();
+  var rows = list.map(function (d) {
+    var col = scoutColorFor(d.name);
+    var watchTag = d.watch ? '<span class="scout-watch-tag">★ Watch</span>' : '';
+    var avatar = scoutAvatarHtml(d);
+    var hasImg = avatar.indexOf('<img') !== -1;
+    return '<tr class="' + (d.watch ? 'watch-row ' : '') + (SCOUT.selected === d.name ? 'selected' : '') + '" data-name="' + BTG.esc(d.name) + '">'
+      + '<td><button class="scout-fav' + (d.fav ? ' on' : '') + '" data-fav="' + BTG.esc(d.name) + '" title="' + (d.fav ? 'Remove from favourites' : 'Add to favourites') + '"><svg viewBox="0 0 24 24" fill="' + (d.fav ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="1.6"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.3 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8L12 2z"/></svg></button></td>'
+      + '<td><div class="scout-driver-name"><div class="scout-avatar" style="' + (hasImg ? '' : 'background:' + col + ';') + '">' + avatar + '</div><span class="scout-name-txt">' + BTG.esc(d.name) + '</span>' + watchTag + '</div></td>'
+      + '<td><div class="scout-nat">' + scoutNationFlag(d.nation) + BTG.esc(d.nation || '—') + '</div></td>'
+      + '<td class="scout-end">' + (d.years != null ? d.years : '—') + '</td>'
+      + '<td class="scout-end">' + BTG.esc(d.team || '—') + '</td>'
+      + '<td>' + (d.series ? '<span class="scout-series-tag">' + BTG.esc(d.series) + '</span>' : '<span class="muted">—</span>') + '</td>'
+      + '<td class="scout-money">' + scoutMoney(d.cost) + '</td>'
+      + '<td class="scout-money break">' + scoutMoney(d.break) + '</td>'
+      + '<td class="scout-end">' + (d.ends || '—') + '</td>'
+      + '</tr>';
+  }).join('');
+
+  var thead = '<tr><th style="width:30px;"></th>' + scoutTableCols().map(function (c) {
+    var active = SCOUT.sort.key === c.key ? ' active-sort' : '';
+    var arrow = SCOUT.sort.key === c.key ? '<span class="arrow">' + (SCOUT.sort.dir === 1 ? '▲' : '▼') + '</span>' : '';
+    return '<th class="' + active + '" data-sort="' + c.key + '">' + c.label + arrow + '</th>';
+  }).join('') + '</tr>';
+
+  var table = '<div class="scout-card"><div class="scout-card-head"><h4>Available ' + roleLabels[SCOUT.role] + '</h4><span class="muted" style="font-size:11px;">' + list.length + ' match</span></div>'
+    + '<div class="scout-table-wrap"><table class="scout-table"><thead>' + thead + '</thead><tbody>'
+    + (rows || '<tr class="scout-empty"><td colspan="9">No ' + roleLabels[SCOUT.role].toLowerCase() + ' match these filters — try widening your search.</td></tr>')
+    + '</tbody></table></div></div>';
+
+  var filters = '<div class="scout-card"><div class="scout-card-head"><h4>Filters</h4></div><div class="scout-card-body">'
+    + '<div class="scout-filters">'
+    + '<div class="scout-role-tabs">' + roleTabs + '</div>'
+    + '<div class="scout-filter-row two">'
+    + '<div class="scout-fgroup"><label class="ftitle">View</label><div class="scout-seg">'
+    + '<button class="' + (SCOUT.view === 'all' ? 'active' : '') + '" data-view="all">All <span class="cnt">' + all.length + '</span></button>'
+    + '<button class="' + (SCOUT.view === 'fav' ? 'active' : '') + '" data-view="fav">Favourites <span class="cnt">' + favCount + '</span></button>'
+    + '</div></div>'
+    + '<div class="scout-fgroup"><label class="ftitle">Search</label><div class="scout-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input type="text" id="scout-search-input" placeholder="Search by name, team or series…" value="' + BTG.esc(SCOUT.search) + '"></div></div>'
+    + '<div class="scout-fgroup" style="display:flex; align-items:flex-end; padding-bottom:2px;"><label class="scout-check"><input type="checkbox" id="scout-soon"' + (SCOUT.soon ? ' checked' : '') + '><span class="box">✓</span> Contract ending ' + (CURRENT_YEAR || 2024) + ' only</label></div>'
+    + '</div>'
+    + '<div class="scout-footer"><div class="scout-result-count"><b>' + list.length + '</b> match your filters</div><button class="scout-clear" id="scout-clear">Clear all filters</button></div>'
+    + '</div></div></div>';
+
+  var detail = scoutRenderDetail(SCOUT.selected);
+
+  var legend = '<div class="scout-card"><div class="scout-card-head"><h4>Legend</h4></div><div class="scout-legend">'
+    + '<div class="scout-legend-row"><span class="scout-legend-swatch" style="background:var(--ember-hot);"></span> Break contract cost, paid to current team</div>'
+    + '<div class="scout-legend-row"><span class="scout-legend-swatch" style="background:var(--moss);"></span> Cost per race for a new contract</div>'
+    + '<div class="scout-legend-row"><span class="scout-legend-swatch" style="background:var(--team-accent-hot);"></span> Career rating — actual race performance</div>'
+    + (isTp ? '<div class="scout-legend-row"><span class="scout-legend-swatch" style="background:var(--brass);"></span> ★ Watch — pinned to the top of your list</div>' : '')
+    + '</div></div>';
+
+  root.innerHTML = '<div class="scout-main">' + filters + table + '</div><div class="scout-side">' + detail + legend + '</div>';
+
+  // wire up controls
+  root.querySelectorAll('.scout-role-tab').forEach(function (t) {
+    t.addEventListener('click', function () { SCOUT.role = t.dataset.role; SCOUT.selected = null; SCOUT.view = 'all'; SCOUT.search = ''; SCOUT.soon = false; SCOUT.sort = { key: 'years', dir: -1 }; scoutRender(); });
+  });
+  root.querySelectorAll('.scout-seg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (b.dataset.view) { SCOUT.view = b.dataset.view; }
+      scoutRender();
+    });
+  });
+  var si = document.getElementById('scout-search-input');
+  if (si) si.addEventListener('input', function () { SCOUT.search = si.value; scoutRender(); });
+  var soon = document.getElementById('scout-soon');
+  if (soon) soon.addEventListener('change', function () { SCOUT.soon = soon.checked; scoutRender(); });
+  var clear = document.getElementById('scout-clear');
+  if (clear) clear.addEventListener('click', function () { SCOUT.view = 'all'; SCOUT.search = ''; SCOUT.soon = false; scoutRender(); });
+  root.querySelectorAll('th[data-sort]').forEach(function (th) {
+    th.addEventListener('click', function () {
+      var k = th.dataset.sort;
+      if (SCOUT.sort.key === k) SCOUT.sort.dir *= -1;
+      else SCOUT.sort = { key: k, dir: (k === 'name' || k === 'nation' || k === 'team' || k === 'series') ? 1 : -1 };
+      scoutRender();
+    });
+  });
+  root.querySelectorAll('tr[data-name]').forEach(function (tr) {
+    tr.addEventListener('click', function (e) {
+      if (e.target.closest('.scout-fav')) return;
+      SCOUT.selected = tr.dataset.name;
+      scoutRender();
+    });
+  });
+  root.querySelectorAll('[data-fav]').forEach(function (b) {
+    b.addEventListener('click', function (e) {
+      e.stopPropagation();
+      scoutToggleFav(b.dataset.fav);
+    });
+  });
+  root.querySelectorAll('[data-watch]').forEach(function (b) {
+    b.addEventListener('click', function (e) {
+      e.stopPropagation();
+      scoutToggleWatch(b.dataset.watch);
+    });
+  });
+  root.querySelectorAll('[data-approach]').forEach(function (b) {
+    b.addEventListener('click', function () { scoutApproach(b.dataset.approach); });
+  });
+}
+
+function scoutTargetOf(name) {
+  var s = (DASH && DASH.scouting) || { drivers: [], staff: [], engineers: [] };
+  var lists = { driver: s.drivers, staff: s.staff, engineer: s.engineers };
+  var types = ['driver', 'staff', 'engineer'];
+  for (var i = 0; i < types.length; i++) {
+    var hit = (lists[types[i]] || []).filter(function (d) { return d.name === name; })[0];
+    if (hit) return { type: hit.targetType || types[i], id: hit.id, name: hit.name };
+  }
+  return { type: SCOUT.role, id: null, name: name };
+}
+
+function scoutRenderDetail(name) {
+  var d = scoutList().filter(function (x) { return x.name === name; })[0];
+  if (!d) return '<div class="scout-card"><div class="scout-card-head"><h4>Scouting Detail</h4></div><div class="scout-detail-empty">Select someone from the list to view their full career profile.</div></div>';
+  var isTp = CURRENT_USER && CURRENT_USER.role === 'tp';
+  var isDriver = d.targetType === 'driver';
+  var col = scoutColorFor(d.name);
+
+  var rating = isDriver ? scoutCareerRating(d.name) : null;
+
+  var stats = '<div class="scout-stats">'
+    + '<div class="scout-stat"><div class="l">Team</div><div class="v" style="font-size:13px; font-weight:600;">' + BTG.esc(d.team || '—') + '</div></div>'
+    + '<div class="scout-stat"><div class="l">Series</div><div class="v" style="font-size:12px; font-weight:600;">' + BTG.esc(d.series || '—') + '</div></div>'
+    + '<div class="scout-stat"><div class="l">Years in Motorsport</div><div class="v">' + (d.years != null ? d.years : '—') + '</div></div>'
+    + '<div class="scout-stat"><div class="l">Cost / Race</div><div class="v money-v">' + scoutMoney(d.cost) + '</div></div>'
+    + '<div class="scout-stat"><div class="l">Break Contract</div><div class="v break-v">' + scoutMoney(d.break) + '</div></div>'
+    + '<div class="scout-stat"><div class="l">Contract Ends</div><div class="v">' + (d.ends || '—') + '</div></div>'
+    + '</div>';
+
+  // Driver career record — actual race performance (per-series + aggregate)
+  var careerHtml = '';
+  if (isDriver) {
+    var career = [];
+    try { career = (BTG.DBCache && BTG.DBCache.driverCareer) ? BTG.DBCache.driverCareer(d.name) || [] : []; } catch (e) { career = []; }
+    var starts = 0, wins = 0, podiums = 0, dnfs = 0, pts = 0;
+    career.forEach(function (s) { starts += s.starts || 0; wins += s.wins || 0; podiums += s.podiums || 0; dnfs += s.dnfs || 0; pts += s.points || 0; });
+    var bestFinish = null;
+    career.forEach(function (s) { if (s.bestPos && (bestFinish == null || s.bestPos < bestFinish)) bestFinish = s.bestPos; });
+    var grid = '<div class="scout-career-grid">'
+      + '<div class="scout-ccell"><div class="v">' + starts + '</div><div class="l">Starts</div></div>'
+      + '<div class="scout-ccell"><div class="v">' + wins + '</div><div class="l">Wins</div></div>'
+      + '<div class="scout-ccell"><div class="v">' + podiums + '</div><div class="l">Podiums</div></div>'
+      + '<div class="scout-ccell"><div class="v">' + Math.round(pts) + '</div><div class="l">Points</div></div>'
+      + '<div class="scout-ccell"><div class="v">' + (bestFinish ? 'P' + bestFinish : '—') + '</div><div class="l">Best</div></div>'
+      + '</div>';
+    var seasonRows = career.map(function (s) {
+      var pos = s.bestPos ? 'P' + s.bestPos : '—';
+      return '<div class="scout-season"><span class="ser">' + BTG.esc(s.series) + '</span><span class="tm">' + (s.years || 0) + 'y</span><span class="rt' + (s.bestPos && s.bestPos <= 3 ? ' top3' : '') + '">' + pos + '</span><span class="w">' + (s.wins || 0) + '</span><span>' + (s.podiums || 0) + '</span><span>' + (s.starts || 0) + '</span><span class="scout-end">' + Math.round(s.points || 0) + '</span></div>';
+    }).join('') || '<div class="scout-detail-empty">No race data yet.</div>';
+    var seasonHead = '<div class="scout-career-sec"><h5>Career by series</h5><div class="scout-seasons">'
+      + '<div class="scout-season" style="color:var(--copy-faint);font-size:10px;text-transform:uppercase;"><span class="ser">Series</span><span class="tm">Years</span><span>Best</span><span>Wins</span><span>Pods</span><span>Starts</span><span>Pts</span></div>'
+      + seasonRows + '</div></div>';
+    careerHtml = '<div class="scout-career">' + grid + seasonHead + '</div>';
+  } else {
+    careerHtml = '<div class="scout-career"><div class="scout-career-sec"><h5>Role</h5>'
+      + '<div class="scout-season" style="grid-template-columns:1fr;"><span class="tm">' + BTG.esc(d.role || 'Staff') + '</span></div></div></div>';
+  }
+
+  var ratingHtml = '';
+  if (rating != null) {
+    ratingHtml = '<div class="scout-rating"><div><div class="scout-rating-num">' + rating + '</div><div class="scout-rating-meta">Career rating</div></div>'
+      + '<div class="scout-rating-meta"><span class="scout-rating-grade">' + scoutGrade(rating) + '</span><br>whole-career performance</div></div>';
+  } else if (isDriver) {
+    ratingHtml = '<div class="scout-rating"><div><div class="scout-rating-num" style="color:var(--copy-faint);">—</div><div class="scout-rating-meta">Career rating</div></div><div class="scout-rating-meta">No race data yet</div></div>';
+  }
+
+  var actions = '<div class="scout-actions">';
+  if (isTp) {
+    actions += '<button class="scout-btn scout-btn-primary" data-approach="' + BTG.esc(d.name) + '">Approach Driver</button>'
+      + '<button class="scout-btn scout-btn-ghost" data-watch="' + BTG.esc(d.name) + '">' + (d.watch ? '✓ On Watch' : '★ Watch') + '</button>';
+  }
+  actions += '</div>';
+
+  var photoHtml = BTG.driverPhotoImg(d.name, 56, '');
+  if (photoHtml.indexOf('<img') === -1) photoHtml = '<span style="font-size:19px;font-weight:700;">' + scoutInitials(d.name) + '</span>';
+
+  return '<div class="scout-card"><div class="scout-card-head"><h4>Scouting Detail</h4></div>'
+    + '<div class="scout-hero"><div class="scout-hero-photo" style="' + (photoHtml.indexOf('<img') === -1 ? 'background:' + col + ';' : '') + '">' + photoHtml + '</div>'
+    + '<div><div class="scout-hero-name">' + BTG.esc(d.name) + '</div>'
+    + '<div class="scout-hero-sub">' + scoutNationFlag(d.nation) + BTG.esc(d.nation || '') + ' · ' + (d.years != null ? d.years + 'y in motorsport' : '—') + '</div></div></div>'
+    + ratingHtml + stats + actions + careerHtml + '</div>';
+}
+
+function scoutRefreshWith(data) {
+  if (data && data.ok && data.scouting) { DASH.scouting = data.scouting; }
+  scoutRender();
+}
+async function scoutToggleFav(name) {
+  if (!CURRENT_USER) return;
+  var t = scoutTargetOf(name);
+  try {
+    var data = await callGateway('scoutingFav', { targetType: t.type, targetId: t.id, targetName: t.name });
+    scoutRefreshWith(data);
+  } catch (e) { alert('✗ Could not reach the gateway script.'); }
+}
+async function scoutToggleWatch(name) {
+  if (!CURRENT_USER) return;
+  var t = scoutTargetOf(name);
+  var on = !(scoutList().filter(function (d) { return d.name === name; })[0] || {}).watch;
+  try {
+    var data = await callGateway('scoutingWatch', { targetType: t.type, targetId: t.id, targetName: t.name, on: on });
+    scoutRefreshWith(data);
+  } catch (e) { alert('✗ Could not reach the gateway script.'); }
+}
+function scoutApproach(name) {
+  // TP: pre-select this driver in the "Send a contract offer" form + scroll to it
+  var sel = document.getElementById('c-driver');
+  if (sel) {
+    sel.value = name;
+    sel.dispatchEvent(new Event('change'));
+  }
+  var offer = document.querySelector('#contracts-content .ov-card:last-of-type');
+  var target = sel || offer;
+  if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  var res = document.getElementById('c-result');
+  if (res) res.textContent = '';
+}
+function renderScouting() {
+  // ensure cache is ready for career ratings (fire-and-forget)
+  if (BTG.DBCache && BTG.DBCache.init && !BTG.DBCache.isReady()) {
+    BTG.DBCache.init().then(function () { scoutRender(); }).catch(function () { scoutRender(); });
+  }
+  scoutRender();
 }
 
 function renderAdminMonth() {
