@@ -155,30 +155,65 @@
     return 'Struggling';
   }
 
-  /** Whole-career rating (0–100) from actual race performance across ALL
-   *  series the driver has raced (starts/wins/podiums/points/best finish),
-   *  on the SAME scale as the season-performance score so a strong season
-   *  yields a strong career rating (this is year one of BTG). */
-  function careerRating(name) {
+  /** Series tier weight — a lower series is never worth the same as a higher
+   *  one, so an identical season in F2/XGT rates below the same season in F1. */
+  function seriesTier(series) {
+    var s = str(series).toUpperCase();
+    if (s === 'F1') return 1.0;
+    if (s === 'F2') return 0.85;
+    if (s === 'XGT') return 0.80;
+    return 0.75;
+  }
+
+  /** Whole-career rating (0–100) built from the SAME season-performance
+   *  formula (computeOverallScore) applied to every season in the driver's
+   *  career, then weighted by series tier. */
+  function careerRating(d) {
     try {
-      var career = (BTG.DBCache && BTG.DBCache.driverCareer) ? BTG.DBCache.driverCareer(name) : [];
-      if (!career || !career.length) return null;
-      var totalStarts = 0, weighted = 0;
-      career.forEach(function (s) {
-        var starts = num(s.starts);
-        if (!starts) return;
-        var bestPos = num(s.bestPos) || 99;
-        var score = Math.max(0, 100 - (bestPos - 1) * 5);   // best result
-        score += (num(s.wins) / starts) * 15;                // win rate
-        score += (num(s.podiums) / starts) * 10;             // podium rate
-        score += Math.min(15, (num(s.points) / starts) * 1.5); // points rate
-        score -= (num(s.dnfs) / starts) * 8;                 // DNF rate
-        score = Math.max(0, Math.min(100, score));
-        totalStarts += starts;
-        weighted += score * starts;
+      if (!d) return null;
+      var entries = [];
+      // Racing seasons from career history (current + past). Reserve stints
+      // carry pos '—' and no race stats, so they're skipped.
+      (d.history || []).forEach(function (h) {
+        var p = h.pos;
+        if (p === '—' || p == null || p === '' || isNaN(Number(p))) return;
+        entries.push({
+          season: Number(h.season),
+          series: str(h.series),
+          pos: Number(p),
+          wins: num(h.wins),
+          podiums: num(h.podiums),
+          dnfs: num(h.dnfs),
+          avgFinish: h.avgFinish
+        });
       });
-      if (!totalStarts) return null;
-      return Math.max(0, Math.min(100, Math.round(weighted / totalStarts)));
+      // Defensive fallback: if the current series has no racing history entry
+      // (standings-only edge case), add the live season.
+      if (!entries.some(function (e) { return e.series === str(d.series); })) {
+        if (d.standings && d.standings.pos !== '—' && d.standings.pos != null && !isNaN(Number(d.standings.pos))) {
+          entries.push({
+            season: null,
+            series: str(d.series),
+            pos: Number(d.standings.pos),
+            wins: num((d.seasonStats || {}).wins),
+            podiums: num((d.seasonStats || {}).podiums),
+            dnfs: num((d.seasonStats || {}).dnfs),
+            avgFinish: (d.seasonStats || {}).avgFinish
+          });
+        }
+      }
+      if (!entries.length) return null;
+      var count = 0, sum = 0;
+      entries.forEach(function (e) {
+        var score = computeOverallScore(
+          { standings: { pos: e.pos } },
+          { wins: e.wins, podiums: e.podiums, dnfs: e.dnfs, avgFinish: e.avgFinish }
+        );
+        sum += score * seriesTier(e.series);
+        count++;
+      });
+      if (!count) return null;
+      return Math.max(0, Math.min(100, Math.round(sum / count)));
     } catch (e) { return null; }
   }
 
@@ -205,7 +240,7 @@
       var ss = d.seasonStats || {};
       var overallGrade = gradeOf(computeOverallScore(d, ss));
       var nameParts = (d.fullName || d.name).split(' ');
-      var rating = opts.showRating !== false ? careerRating(d.fullName || d.name) : null;
+      var rating = opts.showRating !== false ? careerRating(d) : null;
 
       var html = '<div class="dp-main">';
       html += '<div class="dp-left">';
@@ -234,7 +269,7 @@
         html += '<div class="dp-card"><div class="dp-card__title">Career Rating</div>'
           + '<div class="dp-rating"><div class="dp-rating__num">' + rating + '</div>'
           + '<div><span class="dp-rating__grade">' + gradeOf(rating) + '</span>'
-          + '<div class="dp-rating__meta">whole-career performance</div></div></div></div>';
+          + '<div class="dp-rating__meta">whole-career · series-weighted</div></div></div></div>';
       }
 
       var tenure = '—';
