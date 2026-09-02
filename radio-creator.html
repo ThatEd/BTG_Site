@@ -144,7 +144,7 @@
 <div class="rc-wrap page-section" style="max-width:1200px;margin:0 auto;padding:0 16px 80px;">
   <div class="rc-head">
     <h1>Radio Creator</h1>
-    <p class="rc-sub">Build and export square radio cards for F1 and F2 with team presets, driver shortcuts, and custom color tuning.</p>
+    <p class="rc-sub">Build and export square radio cards for every series with team presets, driver shortcuts, and custom color tuning.</p>
   </div>
 
   <div class="rc-app">
@@ -153,10 +153,7 @@
       <!-- Team / driver picker -->
       <div class="rc-section">
         <div class="rc-section-title">Series</div>
-        <div class="rc-series-tabs">
-          <button class="rc-series-tab active" id="tab-f1" onclick="setSeries('f1')">F1</button>
-          <button class="rc-series-tab" id="tab-f2" onclick="setSeries('f2')">F2</button>
-        </div>
+        <div class="rc-series-tabs" id="seriesTabs"></div>
         <div class="rc-section-title" style="margin-bottom:8px">Team Presets</div>
         <div class="rc-team-presets" id="presets"></div>
         <div id="driverSection">
@@ -221,10 +218,12 @@
 <script src="js/common.js"></script>
 <script src="teams/f1.js"></script>
 <script src="js/roster.js"></script>
+<script src="js/db-cache.js"></script>
 <script>
 /* ─── globals ─────────────────────────────────────────────── */
-let F1_TEAMS = [];
-let F2_TEAMS = [];
+let TEAMS_BY_SERIES = {};
+let DRIVERS_BY_SERIES = {};
+let SERIES_LIST = [];
 
 /* Roster team key → site logo file (exists under Site/logos). */
 const TEAM_LOGO_MAP = {
@@ -264,11 +263,9 @@ const F2_TEAM_ORDER = [
 
 /* ─── ui state ───────────────────────────────────────────── */
 let msgType    = 'driver';
-let activeSeries  = 'f1';
+let activeSeries  = '';
 let activeTeamKey = null;
 let ALL_DB_DRIVERS     = [];
-let CURRENT_F1_DRIVERS = [];
-let CURRENT_F2_DRIVERS = [];
 
 // Replies array — each reply: { type:'driver'|'team', quote:'...', sender:'ENGINEER' }
 let replies = [];
@@ -475,9 +472,11 @@ function logoArtBounds(img) {
 
 function preloadTeamLogos() {
   TEAM_LOGO_CACHE.clear();
-  [...F1_TEAMS,...F2_TEAMS].forEach(team=>{
-    if (!team.logo) return;
-    const img=new Image(); img.src=team.logo; TEAM_LOGO_CACHE.set(team.key,img);
+  Object.values(TEAMS_BY_SERIES).forEach(list => {
+    list.forEach(team => {
+      if (!team.logo) return;
+      const img = new Image(); img.src = team.logo; TEAM_LOGO_CACHE.set(team.key, img);
+    });
   });
 }
 
@@ -762,19 +761,31 @@ async function downloadCard() {
   try { dataUrl = canvas.toDataURL('image/png'); }
   catch (_) { card.logoImage = null; ctx.clearRect(0, 0, EXPORT_SIZE, EXPORT_SIZE); drawCardToCanvas(ctx, card); dataUrl = canvas.toDataURL('image/png'); }
   const link = document.createElement('a');
-  link.download = `f1-radio-${card.driverName.toLowerCase().replace(/ /g, '-')}.png`;
+  link.download = `${activeSeries.toLowerCase()}-radio-${card.driverName.toLowerCase().replace(/ /g, '-')}.png`;
   link.href = dataUrl; link.click();
 }
 
 /* ─── roster-based data ─────────────────────────────────── */
+function dbTeamRow(key) {
+  if (!window.BTG || !BTG.DBCache || !BTG.DBCache.isReady()) return null;
+  const teams = (BTG.DBCache.data() && BTG.DBCache.data().teams) || [];
+  const k = String(key || '').trim().toLowerCase();
+  for (let i = 0; i < teams.length; i++) {
+    if (String(teams[i].team_key || '').toLowerCase() === k) return teams[i];
+  }
+  return null;
+}
+
 function buildTeamFromRoster(t) {
-  const main = t.color1 || '#3b8de0';      // Color 1 → wave + background tint
-  const secondary = t.color2 || main;      // Color 2 → divider stripe
+  const db = dbTeamRow(t.key);
+  const main = (db && db.color_primary) || t.color1 || '#3b8de0';      // Color 1 → wave + background tint
+  const secondary = (db && db.color_secondary) || t.color2 || main;    // Color 2 → divider stripe
   const bg = darkenHex(main, 0.16);
   const text = TEXT_OVERRIDES[t.key] || bestTextColor(main, secondary, bg);
+  const dbLogo = db && db.logo ? 'logos/teams/' + db.logo : '';
   return {
     key: t.key,
-    name: t.longName || t.name || t.key,
+    name: (db && db.team_name) || t.longName || t.name || t.key,
     short: t.name || t.key,
     series: t.series,
     main,
@@ -783,50 +794,96 @@ function buildTeamFromRoster(t) {
     name_c: text,
     num: text,
     stripe: secondary, // Color 2 → divider stripe
-    label: (t.name || t.key).toUpperCase(),
-    logo: TEAM_LOGO_MAP[t.key] || '',
+    label: ((db && db.team_name) || t.name || t.key).toUpperCase(),
+    logo: dbLogo || TEAM_LOGO_MAP[t.key] || '',
   };
 }
 
+function seriesDisplayName(id) {
+  const map = { 'GT1': 'XGT' };
+  return map[id] || id;
+}
+
+function driverSeries(d) {
+  if (d.series) return String(d.series);
+  const team = d.team && BTG.Roster.teamByKey(d.team);
+  if (team && team.series) return String(team.series);
+  const t = String(d.team || '').toUpperCase();
+  if (t.startsWith('XGT ') || t.startsWith('GT ')) return 'GT1';
+  return '';
+}
+
+function discoverSeries() {
+  const seen = new Set();
+  (BTG.Roster.drivers || []).forEach(d => { const s = driverSeries(d); if (s) seen.add(s); });
+  (BTG.Roster.teams || []).forEach(t => { if (t.series) seen.add(String(t.series)); });
+  const known = { 'F1': 1, 'F2': 2 };
+  SERIES_LIST = Array.from(seen).sort((a, b) => (known[a] || 99) - (known[b] || 99) || a.localeCompare(b)).map(id => ({ id, name: seriesDisplayName(id) }));
+}
+
+function teamOrderFor(series) {
+  if (BTG.Roster.teamOrderFor) return BTG.Roster.teamOrderFor(series) || [];
+  if (BTG.Roster.teamsFor) return (BTG.Roster.teamsFor(series) || []).map(t => t.key);
+  return (BTG.Roster.teams || []).filter(t => t.series === series).map(t => t.key);
+}
+
 function loadTeamsFromRoster() {
-  // Use the roster's team order (last season's standings) when available.
-  const orderF1 = (BTG.Roster.teamOrderFor && BTG.Roster.teamOrderFor('F1')) || (BTG.Roster.teamsFor('F1') || []).map(t => t.key);
-  const orderF2 = (BTG.Roster.teamOrderFor && BTG.Roster.teamOrderFor('F2')) || F2_TEAM_ORDER;
-  F1_TEAMS = orderF1.map(k => { const t = BTG.Roster.teamByKey(k); return t ? buildTeamFromRoster(t) : null; }).filter(Boolean);
-  F2_TEAMS = orderF2.map(k => { const t = BTG.Roster.teamByKey(k); return t ? buildTeamFromRoster(t) : null; }).filter(Boolean);
+  TEAMS_BY_SERIES = {};
+  SERIES_LIST.forEach(s => {
+    const order = teamOrderFor(s.id);
+    let teams = order.map(k => { const t = BTG.Roster.teamByKey(k); return t ? buildTeamFromRoster(t) : null; }).filter(Boolean);
+    const seen = new Set(teams.map(t => t.key));
+    (DRIVERS_BY_SERIES[s.id] || []).forEach(d => {
+      if (!d.teamKey || seen.has(d.teamKey)) return;
+      seen.add(d.teamKey);
+      const syn = { key: d.teamKey, name: (d.teamKey || '').replace(/^XGT /, ''), series: s.id, color1: '#555555', color2: '#333333' };
+      teams.push(buildTeamFromRoster(syn));
+    });
+    TEAMS_BY_SERIES[s.id] = teams;
+  });
 }
 
 function loadDriversFromRoster() {
-  const norm = d => ({ id: d.id || d.name, name: d.name, number: d.number || '', teamKey: d.team });
+  const norm = d => ({ id: d.id || d.name, name: d.name, number: d.number || '', teamKey: d.team, series: driverSeries(d) });
   ALL_DB_DRIVERS = (BTG.Roster.drivers || []).map(norm);
-  CURRENT_F1_DRIVERS = (BTG.Roster.drivers || [])
-    .filter(d => d.series === 'F1')
-    .map(norm)
-    .sort((a, b) => a.name.localeCompare(b.name));
-  const orderF2 = (BTG.Roster.teamOrderFor && BTG.Roster.teamOrderFor('F2')) || F2_TEAM_ORDER;
-  const orderIdx = {};
-  orderF2.forEach((k, i) => orderIdx[k] = i);
-  CURRENT_F2_DRIVERS = (BTG.Roster.drivers || [])
-    .filter(d => d.series === 'F2')
-    .map(norm)
-    .sort((a, b) => {
-      const ia = orderIdx[a.teamKey] != null ? orderIdx[a.teamKey] : 99;
-      const ib = orderIdx[b.teamKey] != null ? orderIdx[b.teamKey] : 99;
-      return ia - ib || a.name.localeCompare(b.name);
-    });
+  DRIVERS_BY_SERIES = {};
+  SERIES_LIST.forEach(s => {
+    const order = teamOrderFor(s.id);
+    const orderIdx = {};
+    order.forEach((k, i) => orderIdx[k] = i);
+    DRIVERS_BY_SERIES[s.id] = (BTG.Roster.drivers || [])
+      .filter(d => driverSeries(d) === s.id)
+      .map(norm)
+      .sort((a, b) => {
+        const ia = orderIdx[a.teamKey] != null ? orderIdx[a.teamKey] : 99;
+        const ib = orderIdx[b.teamKey] != null ? orderIdx[b.teamKey] : 99;
+        return ia - ib || a.name.localeCompare(b.name);
+      });
+  });
 }
 
 /* ─── series / team / driver UI ─────────────────────────── */
+function buildSeriesTabs() {
+  const el = document.getElementById('seriesTabs'); if (!el) return;
+  el.innerHTML = '';
+  SERIES_LIST.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'rc-series-tab' + (s.id === activeSeries ? ' active' : '');
+    btn.textContent = s.name;
+    btn.onclick = () => setSeries(s.id);
+    el.appendChild(btn);
+  });
+}
+
 function setSeries(series) {
   activeSeries = series; activeTeamKey = null;
-  document.getElementById('tab-f1').className = 'rc-series-tab' + (series === 'f1' ? ' active' : '');
-  document.getElementById('tab-f2').className = 'rc-series-tab' + (series === 'f2' ? ' active' : '');
+  buildSeriesTabs();
   buildTeamPresets();
-  const teams = activeSeries === 'f1' ? F1_TEAMS : F2_TEAMS;
+  const teams = TEAMS_BY_SERIES[activeSeries] || [];
   if (teams.length) selectTeam(teams[0]);
 }
 function buildTeamPresets() {
-  const teams = activeSeries === 'f1' ? F1_TEAMS : F2_TEAMS;
+  const teams = TEAMS_BY_SERIES[activeSeries] || [];
   const el = document.getElementById('presets'); el.innerHTML = '';
   teams.forEach(t => {
     const btn = document.createElement('button');
@@ -864,7 +921,7 @@ function buildDriverGrid() {
   const el = document.getElementById('drivers'); if (!el) return;
   el.innerHTML = '';
   if (!activeTeamKey) { el.innerHTML = '<div class="rc-no-drivers">Select a team to view drivers.</div>'; return; }
-  const list = (activeSeries === 'f1' ? CURRENT_F1_DRIVERS : CURRENT_F2_DRIVERS).filter(d => d.teamKey === activeTeamKey);
+  const list = (DRIVERS_BY_SERIES[activeSeries] || []).filter(d => d.teamKey === activeTeamKey);
   if (!list.length) { el.innerHTML = '<div class="rc-no-drivers">No drivers for this team.</div>'; return; }
   const curName = document.getElementById('driverName').value.trim().toUpperCase();
   let sel = null;
@@ -1007,15 +1064,17 @@ async function initRadioTool() {
   try {
     if (!window.BTG || !BTG.Roster) throw new Error('roster missing');
     await BTG.Roster.load();
+    if (window.BTG && BTG.DBCache) { try { await BTG.DBCache.init(); } catch (_) {} }
+    discoverSeries();
+    loadDriversFromRoster();
     loadTeamsFromRoster();
     preloadTeamLogos();
-    loadDriversFromRoster();
     buildDriverOverrideSelect();
-    setSeries('f1');
+    setSeries(SERIES_LIST.length ? SERIES_LIST[0].id : '');
     buildReplySections();
   } catch (_) {
-    F1_TEAMS = []; F2_TEAMS = []; ALL_DB_DRIVERS = [];
-    buildDriverGrid(); buildReplySections(); render();
+    TEAMS_BY_SERIES = {}; DRIVERS_BY_SERIES = {}; SERIES_LIST = []; ALL_DB_DRIVERS = [];
+    buildSeriesTabs(); buildDriverGrid(); buildReplySections(); render();
   }
 }
 initRadioTool();

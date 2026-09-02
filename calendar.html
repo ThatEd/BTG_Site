@@ -143,7 +143,6 @@ body {
   }
   function todayFor(series) {
     var rows = (D && D.app_state || []).filter(function (s) { return str(s.series) === series; });
-    if (!rows.length) rows = (D && D.app_state || []).filter(function (s) { return str(s.series) === 'F1'; });
     if (!rows.length) return null;
     var r = rows[0];
     if (num(r.year) > 0) return dateStr(r.year, r.month, r.day);
@@ -251,7 +250,6 @@ body {
       var isCompleted = hasResult, isCurrent = false;
       if (today) {
         var weekendStart = shift(raceDate, -2);
-        isCompleted = isCompleted || today > raceDate;
         isCurrent = !isCompleted && today >= weekendStart && today <= raceDate;
       }
       if (!isCompleted && firstUpcomingIdx === -1) firstUpcomingIdx = i;
