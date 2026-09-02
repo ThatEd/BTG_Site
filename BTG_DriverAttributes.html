@@ -2484,14 +2484,14 @@ function renderContracts() {
   }).join('');
 
   var offers = (DASH.offers || []);
-  if (role === 'tp') { var stk2 = selectedTpTeam(); offers = offers.filter(function (o) { return o.team === stk2 || o.target === stk2; }); }
+  if (role === 'tp') { var stk2 = selectedTpTeam(); offers = offers.filter(function (o) { return o.team === stk2 || o.target === stk2 || o.loanTeam === stk2; }); }
   else if (role === 'admin') offers = offers.filter(function (o) { return offerStatus(o) === 'On Hold'; });
   var offerHtml = '';
   offers.forEach(function (o, i) {
     const st = offerStatus(o);
     const offerClass = st === 'Rejected' ? 'denied' : (st === 'On Hold' ? 'warn' : '');
     offerHtml += '<div class="offer ' + offerClass + '">'
-      + '<div class="offer-top"><span class="strong">' + BTG.esc(o.team) + ' → ' + BTG.esc(o.target) + '</span>' + (o.modify ? '<span class="tag-pill warn">Contract change</span>' : '')
+      + '<div class="offer-top"><span class="strong">' + BTG.esc(o.team) + ' → ' + BTG.esc(o.target) + '</span>' + (o.modify ? '<span class="tag-pill warn">Contract change</span>' : '') + (o.offerKind === 'loan' ? '<span class="tag-pill">Loan - ' + BTG.esc(o.loanTeam) + ' (' + (o.loanPercent || 0) + '% paid by them)</span>' : '')
       + '<span class="stamp">' + fmtMoney(o.salary) + ' · ' + BTG.esc(o.from || '—') + '–' + BTG.esc(o.till || '—') + (o.role ? ' · ' + BTG.esc(o.role) : '') + '</span></div>'
       + (o.message ? '<div class="offer-body">' + BTG.esc(o.message) + '</div>' : '')
       + (o.promise ? '<div class="offer-body">Promise: seat in <b>' + BTG.esc(o.promise.series) + '</b>' + (o.promise.by ? ' by <b>' + BTG.esc(o.promise.by) + '</b>' : '') + '</div>' : '')
@@ -2527,7 +2527,15 @@ function renderContracts() {
       + '<p class="muted" style="margin-bottom:10px;">Only drivers on a Reserve contract can be used as reserves in races.</p>'
       + '<div class="field"><label for="c-terms">Extra terms</label><input type="text" id="c-terms"></div>'
       + '<div class="field"><label for="c-message">Message</label><input type="text" id="c-message"></div>'
-      + '<button class="action action-lead" id="c-send-btn"><span>Send offer</span></button><div class="result-line" id="c-result"></div></div>';
+      + '<button class="action action-lead" id="c-send-btn"><span>Send offer</span></button><div class="result-line" id="c-result"></div></div>'
+      + '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Loan a driver</div>'
+      + '<p class="muted" style="margin-bottom:10px;">Loan your driver to another team. They race there; your team keeps them as reserve/junior. The driver and the racing team must both accept.</p>'
+      + '<div class="field-row"><div class="field"><label for="l-driver">Driver</label><select id="l-driver">' + ((DASH.teamDrivers && DASH.teamDrivers.length) ? '<option value="">- choose -</option>' + DASH.teamDrivers.map(function (d) { return '<option>' + BTG.esc(d) + '</option>'; }).join('') : '<option value="">- none -</option>') + '</select></div>'
+      + '<div class="field"><label for="l-team">Loan to team</label><select id="l-team">' + contractTeamOptions('') + '</select></div></div>'
+      + '<div class="field-row"><div class="field"><label for="l-from">From</label><input type="text" id="l-from" placeholder="2025"></div><div class="field"><label for="l-till">Till</label><input type="text" id="l-till" placeholder="2026"></div><div class="field"><label for="l-salary">Race salary</label><input type="text" id="l-salary" placeholder="8,000,000"></div></div>'
+      + '<div class="field-row"><div class="field"><label for="l-parent-role">Parent role</label><select id="l-parent-role"><option value="Reserve">Reserve</option><option value="Junior">Junior</option></select></div></div>'
+      + '<div class="field"><label for="l-percent">% of salary paid by racing team: <span id="l-percent-val">0%</span></label><input type="range" id="l-percent" min="0" max="100" step="5" value="0"></div>'
+      + '<button class="action action-lead" id="l-send-btn"><span>Send loan offer</span></button><div class="result-line" id="l-result"></div></div>';
   } else if (role === 'driver') {
     html += '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Initiate a contract offer</div>'
       + '<p class="muted" style="margin-bottom:10px;">Offer yourself to a team. Salary can be negative — a pay driver pays the team.</p>'
@@ -2624,6 +2632,35 @@ function renderContracts() {
         else { showResult(resultEl, false, '✗ ' + data.error); }
       } catch (e) { showResult(resultEl, false, '✗ Could not reach the gateway script.'); }
       finally { sendBtn.disabled = false; }
+    };
+  }
+
+  var lBtn = document.getElementById('l-send-btn');
+  if (lBtn) {
+    var lp = document.getElementById('l-percent');
+    if (lp) lp.addEventListener('input', function () {
+      var v = document.getElementById('l-percent-val');
+      if (v) v.textContent = lp.value + '%';
+    });
+    lBtn.onclick = async function () {
+      const resultEl = document.getElementById('l-result');
+      const driver = document.getElementById('l-driver').value;
+      const team = document.getElementById('l-team').value.trim();
+      const salary = document.getElementById('l-salary').value.trim();
+      resultEl.style.display = 'none';
+      if (!driver || !team || !salary) { showResult(resultEl, false, 'Choose driver, loan team and salary.'); return; }
+      lBtn.disabled = true;
+      try {
+        const data = await callGateway('sendLoanOffer', {
+          username: CURRENT_USER.username, password: CURRENT_USER.password,
+          parentTeam: document.getElementById('c-team-tp').value, driver: driver, loanTeam: team,
+          salary: salary, from: document.getElementById('l-from').value, till: document.getElementById('l-till').value,
+          percent: document.getElementById('l-percent').value, parentRole: document.getElementById('l-parent-role').value
+        });
+        if (data.ok) { showResult(resultEl, true, '✓ Loan offer sent.'); }
+        else { showResult(resultEl, false, '✗ ' + data.error); }
+      } catch (e) { showResult(resultEl, false, '✗ Could not reach the gateway script.'); }
+      finally { lBtn.disabled = false; }
     };
   }
 
@@ -4578,10 +4615,39 @@ function seatCategoryLabel_(seat, teamKey) {
 
 function offerStatus(o) { return o.status || ''; }
 
+function loanOfferActionsHtml(o, i, role, st, tpTeams) {
+  if (st === 'Accepted') return '<div class="offer-actions"><span class="tag-pill">Loaned</span></div>';
+  if (st === 'Rejected') return '<div class="offer-actions"><span class="tag-pill denied">Rejected</span></div>';
+  var isLoanTeam = role === 'tp' && tpTeams.indexOf(o.loanTeam) !== -1;
+  var isParentTeam = role === 'tp' && tpTeams.indexOf(o.team) !== -1;
+  if (role === 'driver') {
+    if (!o.driverAccepted) {
+      return '<div class="offer-actions">'
+        + '<button class="action action-lead action-compact" onclick="respondOffer(' + i + ', \'accept\')"><span>Accept loan</span></button>'
+        + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Decline</span></button></div>';
+    }
+    return '<div class="offer-actions"><span class="tag-pill warn">Waiting on ' + BTG.esc(o.loanTeam) + '</span></div>';
+  }
+  if (isLoanTeam) {
+    if (!o.loanTeamAccepted) {
+      return '<div class="offer-actions">'
+        + '<button class="action action-lead action-compact" onclick="respondLoanTeam(' + i + ', true)"><span>Accept (' + (o.loanPercent || 0) + '% of salary)</span></button>'
+        + '<button class="action action-quiet action-compact" onclick="respondLoanTeam(' + i + ', false)"><span>Reject</span></button></div>';
+    }
+    return '<div class="offer-actions"><span class="tag-pill warn">Waiting on driver</span></div>';
+  }
+  if (isParentTeam) {
+    return '<div class="offer-actions"><span class="tag-pill warn">Awaiting acceptance</span>'
+      + '<button class="action action-quiet action-compact" onclick="respondOffer(' + i + ', \'decline\')"><span>Withdraw</span></button></div>';
+  }
+  return '<div class="offer-actions"><span class="tag-pill">Loan offer</span></div>';
+}
+
 function offerActionsHtml(o, i, role) {
   var st = offerStatus(o);
   var tpTeams = (DASH && DASH.tp && DASH.tp.teams) ? DASH.tp.teams.map(function (t) { return t.key; }) : [];
   var isMyTpTeam = role === 'tp' && tpTeams.indexOf(o.team) !== -1;
+  if (o.offerKind === 'loan') return loanOfferActionsHtml(o, i, role, st, tpTeams);
   if (st === '') {
     var isDriverInitiated = /driver-initiated/i.test(o.terms || '');
     if (role === 'driver') {
@@ -5705,6 +5771,27 @@ async function respondParentOffer(index, accept) {
   if (!o || !CURRENT_USER) return;
   try {
     const data = await callGateway('parentOffer', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      offerRow: o.row, accept: accept
+    });
+    if (data.ok) {
+      o.status = data.result || '';
+      renderMailbox();
+      renderContracts();
+      if (CURRENT_USER) buildDashSidebar(CURRENT_USER.role);
+    } else {
+      alert('✗ ' + data.error);
+    }
+  } catch (e) {
+    alert('✗ Could not reach the gateway script.');
+  }
+}
+
+async function respondLoanTeam(index, accept) {
+  const o = DASH && DASH.offers && DASH.offers[index];
+  if (!o || !CURRENT_USER) return;
+  try {
+    const data = await callGateway('respondLoanTeam', {
       username: CURRENT_USER.username, password: CURRENT_USER.password,
       offerRow: o.row, accept: accept
     });
