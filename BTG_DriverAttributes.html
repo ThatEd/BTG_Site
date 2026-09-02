@@ -653,6 +653,23 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     </div>
 
     <div class="tool-card">
+      <h3>Set driver number</h3>
+      <p class="muted" style="margin-bottom:12px;">Set a driver's race number. Works for drivers in any series.</p>
+      <div class="field-row">
+        <div class="field">
+          <label for="num-driver-select">Driver</label>
+          <select id="num-driver-select"><option value="">— choose a driver —</option></select>
+        </div>
+        <div class="field" style="max-width:120px;">
+          <label for="num-input">Number</label>
+          <input type="number" id="num-input" min="1" max="999" placeholder="e.g. 42">
+        </div>
+        <button class="action action-compact" id="num-driver-btn"><span>Set Number</span></button>
+      </div>
+      <div class="result-line" id="num-driver-result"></div>
+    </div>
+
+    <div class="tool-card">
       <h3>Loan driver</h3>
       <p class="muted" style="margin-bottom:12px;">Loan a driver to another team in a driving seat while they stay contracted to their parent team.</p>
       <div class="field-row">
@@ -2897,6 +2914,7 @@ function populateAdminDropdowns() {
   populateTpTeamPicker();
   populateLoanPicker();
   populateTeamLogoTool();
+  populateNumberTool();
   populateMoveDriverTool();
 }
 
@@ -3070,6 +3088,47 @@ function populateMoveDriverTool() {
         DRIVERS.forEach(function (x) { if (x.driver === driver) x.team = data.team; });
         populateMoveDriverTool();
         showResult(resEl, true, '✓ ' + driver + ' → ' + data.team + ' seat ' + data.seat + (data.displaced ? ' (replaced ' + data.displaced + ')' : '') + '.');
+      } else showResult(resEl, false, '✗ ' + data.error);
+    } catch (e) { showResult(resEl, false, '✗ Could not reach the gateway script.'); }
+    finally { btn.disabled = false; }
+  });
+})();
+
+/* ── admin: set a driver's race number (any series) ── */
+function populateNumberTool() {
+  var sel = document.getElementById('num-driver-select');
+  if (!sel) return;
+  var current = sel.value;
+  sel.innerHTML = '<option value="">— choose a driver —</option>' + DRIVERS.map(function (d) {
+    return '<option value="' + BTG.esc(d.driver) + '">' + BTG.esc(d.driver) + (d.team ? ' (' + BTG.esc(d.team) + ')' : '') + (d.number ? ' · #' + BTG.esc(d.number) : '') + '</option>';
+  }).join('');
+  if (current && DRIVERS.some(function (d) { return d.driver === current; })) sel.value = current;
+}
+(function () {
+  var btn = document.getElementById('num-driver-btn');
+  if (!btn) return;
+  var sel = document.getElementById('num-driver-select');
+  var numInp = document.getElementById('num-input');
+  if (sel) sel.addEventListener('change', function () {
+    var d = DRIVERS.find(function (x) { return x.driver === sel.value; });
+    numInp.value = (d && d.number) ? d.number : '';
+  });
+  btn.addEventListener('click', async function () {
+    var resEl = document.getElementById('num-driver-result');
+    resEl.style.display = 'none';
+    var driver = sel ? sel.value : '';
+    var number = numInp ? numInp.value.trim() : '';
+    if (!driver || number === '') { showResult(resEl, false, 'Choose a driver and enter a number.'); return; }
+    btn.disabled = true;
+    try {
+      var data = await callGateway('adminSetDriverNumber', {
+        username: CURRENT_USER.username, password: CURRENT_USER.password,
+        driver: driver, number: number
+      });
+      if (data.ok) {
+        DRIVERS.forEach(function (x) { if (x.driver === driver) x.number = String(data.number); });
+        populateNumberTool();
+        showResult(resEl, true, '✓ ' + driver + ' set to #' + data.number + '.');
       } else showResult(resEl, false, '✗ ' + data.error);
     } catch (e) { showResult(resEl, false, '✗ Could not reach the gateway script.'); }
     finally { btn.disabled = false; }

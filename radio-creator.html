@@ -802,9 +802,14 @@ function driverSeries(d) {
   return '';
 }
 
+function dbSeriesFor(teamRow) {
+  const s = String(teamRow && teamRow.series ? teamRow.series : '');
+  return s === 'XGT' ? 'GT1' : s;
+}
+
 function discoverSeries() {
   const seen = new Set();
-  (BTG.Roster.drivers || []).forEach(d => { const s = driverSeries(d); if (s) seen.add(s); });
+  (ALL_DB_DRIVERS || []).forEach(d => { if (d.series) seen.add(d.series); });
   (BTG.Roster.teams || []).forEach(t => { if (t.series) seen.add(String(t.series)); });
   const known = { 'F1': 1, 'F2': 2 };
   SERIES_LIST = Array.from(seen).sort((a, b) => (known[a] || 99) - (known[b] || 99) || a.localeCompare(b)).map(id => ({ id, name: seriesDisplayName(id) }));
@@ -832,17 +837,51 @@ function loadTeamsFromRoster() {
   });
 }
 
+function normNameKey(name) {
+  const parts = String(name || '').toLowerCase().split(/\s+/).filter(Boolean);
+  return parts.length <= 2 ? parts.join(' ') : parts[0] + ' ' + parts[parts.length - 1];
+}
+
 function loadDriversFromRoster() {
   const norm = d => ({ id: d.id || d.name, name: d.name, number: d.number || '', teamKey: d.team, series: driverSeries(d) });
-  ALL_DB_DRIVERS = (BTG.Roster.drivers || []).map(norm);
+  const list = (BTG.Roster.drivers || []).map(norm);
+  const byKey = {};
+  list.forEach(d => { if (d.name) byKey[normNameKey(d.name)] = true; });
+
+  // Add DB-cache drivers missing from the roster (e.g. admin-created/moved XGT
+  // second seats are never written back to the roster CSV).
+  if (window.BTG && BTG.DBCache && BTG.DBCache.isReady()) {
+    const data = BTG.DBCache.data();
+    const teams = data.teams || [];
+    const teamById = {};
+    teams.forEach(t => { teamById[String(t.team_id)] = t; });
+    (data.drivers || []).forEach(dd => {
+      const name = String(dd.full_name || dd.driver_name || dd.name || '').trim();
+      if (!name || byKey[normNameKey(name)]) return;
+      const t = teamById[String(dd.team_id)];
+      const teamKey = t ? String(t.team_key || t.team_name || '') : '';
+      if (!teamKey) return;
+      list.push({
+        id: dd.driver_id != null ? dd.driver_id : name.toLowerCase().replace(/\s+/g, '-'),
+        name: name,
+        number: dd.driver_number != null ? String(dd.driver_number) : '',
+        teamKey: teamKey,
+        series: dbSeriesFor(t)
+      });
+      byKey[normNameKey(name)] = true;
+    });
+  }
+  ALL_DB_DRIVERS = list;
+}
+
+function groupDriversBySeries() {
   DRIVERS_BY_SERIES = {};
   SERIES_LIST.forEach(s => {
     const order = teamOrderFor(s.id);
     const orderIdx = {};
     order.forEach((k, i) => orderIdx[k] = i);
-    DRIVERS_BY_SERIES[s.id] = (BTG.Roster.drivers || [])
-      .filter(d => driverSeries(d) === s.id)
-      .map(norm)
+    DRIVERS_BY_SERIES[s.id] = ALL_DB_DRIVERS
+      .filter(d => d.series === s.id)
       .sort((a, b) => {
         const ia = orderIdx[a.teamKey] != null ? orderIdx[a.teamKey] : 99;
         const ib = orderIdx[b.teamKey] != null ? orderIdx[b.teamKey] : 99;
@@ -1054,8 +1093,9 @@ async function initRadioTool() {
     if (!window.BTG || !BTG.Roster) throw new Error('roster missing');
     await BTG.Roster.load();
     if (window.BTG && BTG.DBCache) { try { await BTG.DBCache.init(); } catch (_) {} }
-    discoverSeries();
     loadDriversFromRoster();
+    discoverSeries();
+    groupDriversBySeries();
     loadTeamsFromRoster();
     preloadTeamLogos();
     buildDriverOverrideSelect();
