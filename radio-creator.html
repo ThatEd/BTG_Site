@@ -581,7 +581,6 @@ function drawCardToCanvas(ctx, card) {
   // files carry huge transparent padding are cropped and enlarged to fill the
   // space, so they don't look smaller than the rest.
   const logoBottom = Math.round(H * DIVIDER_Y_RATIO) - Math.round(6 * sc);
-  const logoMaxH = Math.round(104 * sc);
   const logoMaxW = Math.round(W * 0.5);
 
   // Logo first — the header text is drawn over it, so it stays readable even
@@ -590,46 +589,32 @@ function drawCardToCanvas(ctx, card) {
     const iw = card.logoImage.naturalWidth || card.logoImage.width;
     const ih = card.logoImage.naturalHeight || card.logoImage.height;
     if (iw > 0 && ih > 0) {
-      const ratio = iw / ih;
-      let dh = logoMaxH, dw = Math.round(dh * ratio);
-      if (dw > logoMaxW) { dw = logoMaxW; dh = Math.round(dw / ratio); }
-      const x = W - Math.round(22 * sc) - dw;
-      const scale = dh / ih;
       const art = logoArtBounds(card.logoImage);
-      const artW = art.right - art.left + 1;
-      const artH = Math.round((art.bottom - art.top + 1) * scale);
-      const centeredTop = (logoBottom - dh) + Math.round(art.top * scale);
-      // Bottom of the RADIO label (name sits above it), so the art clears the
-      // header text even at its largest name size.
+      const srcW = art.right - art.left + 1;
+      const srcH = art.bottom - art.top + 1;
+      // Bottom of the RADIO label (name sits above it) — the logo must sit
+      // BELOW this line so no series logo ever overlaps the header text.
       const radioBottom = nameY + nameSz * 1.05 + Math.round(4 * sc) + Math.round(26 * sc);
       const minTop = radioBottom + Math.round(2 * sc);
-      // Space available for the art between the header text and the separator.
-      const maxRadioBottom = nameY + Math.round(25 * sc * 1.05) + Math.round(4 * sc) + Math.round(26 * sc);
-      // Moderate target size for tiny banner logos (Red Bull, Aston Martin) —
-      // clearly bigger than the cramped original but not filling the header.
-      const growH = Math.round(44 * sc);
-      const growW = Math.round(120 * sc);
-      if (artH < Math.round(growH * 0.8)) {
-        const srcW = artW, srcH = art.bottom - art.top + 1;
-        let eH = growH, eW = Math.round(eH * (srcW / srcH));
-        if (eW > growW) { eW = growW; eH = Math.round(eW * (srcH / srcW)); }
-        const artRightX = (W - Math.round(22 * sc) - dw) + Math.round((art.right + 1) * scale);
-        const ex = artRightX - eW;
-        // Sit it lower than a bare centering but not on the separator line.
-        const spaceTop = maxRadioBottom + Math.round(2 * sc);
-        const ey = spaceTop + Math.round((logoBottom - spaceTop - eH) / 2);
-        ctx.drawImage(card.logoImage, art.left, art.top, srcW, srcH, ex, ey, eW, eH);
+      const availH = Math.max(1, logoBottom - minTop);
+      const ar = srcW / srcH;
+      // Wide banner logos get the compact "banner" box; tall/square logos fit
+      // the space between the header text and the divider.
+      const bannerW = Math.round(120 * sc);
+      const bannerH = Math.round(44 * sc);
+      let dispW, dispH;
+      if (ar > 1.5) {
+        dispW = bannerW;
+        dispH = Math.round(dispW / ar);
+        if (dispH > bannerH) { dispH = bannerH; dispW = Math.round(dispH * ar); }
       } else {
-        // Crop the draw to the visible art so full-size logos (with large
-        // transparent padding) size/position like the tightly-cropped mini
-        // logos used for F1/F2. The art bottom never crosses the separator.
-        const srcW = artW, srcH = art.bottom - art.top + 1;
-        const artTop = Math.min(Math.max(centeredTop, minTop), logoBottom - artH);
-        const dispW = Math.max(1, Math.round(srcW * scale));
-        const dispH = Math.max(1, artH);
-        const dx = W - Math.round(22 * sc) - dispW;
-        ctx.drawImage(card.logoImage, art.left, art.top, srcW, srcH, dx, artTop, dispW, dispH);
+        dispW = logoMaxW;
+        dispH = Math.round(dispW / ar);
+        if (dispH > availH) { dispH = availH; dispW = Math.round(dispH * ar); }
       }
+      const dx = W - Math.round(22 * sc) - dispW;
+      const dy = minTop + Math.round((availH - Math.min(dispH, availH)) / 2);
+      ctx.drawImage(card.logoImage, art.left, art.top, srcW, srcH, dx, dy, dispW, dispH);
     }
   } else {
     ctx.fillStyle = card.nameC; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
