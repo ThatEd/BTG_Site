@@ -616,6 +616,10 @@
               pos: num(r.finish_position), grid: r.grid_position != null ? num(r.grid_position) : null,
               pts: num(r.points), dnf: num(r.dnf), laps: num(r.laps),
               fastest: r.fastest_lap_seconds != null ? num(r.fastest_lap_seconds) : null,
+              overtakes: num(r.successful_overtakes),
+              failedOvertakes: num(r.failed_overtakes),
+              defends: num(r.successful_defends),
+              failedDefends: num(r.failed_defends),
               status: str(r.status)
             };
           })

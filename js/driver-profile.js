@@ -37,8 +37,45 @@
     var c = String(g || '').charAt(0).toUpperCase();
     return { 'S': '#f59e0b', 'A': '#34d399', 'B': '#a1a1aa', 'C': '#71717a', 'D': '#ef4444', 'E': '#dc2626', 'F': '#991b1b' }[c] || '#71717a';
   }
-  function gbar(label, val, color) {
-    var g = gradeOf(val);
+  function numOr(v) { return (v == null || v === '' || isNaN(Number(v))) ? 0 : Number(v); }
+  // 0–20 letter bands (Save Viewer distribution): an average (50) driver ≈ B.
+  function ratingGrade(score) {
+    var g = ['F-', 'F', 'F+', 'E-', 'E', 'E+', 'D-', 'D', 'D+', 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+', 'S-', 'S', 'S+'];
+    var idx = Math.max(0, Math.min(g.length - 1, Math.round(score == null ? 0 : score)));
+    return g[idx];
+  }
+  function bandScore(v, kind) {
+    v = numOr(v);
+    // kind: 0 = vs Teammate (compressed), 2 = qualifying, 4 = reliability;
+    // 1 (pace) / 3 (racecraft) share the wide performance band.
+    if (kind === 0) {
+      if (v >= 95) return 14; if (v >= 88) return 13; if (v >= 80) return 12;
+      if (v >= 72) return 11; if (v >= 65) return 10; if (v >= 58) return 9;
+      if (v >= 50) return 8; if (v >= 42) return 7; if (v >= 35) return 6;
+      if (v >= 25) return 5; if (v >= 15) return 4; return 3;
+    }
+    if (kind === 2) {
+      if (v >= 95) return 20; if (v >= 90) return 19; if (v >= 82) return 18;
+      if (v >= 75) return 17; if (v >= 68) return 16; if (v >= 62) return 15;
+      if (v >= 55) return 14; if (v >= 48) return 13; if (v >= 40) return 12;
+      if (v >= 32) return 11; if (v >= 25) return 9; if (v >= 15) return 7;
+      if (v >= 8) return 4; return 3;
+    }
+    if (kind === 4) {
+      if (v >= 98) return 20; if (v >= 95) return 19; if (v >= 90) return 18;
+      if (v >= 85) return 17; if (v >= 78) return 16; if (v >= 70) return 15;
+      if (v >= 62) return 14; if (v >= 55) return 13; if (v >= 48) return 12;
+      if (v >= 40) return 11; if (v >= 32) return 9; if (v >= 25) return 8;
+      if (v >= 15) return 6; if (v >= 8) return 4; return 3;
+    }
+    if (v >= 95) return 20; if (v >= 88) return 19; if (v >= 80) return 18;
+    if (v >= 72) return 17; if (v >= 65) return 16; if (v >= 58) return 15;
+    if (v >= 50) return 14; if (v >= 42) return 13; if (v >= 35) return 12;
+    if (v >= 28) return 11; if (v >= 20) return 9; if (v >= 12) return 7;
+    if (v >= 5) return 4; return 2;
+  }
+  function gbar(label, val, color, grade) {
+    var g = grade || gradeOf(val);
     return '<div class="dp-grade__row"><span class="dp-grade__label">' + label + '</span>'
       + '<div class="dp-grade__bar"><div class="dp-grade__fill" style="width:' + Math.max(0, Math.min(100, val)) + '%;background:' + color + '"></div></div>'
       + '<span class="dp-grade__val ' + gradeCls(g) + '" style="color:' + gradeColor(g) + '">' + g + '</span></div>';
@@ -156,58 +193,98 @@
       return clamp100(50 + (carMs - myMs) / carMs * 150);
     }
 
-    // Pace: quali lap 30% + average lap 70%.
-    var qualiLap = paceScoreFromRatio(carM.qualiMs, ss.qualiMedianMs);
-    var avgLap = paceScoreFromRatio(carM.lapMs, ss.paceMedianMs);
-    if (qualiLap == null) qualiLap = posToScore(ss.avgGrid);
-    if (avgLap == null) avgLap = posToScore(ss.avgGrid);
-    if (qualiLap == null) qualiLap = 50;
-    if (avgLap == null) avgLap = 50;
-    var pace = clamp100(qualiLap * 0.3 + avgLap * 0.7);
-
-    // Qualifying: grid vs car's expected grid (±1.5 leniency, top-3 bonus).
-    var qualifying = 50;
-    if (carM.expGrid != null) {
-      results.forEach(function (r) {
-        var g = r.grid != null ? Number(r.grid) : 0;
-        if (g <= 0) return;
-        if (g < carM.expGrid - 1.5) qualifying += 5;
-        else if (g > carM.expGrid + 1.5) qualifying -= 5;
-        else qualifying += 2;
-        if (g <= 3) qualifying += (g === 1 ? 5 : g === 2 ? 3 : 1);
-      });
-      qualifying = clamp100(qualifying);
-    } else {
-      var gs = posToScore(ss.avgGrid);
-      qualifying = gs != null ? clamp100(gs + (ss.poles || 0) * 4) : 50;
+    // ── Whole-grid reference: every component is relative to the whole grid
+    // of the driver's series (the per-team car placement above only states
+    // where the car itself ranks among that grid). ──
+    var gridVals = { pace: [], quali: [], grid: [], finish: [], rate: [] };
+    list.forEach(function (gx) {
+      var gs2 = gx.seasonStats || {};
+      var gLap = Number(gs2.paceMedianMs) || null;
+      var gQu = Number(gs2.qualiMedianMs) || null;
+      var gAf = parseFloat(gs2.avgFinish), gAg = parseFloat(gs2.avgGrid);
+      var gRaces = Number(gs2.races) || 0, gDnfs = Number(gs2.dnfs) || 0;
+      if (gLap > 0) gridVals.pace.push(gLap);
+      if (gQu > 0) gridVals.quali.push(gQu);
+      if (!isNaN(gAf) && gAf > 0) gridVals.finish.push(gAf);
+      if (!isNaN(gAg) && gAg > 0) gridVals.grid.push(gAg);
+      if (gRaces > 0) gridVals.rate.push((gRaces - gDnfs) / gRaces);
+    });
+    function fieldPct(val, arr, lowerIsBetter) {
+      // Percentile of the field: 100 = best in the series grid.
+      if (val == null || isNaN(val)) return 50;
+      var beat = 0, tie = 0, total = 0;
+      for (var vi = 0; vi < arr.length; vi++) {
+        var x = arr[vi];
+        if (x == null || isNaN(x)) continue;
+        total++;
+        if (x === val) tie++;
+        else if (lowerIsBetter ? x > val : x < val) beat++;
+      }
+      return total ? clamp100(((beat + tie * 0.5) / total) * 100) : 50;
     }
 
-    // Racecraft: positions gained (overtaking proxy) + finish quality.
-    var racecraft = 50;
-    results.forEach(function (r) {
-      var g = r.grid != null ? Number(r.grid) : 0;
-      var p = Number(r.pos) || 20;
-      if (g > 0) racecraft += (g - p) * 3;
-      if (p <= 3) racecraft += (p === 1 ? 5 : p === 2 ? 3 : 1);
-      if (r.dnf) racecraft -= 5;
+    // Pace: 30% quali lap + 70% average lap — lap pace percentile of the grid.
+    var qPct = fieldPct(ss.qualiMedianMs != null ? Number(ss.qualiMedianMs) : null, gridVals.quali, true);
+    var lPct = fieldPct(ss.paceMedianMs != null ? Number(ss.paceMedianMs) : null, gridVals.pace, true);
+    var gPct = fieldPct(parseFloat(ss.avgGrid), gridVals.grid, true);
+    if (!gridVals.quali.length) qPct = gPct;
+    if (!gridVals.pace.length) lPct = gPct;
+    var pace = clamp100(qPct * 0.3 + lPct * 0.7);
+
+    // Qualifying: where the driver starts vs the whole grid.
+    var qualifying = gPct;
+
+    // Racecraft: overtake & defend success + volume + finish quality, each
+    // relative to the series league average (real overtake data).
+    var la = { ovtPct: 0.01, defPct: 0.5, ovtPerR: 0.05, defPerR: 1, fqPerR: 8 };
+    var laO = 0, laFO = 0, laD = 0, laFD = 0, laFQ = 0, laCnt = 0;
+    list.forEach(function (x) {
+      ((x.seasonStats && x.seasonStats.results) || []).forEach(function (xr) {
+        laO += numOr(xr.overtakes) + numOr(xr.successful_overtakes);
+        laFO += numOr(xr.failedOvertakes) + numOr(xr.failed_overtakes);
+        laD += numOr(xr.defends) + numOr(xr.successful_defends);
+        laFD += numOr(xr.failedDefends) + numOr(xr.failed_defends);
+        var pp = Number(xr.pos) || 0;
+        if (pp > 0) laFQ += Math.max(0, 21 - pp);
+        laCnt++;
+      });
     });
-    racecraft = clamp100(racecraft);
+    if (laCnt > 0) {
+      la.ovtPct = (laO + laFO) > 0 ? laO / (laO + laFO) : 0.01;
+      la.defPct = (laD + laFD) > 0 ? laD / (laD + laFD) : 0.5;
+      la.ovtPerR = laO / laCnt;
+      la.defPerR = laD / laCnt;
+      la.fqPerR = laFQ / laCnt;
+    }
+    var succO = 0, failO = 0, succD = 0, failD = 0, finishQ = 0, raceCnt = results.length || 1;
+    results.forEach(function (r) {
+      succO += numOr(r.overtakes) + numOr(r.successful_overtakes);
+      failO += numOr(r.failedOvertakes) + numOr(r.failed_overtakes);
+      succD += numOr(r.defends) + numOr(r.successful_defends);
+      failD += numOr(r.failedDefends) + numOr(r.failed_defends);
+      var pp = Number(r.pos) || 20;
+      finishQ += Math.max(0, 21 - pp);
+    });
+    var ovtRate = (succO + failO) > 0 ? succO / (succO + failO) : 0;
+    var defRate = (succD + failD) > 0 ? succD / (succD + failD) : 0.5;
+    var ovtScore = la.ovtPct > 0 ? Math.min(25, (ovtRate / la.ovtPct) * 12.5) : 12.5;
+    var defScore = la.defPct > 0 ? Math.min(25, (defRate / la.defPct) * 12.5) : 12.5;
+    var ovtVolScore = la.ovtPerR > 0 ? Math.min(15, ((succO / raceCnt) / la.ovtPerR) * 7.5) : 7.5;
+    var defVolScore = la.defPerR > 0 ? Math.min(10, ((succD / raceCnt) / la.defPerR) * 5) : 5;
+    var fqScore = la.fqPerR > 0 ? Math.min(40, ((finishQ / raceCnt) / la.fqPerR) * 20) : 20;
+    var racecraft = clamp100(ovtScore + defScore + ovtVolScore + defVolScore + fqScore);
 
     // Reliability: finish vs car's expected finish + podium bonus.
+    // Reliability: whole-grid relative — finish rate (no DNF) blended with
+    // where the driver finishes vs the whole grid.
     var reliability = (ss.smReliability != null) ? clamp100(Number(ss.smReliability)) : null;
     if (reliability == null) {
-      if (carM.expFinish != null) {
-        reliability = 50;
-        results.forEach(function (r) {
-          var p = Number(r.pos) || 20;
-          if (p < carM.expFinish - 1.5) reliability += 5;
-          else if (p > carM.expFinish + 1.5) reliability -= 5;
-          else reliability += 2;
-          if (p <= 3) reliability += 3;
-        });
-        reliability = clamp100(reliability);
+      var racesN = Number(ss.races) || 0;
+      if (racesN > 0) {
+        var myRate = (racesN - (Number(ss.dnfs) || 0)) / racesN;
+        reliability = clamp100(fieldPct(myRate, gridVals.rate, false) * 0.6 + fieldPct(parseFloat(ss.avgFinish), gridVals.finish, true) * 0.4);
       } else {
-        reliability = clamp100(100 - (ss.dnfs || 0) * 15);
+        reliability = 50;
       }
     }
 
@@ -250,11 +327,16 @@
       teammate = clamp100(vsum / wsum);
     }
 
-    var overall = clamp100((pace + qualifying + racecraft + teammate + reliability) / 5);
+    var paceScore = bandScore(pace, 1), qualiScore = bandScore(qualifying, 2);
+    var raceScore = bandScore(racecraft, 3), teamScore = bandScore(teammate, 0);
+    var reliScore = bandScore(reliability, 4);
+    var overallScore = Math.round((paceScore + qualiScore + raceScore + teamScore + reliScore) / 5);
     return {
       label: isSameCar ? 'vs Same Car' : 'vs Teammate',
       pace: pace, qualifying: qualifying, racecraft: racecraft,
-      teammate: teammate, reliability: reliability, overall: overall
+      teammate: teammate, reliability: reliability,
+      paceScore: paceScore, qualiScore: qualiScore, raceScore: raceScore,
+      teamScore: teamScore, reliScore: reliScore, overallScore: overallScore
     };
   }
 
@@ -352,7 +434,7 @@
 
       var ss = d.seasonStats || {};
       var perf = computeSeasonPerformance(d, ss, allDrivers);
-      var overallGrade = gradeOf(perf.overall);
+      var overallGrade = ratingGrade(perf.overallScore);
       var nameParts = (d.fullName || d.name).split(' ');
       var rating = opts.showRating !== false ? careerRating(d) : null;
 
@@ -422,16 +504,16 @@
 
       html += '<div class="dp-center">';
       var perfBars = [
-        { label: 'Pace', val: perf.pace, color: '#f87171' },
-        { label: 'Qualifying', val: perf.qualifying, color: '#a78bfa' },
-        { label: 'Racecraft', val: perf.racecraft, color: '#34d399' },
-        { label: perf.label, val: perf.teammate, color: '#f59e0b' },
-        { label: 'Reliability', val: perf.reliability, color: '#ef4444' }
+        { label: 'Pace', val: perf.pace, color: '#f87171', score: perf.paceScore },
+        { label: 'Qualifying', val: perf.qualifying, color: '#a78bfa', score: perf.qualiScore },
+        { label: 'Racecraft', val: perf.racecraft, color: '#34d399', score: perf.raceScore },
+        { label: perf.label, val: perf.teammate, color: '#f59e0b', score: perf.teamScore },
+        { label: 'Reliability', val: perf.reliability, color: '#ef4444', score: perf.reliScore }
       ];
       html += '<div class="dp-card"><div class="dp-card__title">Season Performance</div>'
-        + '<div class="dp-grade__overall ' + gradeCls(gradeOf(overallGrade)) + '" style="color:' + gradeColor(overallGrade) + '">' + overallGrade + '</div>'
+        + '<div class="dp-grade__overall ' + gradeCls(overallGrade) + '" style="color:' + gradeColor(overallGrade) + '">' + overallGrade + '</div>'
         + '<div class="dp-grade__bars">'
-        + perfBars.map(function (p) { return gbar(p.label, p.val, p.color); }).join('')
+        + perfBars.map(function (p) { return gbar(p.label, p.val, p.color, ratingGrade(p.score)); }).join('')
         + '</div></div>';
 
       html += '<div class="dp-card"><div class="dp-card__title">Season Race Positions</div>'
