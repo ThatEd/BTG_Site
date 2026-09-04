@@ -4057,6 +4057,7 @@ async function ppSubmit(apply) {
   var payload = {
     username: CURRENT_USER.username, password: CURRENT_USER.password,
     race_id: PP.raceId, driver_name: driver, type: type, apply: apply,
+    mode: 'add',
     reason: document.getElementById('pp-reason').value.trim()
   };
   if (type === 'time') payload.seconds = Number(document.getElementById('pp-val').value) || 0;
