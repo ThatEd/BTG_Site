@@ -115,11 +115,7 @@
     return Math.round((Date.UTC(pb[0], pb[1] - 1, pb[2]) - Date.UTC(pa[0], pa[1] - 1, pa[2])) / 86400000);
   }
   function reachableRaces(part) {
-    var now = todayStr();
-    var mfg = manufacturingDays(part);
-    return (S.calendar || []).filter(function (c) {
-      return daysBetween(now, c.race_date) - mfg >= MIN_DESIGN_DAYS;
-    });
+    return (S.calendar || []).filter(function (c) { return designFits(part, c); });
   }
   function defaultSetup(id) {
     var part = partById(id);
@@ -243,11 +239,17 @@
     return Math.max(MIN_DESIGN_DAYS, total - manufacturingDays(part));
   }
   function designWeeksFor(part, race) {
-    // Whole weeks of design that still leave the manufacturing time before the
-    // target race. Rounded DOWN so the programme always finishes by its target:
-    // rounding up (Math.round) could push design + manufacture past the race,
-    // leaving a part "designed for X" that isn't ready for X.
-    return Math.max(MIN_DESIGN_DAYS / 7, Math.floor(designDaysFor(part, race) / 7));
+    // Design length in whole weeks for the time the target race leaves after
+    // manufacturing (min 3 weeks). A race is only offered as a target when this
+    // design PLUS manufacturing genuinely fits before it (designFits).
+    return Math.max(MIN_DESIGN_DAYS / 7, Math.round(designDaysFor(part, race) / 7));
+  }
+  /** Can this part be designed (whole weeks) AND manufactured before the race? */
+  function designFits(part, race) {
+    if (!part || !race || !todayStr()) return false;
+    var days = daysBetween(todayStr(), race.race_date);
+    if (days <= 0) return false;
+    return designWeeksFor(part, race) * 7 + manufacturingDays(part) <= days;
   }
   function computeTargetWeeks(part) {
     var prog = progFor(part.part_id);
@@ -1135,14 +1137,14 @@
 
     if (prog.status === 'developing') {
       var curRace = null; (S.calendar || []).forEach(function (c) { if (num(c.round) === num(prog.target_race)) curRace = c; });
-      // Only later races that still add real design time (whole weeks). A race
-      // that's too soon to reach from today — no more time to make the part —
-      // is not a valid target, so it's not offered.
+      // Only later races that still add real design time (whole weeks) AND can
+      // actually be made in time from today — a race you can no longer make a
+      // part for is never offered as a target.
       var partProg = partById(partId);
       var laterRaces = (S.calendar || []).filter(function (c) {
         var afterCur = curRace ? String(c.race_date) > String(curRace.race_date) : num(c.round) > num(prog.target_race);
-        if (!afterCur) return false;
-        return partProg ? designWeeksFor(partProg, c) > num(prog.target_weeks) : true;
+        if (!afterCur || !partProg) return false;
+        return designFits(partProg, c) && designWeeksFor(partProg, c) > num(prog.target_weeks);
       });
       html += '<div class="pdp-row"><div class="pdp-row-label">Target race</div><select id="dev-race-' + programId + '">'
         + '<option value="">' + (curRace ? str(curRace.name) + ' (' + String(curRace.race_date).slice(0, 10).slice(5) + ')' : '—') + '</option>';
