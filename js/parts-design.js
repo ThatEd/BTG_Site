@@ -243,7 +243,11 @@
     return Math.max(MIN_DESIGN_DAYS, total - manufacturingDays(part));
   }
   function designWeeksFor(part, race) {
-    return Math.round(designDaysFor(part, race) / 7);
+    // Whole weeks of design that still leave the manufacturing time before the
+    // target race. Rounded DOWN so the programme always finishes by its target:
+    // rounding up (Math.round) could push design + manufacture past the race,
+    // leaving a part "designed for X" that isn't ready for X.
+    return Math.max(MIN_DESIGN_DAYS / 7, Math.floor(designDaysFor(part, race) / 7));
   }
   function computeTargetWeeks(part) {
     var prog = progFor(part.part_id);
@@ -1131,8 +1135,14 @@
 
     if (prog.status === 'developing') {
       var curRace = null; (S.calendar || []).forEach(function (c) { if (num(c.round) === num(prog.target_race)) curRace = c; });
+      // Only later races that still add real design time (whole weeks). A race
+      // that's too soon to reach from today — no more time to make the part —
+      // is not a valid target, so it's not offered.
+      var partProg = partById(partId);
       var laterRaces = (S.calendar || []).filter(function (c) {
-        return curRace ? String(c.race_date) > String(curRace.race_date) : num(c.round) > num(prog.target_race);
+        var afterCur = curRace ? String(c.race_date) > String(curRace.race_date) : num(c.round) > num(prog.target_race);
+        if (!afterCur) return false;
+        return partProg ? designWeeksFor(partProg, c) > num(prog.target_weeks) : true;
       });
       html += '<div class="pdp-row"><div class="pdp-row-label">Target race</div><select id="dev-race-' + programId + '">'
         + '<option value="">' + (curRace ? str(curRace.name) + ' (' + String(curRace.race_date).slice(0, 10).slice(5) + ')' : '—') + '</option>';
