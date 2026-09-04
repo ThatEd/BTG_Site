@@ -871,13 +871,15 @@ function racePts(pos) { var p=[25,18,15,12,10,8,6,4,2,1]; return p[pos-1]||0; }
 function sprintPts(pos) { var p=[8,7,6,5,4,3,2,1]; return p[pos-1]||0; }
 
 function calcGrade(h) {
-  if (h.standingPos && h.standingPos <= 1) return 'A';
-  if (h.standingPos && h.standingPos <= 3) return 'A−';
-  if (h.standingPos && h.standingPos <= 6) return 'B+';
-  if (h.standingPos && h.standingPos <= 10) return 'B';
-  if (h.standingPos && h.standingPos <= 15) return 'C+';
-  if (h.standingPos && h.standingPos <= 20) return 'C';
-  return 'D';
+  var p = h.standingPos;
+  if (!p || p === '—') return '—';
+  if (p <= 1) return 'S+';
+  if (p <= 3) return 'A';
+  if (p <= 6) return 'B';
+  if (p <= 10) return 'C';
+  if (p <= 15) return 'D';
+  if (p <= 20) return 'E';
+  return 'F';
 }
 
 function guessNation(name) {

@@ -12,13 +12,36 @@
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
   function str(v) { return v == null ? '' : String(v); }
 
-  function gradeOf(v) { if (v >= 90) return 'A'; if (v >= 80) return 'B+'; if (v >= 70) return 'B'; if (v >= 60) return 'C+'; if (v >= 50) return 'C'; if (v >= 40) return 'D+'; if (v >= 30) return 'D'; return 'F'; }
+  function gradeOf(v) {
+    if (v >= 98) return 'S+';
+    if (v >= 95) return 'S';
+    if (v >= 92) return 'S-';
+    if (v >= 88) return 'A+';
+    if (v >= 85) return 'A';
+    if (v >= 82) return 'A-';
+    if (v >= 78) return 'B+';
+    if (v >= 75) return 'B';
+    if (v >= 72) return 'B-';
+    if (v >= 68) return 'C+';
+    if (v >= 65) return 'C';
+    if (v >= 62) return 'C-';
+    if (v >= 58) return 'D+';
+    if (v >= 55) return 'D';
+    if (v >= 52) return 'D-';
+    if (v >= 45) return 'E+';
+    if (v >= 40) return 'E';
+    return 'F';
+  }
   function gradeCls(g) { return 'gr gr-' + g[0].toLowerCase(); }
+  function gradeColor(g) {
+    var c = String(g || '').charAt(0).toUpperCase();
+    return { 'S': '#f59e0b', 'A': '#34d399', 'B': '#a1a1aa', 'C': '#71717a', 'D': '#ef4444', 'E': '#dc2626', 'F': '#991b1b' }[c] || '#71717a';
+  }
   function gbar(label, val, color) {
     var g = gradeOf(val);
     return '<div class="dp-grade__row"><span class="dp-grade__label">' + label + '</span>'
       + '<div class="dp-grade__bar"><div class="dp-grade__fill" style="width:' + Math.max(0, Math.min(100, val)) + '%;background:' + color + '"></div></div>'
-      + '<span class="dp-grade__val ' + gradeCls(g) + '">' + g + '</span></div>';
+      + '<span class="dp-grade__val ' + gradeCls(g) + '" style="color:' + gradeColor(g) + '">' + g + '</span></div>';
   }
   function statCell(v, l) { return '<div class="dp-stat"><div class="dp-stat__val">' + v + '</div><div class="dp-stat__lbl">' + l + '</div></div>'; }
 
@@ -95,67 +118,144 @@
     return Math.max(0, Math.min(100, Math.round(raw)));
   }
 
-  function computeH2H(d, ss, allDrivers) {
+  function computeSeasonPerformance(d, ss, allDrivers) {
+    ss = ss || {};
     var list = allDrivers || [];
-    var car = d.car, team = d.team;
-    var peers;
+    var team = d.team, car = d.car;
+    var peers = [];
     var isSameCar = false;
-    if (team) {
-      peers = list.filter(function (x) { return x.id !== d.id && x.team === team && x.series === d.series; });
-    }
-    if ((!peers || !peers.length) && car) {
+    if (team) peers = list.filter(function (x) { return x.id !== d.id && x.team === team && x.series === d.series; });
+    if (!peers.length && car) {
       peers = list.filter(function (x) { return x.id !== d.id && x.car === car && x.series === d.series; });
       isSameCar = true;
     }
-    var reliability = (ss && ss.smReliability != null)
-      ? ss.smReliability
-      : perfVal(ss, 100 - (ss.dnfs || 0) * 15);
-    var weight = isSameCar ? 2 : 1;
-    var myPace = ss && ss.paceMedianMs;
-    var peerPace = peers.map(function (p) { return p.seasonStats && p.seasonStats.paceMedianMs; }).filter(function (v) { return v != null && v > 0; });
-    var pace, quali;
-    if (myPace > 0 && peerPace.length) {
-      var avgPeerPace = peerPace.reduce(function (a, b) { return a + b; }, 0) / peerPace.length;
-      var paceRatio = myPace / avgPeerPace;
-      pace = perfVal(ss, 50 + (1 - paceRatio) * 50 * weight);
-    } else {
-      pace = perfVal(ss, 100 - ss.avgGrid);
+
+    // The "car" placement — team car performance derived from RACE DATA (no
+    // real car data on this site): median quali lap, median race lap and
+    // average grid/finish across the team's drivers.
+    var teamDrivers = list.filter(function (x) { return x.series === d.series && x.team === d.team; });
+    if (!teamDrivers.length) teamDrivers = [d];
+    var laps = [], qualis = [], finishes = [], grids = [];
+    teamDrivers.forEach(function (t) {
+      var s = t.seasonStats || {};
+      if (s.paceMedianMs > 0) laps.push(Number(s.paceMedianMs));
+      if (s.qualiMedianMs > 0) qualis.push(Number(s.qualiMedianMs));
+      var af = parseFloat(s.avgFinish), ag = parseFloat(s.avgGrid);
+      if (!isNaN(af) && af > 0) finishes.push(af);
+      if (!isNaN(ag) && ag > 0) grids.push(ag);
+    });
+    function med(a) { if (!a.length) return null; var s = a.slice().sort(function (x, y) { return x - y; }); var m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+    function mean(a) { if (!a.length) return null; return a.reduce(function (x, y) { return x + y; }, 0) / a.length; }
+    var carM = { lapMs: med(laps), qualiMs: med(qualis), expFinish: mean(finishes), expGrid: mean(grids) };
+    var results = ss.results || [];
+
+    function clamp100(v) { return Math.max(0, Math.min(100, Math.round(v))); }
+    function posToScore(avgPos) { var p = parseFloat(avgPos); if (isNaN(p)) return null; return clamp100(100 - (p - 1) * (100 / 19)); }
+    function paceScoreFromRatio(carMs, myMs) {
+      if (carMs == null || myMs == null || carMs <= 0 || myMs <= 0) return null;
+      return clamp100(50 + (carMs - myMs) / carMs * 150);
     }
-    var myQuali = ss && ss.qualiMedianMs;
-    var peerQuali = peers.map(function (p) { return p.seasonStats && p.seasonStats.qualiMedianMs; }).filter(function (v) { return v != null && v > 0; });
-    if (myQuali > 0 && peerQuali.length) {
-      var avgPeerQuali = peerQuali.reduce(function (a, b) { return a + b; }, 0) / peerQuali.length;
-      var qualiRatio = myQuali / avgPeerQuali;
-      quali = perfVal(ss, 50 + (1 - qualiRatio) * 50 * weight);
+
+    // Pace: quali lap 30% + average lap 70%.
+    var qualiLap = paceScoreFromRatio(carM.qualiMs, ss.qualiMedianMs);
+    var avgLap = paceScoreFromRatio(carM.lapMs, ss.paceMedianMs);
+    if (qualiLap == null) qualiLap = posToScore(ss.avgGrid);
+    if (avgLap == null) avgLap = posToScore(ss.avgGrid);
+    if (qualiLap == null) qualiLap = 50;
+    if (avgLap == null) avgLap = 50;
+    var pace = clamp100(qualiLap * 0.3 + avgLap * 0.7);
+
+    // Qualifying: grid vs car's expected grid (±1.5 leniency, top-3 bonus).
+    var qualifying = 50;
+    if (carM.expGrid != null) {
+      results.forEach(function (r) {
+        var g = r.grid != null ? Number(r.grid) : 0;
+        if (g <= 0) return;
+        if (g < carM.expGrid - 1.5) qualifying += 5;
+        else if (g > carM.expGrid + 1.5) qualifying -= 5;
+        else qualifying += 2;
+        if (g <= 3) qualifying += (g === 1 ? 5 : g === 2 ? 3 : 1);
+      });
+      qualifying = clamp100(qualifying);
     } else {
-      quali = perfVal(ss, 100 - ss.avgGrid);
+      var gs = posToScore(ss.avgGrid);
+      qualifying = gs != null ? clamp100(gs + (ss.poles || 0) * 4) : 50;
     }
-    // Head-to-head win percentage — compare the driver against each peer
-    // race-by-race (finishing position) and in qualifying (grid position),
-    // matching the Save Viewer driver-profile calculation. A tie = loss.
-    var wins = 0, losses = 0;
+
+    // Racecraft: positions gained (overtaking proxy) + finish quality.
+    var racecraft = 50;
+    results.forEach(function (r) {
+      var g = r.grid != null ? Number(r.grid) : 0;
+      var p = Number(r.pos) || 20;
+      if (g > 0) racecraft += (g - p) * 3;
+      if (p <= 3) racecraft += (p === 1 ? 5 : p === 2 ? 3 : 1);
+      if (r.dnf) racecraft -= 5;
+    });
+    racecraft = clamp100(racecraft);
+
+    // Reliability: finish vs car's expected finish + podium bonus.
+    var reliability = (ss.smReliability != null) ? clamp100(Number(ss.smReliability)) : null;
+    if (reliability == null) {
+      if (carM.expFinish != null) {
+        reliability = 50;
+        results.forEach(function (r) {
+          var p = Number(r.pos) || 20;
+          if (p < carM.expFinish - 1.5) reliability += 5;
+          else if (p > carM.expFinish + 1.5) reliability -= 5;
+          else reliability += 2;
+          if (p <= 3) reliability += 3;
+        });
+        reliability = clamp100(reliability);
+      } else {
+        reliability = clamp100(100 - (ss.dnfs || 0) * 15);
+      }
+    }
+
+    // vs Teammate: quali 20% + average lap 20% + race results 60%.
+    var raceW = 0, raceL = 0, qualiW = 0, qualiL = 0, lapW = 0, lapL = 0;
     var peerByRace = {};
     peers.forEach(function (p) {
       ((p.seasonStats && p.seasonStats.results) || []).forEach(function (r) {
-        if (r.race == null) return;
-        if (!peerByRace[r.race]) peerByRace[r.race] = [];
-        peerByRace[r.race].push(r);
+        var key = r.race != null ? r.race : r.trackId;
+        if (key == null) return;
+        if (!peerByRace[key]) peerByRace[key] = [];
+        peerByRace[key].push(r);
       });
     });
-    ((ss && ss.results) || []).forEach(function (r) {
+    results.forEach(function (r) {
+      var key = r.race != null ? r.race : r.trackId;
       var myPos = Number(r.pos) || 99;
       var myGrid = r.grid != null ? Number(r.grid) : 0;
-      (peerByRace[r.race] || []).forEach(function (pr) {
+      var myLap = r.fastest != null ? Number(r.fastest) : (r.fl != null ? Number(r.fl) : null);
+      (peerByRace[key] || []).forEach(function (pr) {
         var tmPos = Number(pr.pos) || 99;
-        if (myPos < tmPos) wins++; else losses++;
+        if (myPos < tmPos) raceW++; else raceL++;
         var tmGrid = pr.grid != null ? Number(pr.grid) : 0;
-        if (myGrid > 0 && tmGrid > 0) {
-          if (myGrid < tmGrid) wins++; else losses++;
-        }
+        if (myGrid > 0 && tmGrid > 0) { if (myGrid < tmGrid) qualiW++; else qualiL++; }
+        var tmLap = pr.fastest != null ? Number(pr.fastest) : (pr.fl != null ? Number(pr.fl) : null);
+        if (myLap > 0 && tmLap > 0) { if (myLap < tmLap) lapW++; else lapL++; }
       });
     });
-    var val = wins + losses > 0 ? Math.round((wins / (wins + losses)) * 100) : 50;
-    return { label: isSameCar ? 'vs Same Car' : 'vs Teammate', val: val, reliability: reliability, pace: pace, quali: quali };
+    var racePct = raceW + raceL > 0 ? (raceW / (raceW + raceL)) * 100 : null;
+    var qualiPct = qualiW + qualiL > 0 ? (qualiW / (qualiW + qualiL)) * 100 : null;
+    var lapPct = lapW + lapL > 0 ? (lapW / (lapW + lapL)) * 100 : null;
+    var parts = [];
+    if (qualiPct != null) parts.push({ w: 0.2, v: qualiPct });
+    if (lapPct != null) parts.push({ w: 0.2, v: lapPct });
+    if (racePct != null) parts.push({ w: 0.6, v: racePct });
+    var teammate = 50;
+    if (parts.length) {
+      var wsum = 0, vsum = 0;
+      parts.forEach(function (x) { wsum += x.w; vsum += x.w * x.v; });
+      teammate = clamp100(vsum / wsum);
+    }
+
+    var overall = clamp100((pace + qualifying + racecraft + teammate + reliability) / 5);
+    return {
+      label: isSameCar ? 'vs Same Car' : 'vs Teammate',
+      pace: pace, qualifying: qualifying, racecraft: racecraft,
+      teammate: teammate, reliability: reliability, overall: overall
+    };
   }
 
   function seasonVerdict(d, ss) {
@@ -251,7 +351,8 @@
       container.style.setProperty('--team-rgb', rgbSpaced);
 
       var ss = d.seasonStats || {};
-      var overallGrade = gradeOf(computeOverallScore(d, ss));
+      var perf = computeSeasonPerformance(d, ss, allDrivers);
+      var overallGrade = gradeOf(perf.overall);
       var nameParts = (d.fullName || d.name).split(' ');
       var rating = opts.showRating !== false ? careerRating(d) : null;
 
@@ -281,7 +382,7 @@
       if (rating != null) {
         html += '<div class="dp-card"><div class="dp-card__title">Career Rating</div>'
           + '<div class="dp-rating"><div class="dp-rating__num">' + rating + '</div>'
-          + '<div><span class="dp-rating__grade">' + gradeOf(rating) + '</span>'
+          + '<div><span class="dp-rating__grade" style="color:' + gradeColor(gradeOf(rating)) + '">' + gradeOf(rating) + '</span>'
           + '<div class="dp-rating__meta">whole-career · series-weighted</div></div></div></div>';
       }
 
@@ -320,18 +421,17 @@
       html += '</div>'; // left
 
       html += '<div class="dp-center">';
-      var h2h = computeH2H(d, ss, allDrivers);
-      var perf = [
-        { label: 'Pace', val: h2h.pace, color: '#f87171' },
-        { label: 'Qualifying', val: h2h.quali, color: '#a78bfa' },
-        { label: 'Racecraft', val: perfVal(ss, (ss.wins || 0) * 20 + (ss.podiums || 0) * 10 + 40), color: '#34d399' },
-        { label: h2h.label, val: h2h.val, color: '#f59e0b' },
-        { label: 'Reliability', val: h2h.reliability, color: '#ef4444' }
+      var perfBars = [
+        { label: 'Pace', val: perf.pace, color: '#f87171' },
+        { label: 'Qualifying', val: perf.qualifying, color: '#a78bfa' },
+        { label: 'Racecraft', val: perf.racecraft, color: '#34d399' },
+        { label: perf.label, val: perf.teammate, color: '#f59e0b' },
+        { label: 'Reliability', val: perf.reliability, color: '#ef4444' }
       ];
       html += '<div class="dp-card"><div class="dp-card__title">Season Performance</div>'
-        + '<div class="dp-grade__overall ' + gradeCls(gradeOf(overallGrade)) + '">' + overallGrade + '</div>'
+        + '<div class="dp-grade__overall ' + gradeCls(gradeOf(overallGrade)) + '" style="color:' + gradeColor(overallGrade) + '">' + overallGrade + '</div>'
         + '<div class="dp-grade__bars">'
-        + perf.map(function (p) { return gbar(p.label, p.val, p.color); }).join('')
+        + perfBars.map(function (p) { return gbar(p.label, p.val, p.color); }).join('')
         + '</div></div>';
 
       html += '<div class="dp-card"><div class="dp-card__title">Season Race Positions</div>'
@@ -350,7 +450,7 @@
       html += '</div>'; // center
 
       html += '<div class="dp-right">';
-      var h2hScore = (h2h && h2h.val != null) ? Math.round(h2h.val) + '%' : '—';
+      var h2hScore = (perf.teammate != null) ? Math.round(perf.teammate) + '%' : '—';
       var teamPts = 0;
       for (var ti = 0; ti < allDrivers.length; ti++) {
         var td = allDrivers[ti];
@@ -388,7 +488,7 @@
               + '<span class="px">' + (h.wins ? BTG.esc(h.wins) : '—') + '</span>'
               + '<span class="px">' + (h.podiums ? BTG.esc(h.podiums) : '—') + '</span>'
               + '<span class="px">' + (h.points != null ? BTG.esc(h.points) : '—') + '</span>'
-              + '<span class="ps">' + BTG.esc(h.grade || '—') + '</span></div>';
+              + '<span class="ps"' + (h.grade ? ' style="color:' + BTG.esc(gradeColor(h.grade)) + '"' : '') + '>' + BTG.esc(h.grade || '—') + '</span></div>';
           }).join('') + '</div>';
       }
 
