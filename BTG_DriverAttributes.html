@@ -875,6 +875,24 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
       <div class="result-line" id="imp-result"></div>
     </div>
 
+    <div class="tool-card" id="pp-card">
+      <h3>Post-race penalties</h3>
+      <p class="muted" style="margin-bottom:12px;">Apply stewards' decisions after a race. Every entry is recorded into the DB (<code>race_penalties</code>) as a marker; use <b>Apply</b> to also change the stored results. Penalties: <b>+seconds</b> (time added to the driver's total, finishing order re-sorted &amp; renumbered), <b>DSQ</b> (dropped to the back, 0 pts, status DSQ), <b>Grid</b> (marks a grid drop earned at this race in <code>race_grid_penalties</code>).</p>
+      <div class="field-row">
+        <div class="field" style="max-width:180px;">
+          <label for="pp-series">Series</label>
+          <select id="pp-series"><option value="">— choose a series —</option></select>
+        </div>
+        <div class="field" style="flex:1;">
+          <label for="pp-race">Race</label>
+          <select id="pp-race"><option value="">— choose a race —</option></select>
+        </div>
+        <button class="action action-compact" id="pp-load"><span>Load</span></button>
+      </div>
+      <div id="pp-body" style="display:none;margin-top:14px;"></div>
+      <div class="result-line" id="pp-result"></div>
+    </div>
+
     <div class="tool-card" id="pts-schema-card">
       <h3>Points schema</h3>
       <p class="muted" style="margin-bottom:12px;">Edit the points awarded per finish position (1–48) for any series and session type. Saving recalculates every standing from the stored results.</p>
@@ -3903,6 +3921,178 @@ async function ptsbSave() {
     ptsbRender();
   });
   saveBtn.addEventListener('click', ptsbSave);
+})();
+
+/* ── admin: post-race penalties (marker + apply variants) ── */
+var PP = { series: '', races: [], raceId: null, results: [], penalties: [], grids: [] };
+function ppPopulateSeries() {
+  var sel = document.getElementById('pp-series');
+  if (!sel || sel.options.length > 1) return;
+  ['F1', 'F2', 'GT1', 'XGT'].forEach(function (s) {
+    var o = document.createElement('option');
+    o.value = s; o.textContent = s;
+    sel.appendChild(o);
+  });
+}
+async function ppFetchRaces(series) {
+  var data = await callGateway('adminGetRaces', {
+    username: CURRENT_USER.username, password: CURRENT_USER.password, series: series
+  });
+  if (!data.ok) { showResult(document.getElementById('pp-result'), false, '✗ ' + data.error); return []; }
+  return data.races || [];
+}
+function ppPopulateRaces() {
+  var sel = document.getElementById('pp-race');
+  sel.innerHTML = '<option value="">— choose a race —</option>';
+  (PP.races || []).forEach(function (r) {
+    var o = document.createElement('option');
+    o.value = r.race_id;
+    o.textContent = 'R' + (r.round_number != null ? r.round_number : '?') + ' · ' + (r.name || r.circuit || '') + ' · ' + String(r.race_date || '').slice(0, 10);
+    sel.appendChild(o);
+  });
+}
+function ppTypeLabel(t) {
+  if (t === 'time') return 'Time penalty';
+  if (t === 'dsq') return 'DSQ';
+  if (t === 'grid') return 'Grid penalty';
+  return t;
+}
+function ppFmtTime(v) {
+  if (v == null || v === '') return '—';
+  return BTG.esc(String(v));
+}
+function ppRenderControls(container) {
+  var results = PP.results;
+  var driverOpts = results.slice().sort(function (a, b) { return Number(a.finish_position || 99) - Number(b.finish_position || 99); })
+    .map(function (r) {
+      return '<option value="' + BTG.esc(r.driver_name) + '">P' + (r.finish_position != null ? r.finish_position : '—')
+        + ' · ' + BTG.esc(r.driver_name) + (r.status ? ' · ' + BTG.esc(r.status) : '') + '</option>';
+    }).join('');
+  var html = '<div style="border-top:1px solid var(--edge);margin-top:12px;padding-top:12px;">'
+    + '<h4 style="margin:0 0 4px;font-size:13px;">Add penalty</h4>'
+    + '<div class="field-row">'
+    + '<div class="field" style="min-width:200px;"><label for="pp-driver">Driver</label><select id="pp-driver">' + driverOpts + '</select></div>'
+    + '<div class="field" style="max-width:190px;"><label for="pp-type">Type</label><select id="pp-type">'
+    + '<option value="time">Time penalty (+ seconds)</option>'
+    + '<option value="dsq">Disqualify (DSQ)</option>'
+    + '<option value="grid">Grid penalty (places, next race)</option>'
+    + '</select></div>'
+    + '<div class="field" style="max-width:130px;" id="pp-valfield"><label for="pp-val">Amount</label><input type="number" min="0" step="any" id="pp-val" value=""></div>'
+    + '<div class="field" style="flex:1;min-width:160px;"><label for="pp-reason">Reason</label><input type="text" id="pp-reason" placeholder="e.g. track limits at turn 4"></div>'
+    + '</div>'
+    + '<div class="field-row" style="margin-top:10px;">'
+    + '<button class="action action-lead action-compact" id="pp-apply"><span>Apply &amp; change results</span></button>'
+    + '<button class="action action-quiet action-compact" id="pp-marker"><span>Add marker only (results unchanged)</span></button>'
+    + '</div>'
+    + '</div>';
+  container.insertAdjacentHTML('beforeend', html);
+
+  var typeSel = document.getElementById('pp-type');
+  var valField = document.getElementById('pp-valfield');
+  function syncVal() {
+    var t = typeSel.value;
+    if (t === 'dsq') { valField.style.display = 'none'; }
+    else { valField.style.display = ''; var lab = valField.querySelector('label'); if (lab) lab.textContent = (t === 'time' ? 'Seconds' : 'Places'); }
+  }
+  typeSel.addEventListener('change', syncVal);
+  syncVal();
+
+  document.getElementById('pp-apply').addEventListener('click', function () { ppSubmit(true); });
+  document.getElementById('pp-marker').addEventListener('click', function () { ppSubmit(false); });
+}
+function ppRenderPenaltyList(container) {
+  var items = [];
+  (PP.penalties || []).forEach(function (p) {
+    var val = p.type === 'time' ? ('+' + p.seconds + 's') : p.type === 'grid' ? (p.places + ' place' + (p.places > 1 ? 's' : '')) : '';
+    items.push('<div class="tx-row"><span class="tx-label">' + BTG.esc(ppTypeLabel(p.type) + (val ? ' · ' + val : '') + ' · ' + (p.driver_name || '')) + '</span>'
+      + '<span class="tx-amt" style="color:var(--copy-faint);">' + BTG.esc(p.applied ? 'applied' : 'marker') + '</span></div>'
+      + (p.reason ? '<div class="muted" style="font-size:11px;padding:0 12px 4px 14px;">' + BTG.esc(p.reason) + '</div>' : ''));
+  });
+  (PP.grids || []).forEach(function (g) {
+    items.push('<div class="tx-row"><span class="tx-label">Grid penalty · ' + g.places + ' place' + (g.places > 1 ? 's' : '') + ' · ' + BTG.esc(g.driver_name || '') + ' (race earned)</span></div>');
+  });
+  var html = '<div style="border-top:1px solid var(--edge);margin-top:14px;padding-top:10px;">'
+    + '<h4 style="margin:0 0 6px;font-size:13px;">Penalty records for this race</h4>'
+    + (items.length ? items.join('') : '<div class="muted" style="font-size:12px;">None yet.</div>')
+    + '</div>';
+  container.insertAdjacentHTML('beforeend', html);
+}
+function ppRenderBody() {
+  var body = document.getElementById('pp-body');
+  if (!body) return;
+  if (!PP.results.length) { body.style.display = ''; body.innerHTML = '<div class="muted">No results for this race.</div>'; return; }
+  body.style.display = '';
+  body.innerHTML = '';
+  var orderRows = PP.results.slice().sort(function (a, b) { return Number(a.finish_position || 99) - Number(b.finish_position || 99); })
+    .map(function (r) {
+      return '<div class="tx-row"><span class="tx-label">P' + (r.finish_position != null ? r.finish_position : '—') + ' · ' + BTG.esc(r.driver_name)
+        + (r.status && r.status !== 'Finished' ? ' · <span style="color:#f87171;">' + BTG.esc(r.status) + '</span>' : '') + '</span>'
+        + '<span class="tx-amt">' + ppFmtTime(r.time_or_gap) + '</span></div>';
+    }).join('');
+  body.insertAdjacentHTML('beforeend', '<h4 style="margin:0 0 4px;font-size:13px;">Finishing order (' + PP.results.length + ')</h4>' + orderRows);
+  ppRenderControls(body);
+  ppRenderPenaltyList(body);
+}
+async function ppLoad() {
+  var raceSel = document.getElementById('pp-race');
+  var resEl = document.getElementById('pp-result');
+  if (!raceSel || !raceSel.value) return;
+  var data = await callGateway('adminRacePenalties', {
+    username: CURRENT_USER.username, password: CURRENT_USER.password,
+    race_id: Number(raceSel.value), mode: 'list'
+  });
+  if (!data.ok) { showResult(resEl, false, '✗ ' + data.error); return; }
+  PP.raceId = Number(raceSel.value);
+  PP.results = data.results || [];
+  PP.penalties = data.penalties || [];
+  PP.grids = data.grids || [];
+  ppRenderBody();
+  showResult(resEl, true, '✓ Loaded ' + PP.results.length + ' results.');
+}
+async function ppSubmit(apply) {
+  var resEl = document.getElementById('pp-result');
+  var driver = document.getElementById('pp-driver').value;
+  var type = document.getElementById('pp-type').value;
+  if (!driver) { showResult(resEl, false, '✗ Choose a driver.'); return; }
+  var payload = {
+    username: CURRENT_USER.username, password: CURRENT_USER.password,
+    race_id: PP.raceId, driver_name: driver, type: type, apply: apply,
+    reason: document.getElementById('pp-reason').value.trim()
+  };
+  if (type === 'time') payload.seconds = Number(document.getElementById('pp-val').value) || 0;
+  if (type === 'grid') payload.places = Number(document.getElementById('pp-val').value) || 0;
+  if (type !== 'dsq' && !((type === 'time' ? payload.seconds : payload.places) > 0)) {
+    showResult(resEl, false, '✗ Enter a valid amount.'); return;
+  }
+  var btn = apply ? document.getElementById('pp-apply') : document.getElementById('pp-marker');
+  if (btn) btn.disabled = true;
+  setStatus('busy', apply ? 'Applying penalty…' : 'Adding marker…');
+  try {
+    var data = await callGateway('adminRacePenalties', payload);
+    if (!data.ok) { showResult(resEl, false, '✗ ' + data.error); setStatus('ready', 'Ready'); }
+    else {
+      showResult(resEl, true, '✓ ' + (apply ? 'Applied penalty' : 'Marker recorded') + ' — results ' + (apply ? 'updated' : 'unchanged') + '.');
+      setStatus('ok', apply ? 'Penalty applied' : 'Marker added');
+      await ppLoad();
+    }
+  } catch (e) { showResult(resEl, false, '✗ ' + e.message); setStatus('ready', 'Ready'); }
+  finally { if (btn) btn.disabled = false; }
+}
+(function () {
+  var seriesSel = document.getElementById('pp-series');
+  var raceSel = document.getElementById('pp-race');
+  var loadBtn = document.getElementById('pp-load');
+  if (!seriesSel || !raceSel || !loadBtn) return;
+  ppPopulateSeries();
+  seriesSel.addEventListener('change', async function () {
+    PP.series = seriesSel.value;
+    if (!PP.series) { raceSel.innerHTML = '<option value="">— choose a race —</option>'; return; }
+    PP.races = await ppFetchRaces(PP.series);
+    ppPopulateRaces();
+    showResult(document.getElementById('pp-result'), true, '✓ ' + PP.races.length + ' races.');
+  });
+  raceSel.addEventListener('change', function () { ppLoad(); });
+  loadBtn.addEventListener('click', ppLoad);
 })();
 
 /* ── admin: race data editor ── */
