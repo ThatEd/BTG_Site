@@ -360,10 +360,34 @@
     return 0.75;
   }
 
-  /** Whole-career rating (0–100) built from the SAME season-performance
-   *  formula (computeOverallScore) applied to every season in the driver's
-   *  career, then weighted by series tier. */
-  function careerRating(d) {
+  /** Per-season 0–20 band from a season's finishing position — the same letter
+   *  curve Season Performance uses, so a past season reads the same way. S/S+
+   *  is reserved for dominant championship seasons, not routine finishes. */
+  function pastSeasonScore20(pos, wins, podiums, dnfs, races) {
+    races = num(races); wins = num(wins); podiums = num(podiums); dnfs = num(dnfs);
+    if (pos <= 1) {
+      // Champion: S+ only for a truly dominant year.
+      if (races >= 10 && (wins / races) >= 0.5) return 20;
+      if (races >= 10 && (wins / races) >= 0.4) return 19;
+      if (wins >= 5 || (races > 0 && podiums >= Math.max(6, Math.round(races * 0.6)))) return 18;
+      return 17;
+    }
+    if (pos <= 2) return 16;
+    if (pos <= 3) return 15;
+    if (pos <= 5) return 14;
+    if (pos <= 7) return 13;
+    if (pos <= 9) return 12;
+    if (pos <= 11) return 11;
+    if (pos <= 14) return 9;
+    if (pos <= 17) return 7;
+    return 5;
+  }
+
+  /** Whole-career rating — the series-tier weighted mean of every racing
+   *  season's band (0–20). The LIVE season uses the exact Season Performance
+   *  score, so the career card always agrees with the season card; older
+   *  seasons are estimated from their championship position. Returns 0–20. */
+  function careerRating(d, liveScore20) {
     try {
       if (!d) return null;
       var entries = [];
@@ -373,42 +397,47 @@
         var p = h.pos;
         if (p === '—' || p == null || p === '' || isNaN(Number(p))) return;
         entries.push({
-          season: Number(h.season),
+          season: Number(h.season) || 0,
           series: str(h.series),
           pos: Number(p),
-          wins: num(h.wins),
-          podiums: num(h.podiums),
-          dnfs: num(h.dnfs),
-          avgFinish: h.avgFinish
+          wins: num(h.wins), podiums: num(h.podiums), dnfs: num(h.dnfs), races: num(h.races)
         });
       });
       // Defensive fallback: if the current series has no racing history entry
       // (standings-only edge case), add the live season.
       if (!entries.some(function (e) { return e.series === str(d.series); })) {
-        if (d.standings && d.standings.pos !== '—' && d.standings.pos != null && !isNaN(Number(d.standings.pos))) {
+        if (d.standings && d.standings.pos != null && d.standings.pos !== '—' && !isNaN(Number(d.standings.pos))) {
           entries.push({
-            season: null,
+            season: 0,
             series: str(d.series),
             pos: Number(d.standings.pos),
             wins: num((d.seasonStats || {}).wins),
             podiums: num((d.seasonStats || {}).podiums),
             dnfs: num((d.seasonStats || {}).dnfs),
-            avgFinish: (d.seasonStats || {}).avgFinish
+            races: num((d.seasonStats || {}).races)
           });
         }
       }
       if (!entries.length) return null;
-      var count = 0, sum = 0;
-      entries.forEach(function (e) {
-        var score = computeOverallScore(
-          { standings: { pos: e.pos } },
-          { wins: e.wins, podiums: e.podiums, dnfs: e.dnfs, avgFinish: e.avgFinish }
-        );
-        sum += score * seriesTier(e.series);
-        count++;
+      // Map every season to a 0–20 band.
+      var scored = entries.map(function (e) {
+        return { series: e.series, season: e.season, score20: pastSeasonScore20(e.pos, e.wins, e.podiums, e.dnfs, e.races) };
       });
-      if (!count) return null;
-      return Math.max(0, Math.min(100, Math.round(sum / count)));
+      // The live season (the driver's current series, latest year) uses the
+      // real Season Performance score so the two cards can never disagree.
+      if (liveScore20 != null) {
+        var liveSeries = str(d.series);
+        var liveIdx = -1, liveSeason = -1;
+        scored.forEach(function (s, i) {
+          if (s.series === liveSeries && s.season >= liveSeason) { liveIdx = i; liveSeason = s.season; }
+        });
+        if (liveIdx === -1) scored.push({ series: liveSeries, season: liveSeason, score20: liveScore20 });
+        else scored[liveIdx].score20 = liveScore20;
+      }
+      var sum = 0, wsum = 0;
+      scored.forEach(function (s) { var w = seriesTier(s.series); sum += s.score20 * w; wsum += w; });
+      if (!wsum) return null;
+      return Math.max(0, Math.min(20, Math.round(sum / wsum)));
     } catch (e) { return null; }
   }
 
@@ -436,7 +465,7 @@
       var perf = computeSeasonPerformance(d, ss, allDrivers);
       var overallGrade = ratingGrade(perf.overallScore);
       var nameParts = (d.fullName || d.name).split(' ');
-      var rating = opts.showRating !== false ? careerRating(d) : null;
+      var rating = opts.showRating !== false ? careerRating(d, perf.overallScore) : null;
 
       var html = '<div class="dp-main">';
       html += '<div class="dp-left">';
@@ -460,11 +489,12 @@
       if (BTG.wrapCard) html += BTG.wrapCard(heroInner, { teamColor: color, backgroundColor: '#161618', borderRadius: 8, glowRadius: 12, glowIntensity: 0.45, isSelected: true });
       else html += heroInner;
 
-      // Career rating (whole-career, actual performance) — the scouting extra.
+      // Career rating (whole-career) — average of the season bands; the live
+      // season is the Season Performance score, so it agrees with the season.
       if (rating != null) {
         html += '<div class="dp-card"><div class="dp-card__title">Career Rating</div>'
-          + '<div class="dp-rating"><div class="dp-rating__num">' + rating + '</div>'
-          + '<div><span class="dp-rating__grade" style="color:' + gradeColor(gradeOf(rating)) + '">' + gradeOf(rating) + '</span>'
+          + '<div class="dp-rating"><div class="dp-rating__num">' + Math.round(rating * 5) + '</div>'
+          + '<div><span class="dp-rating__grade" style="color:' + gradeColor(ratingGrade(rating)) + '">' + ratingGrade(rating) + '</span>'
           + '<div class="dp-rating__meta">whole-career · series-weighted</div></div></div></div>';
       }
 

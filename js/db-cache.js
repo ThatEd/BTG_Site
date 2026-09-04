@@ -225,6 +225,13 @@
    *  Class One currently have no drivers). */
   function seriesHasDrivers(series) {
     if ((D && D.drivers || []).some(function (dd) { return seriesOfTeam(dd.team_id) === series; })) return true;
+    // Membership by current Driving seat (contract_history) — a driver can be
+    // an F1 reserve while their racing seat is in another series, and their
+    // single Drivers.team_id may point at either.
+    if ((D && D.contract_history || []).some(function (h) {
+      return str(h.entity_type) === 'driver' && h.is_current && str(h.role) === 'Driving'
+        && (str(h.series) === series || seriesOfTeam(h.team_id) === series);
+    })) return true;
     try {
       var rs = window.BTG && BTG.Roster;
       if (rs && rs.driversFor && (rs.driversFor(series) || []).length) return true;
@@ -415,6 +422,34 @@
             nation: d.nation || dbNation(d.name || d.fullName || ''),
             number: d.number != null ? d.number : null
           };
+        });
+      }
+      // Membership fallback: a driver with a CURRENT Driving seat in this
+      // series belongs on the grid even when their DB Drivers.team_id points
+      // at another series (e.g. an F1 Haas reserve whose racing seat is XGT).
+      if (drivingKnown) {
+        var nk = function (s) { return String(s || '').trim().toLowerCase(); };
+        var inRows = {};
+        rows.forEach(function (r) { inRows[nk(r.name)] = true; });
+        (D && D.contract_history || []).forEach(function (h) {
+          if (str(h.entity_type) !== 'driver' || !h.is_current) return;
+          if (str(h.role) !== 'Driving') return;
+          var hs = str(h.series) || seriesOfTeam(h.team_id);
+          if (hs !== series) return;
+          var nm = str(h.entity_name);
+          var k = nk(nm);
+          if (!nm || inRows[k]) return;
+          inRows[k] = true;
+          var dd = (D && D.drivers || []).filter(function (x) {
+            return nk(x.full_name || x.driver_name || '') === k;
+          })[0] || {};
+          rows.push({
+            name: nm,
+            fullName: str(dd.full_name) || nm,
+            team: teamName(h.team_id),
+            nation: str(dd.nation) || dbNation(nm),
+            number: dd.driver_number != null ? dd.driver_number : null
+          });
         });
       }
       if (!rows.length) return [];
