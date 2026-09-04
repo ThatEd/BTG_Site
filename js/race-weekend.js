@@ -99,7 +99,16 @@ window.BTG = window.BTG || {};
     return "+" + gap.toFixed(3) + "s";
   }
 
-  function posTone(pos, dnf) {
+  /* ── DSQ detection: a disqualified result is its own classification ────── */
+  function rowIsDsq(x) {
+    if (!x) return false;
+    var s = String(x.status != null ? x.status : (x.finishStatus != null ? x.finishStatus : (x.FinishStatus || '')));
+    var r = String(x.dnf_reason || '');
+    return /dsq|disq|excluded/i.test(s) || /dsq|disq|excluded/i.test(r);
+  }
+
+  function posTone(pos, dnf, dsq) {
+    if (dsq) return "text-red-200 bg-red-900/40 border-red-400/60";
     if (dnf) return "text-red-400 bg-red-500/10 border-red-500/20";
     if (Number(pos) === 1) return "text-yellow-300 bg-yellow-400/15 border-yellow-300/35";
     if (Number(pos) === 2) return "text-zinc-200 bg-zinc-300/12 border-zinc-300/25";
@@ -390,7 +399,8 @@ window.BTG = window.BTG || {};
   function rowFromCacheResult(r, teamNameOf) {
     var pos = Number(r.finish_position || 0);
     var grid = Number(r.grid_position || 0);
-    var dnf = !!r.dnf || /dnf|dns|retired/i.test(String(r.status || ''));
+    var dsq = rowIsDsq(r);
+    var dnf = !dsq && (!!r.dnf || /dnf|dns|retired/i.test(String(r.status || '')));
     var fl = Number(r.fastest_lap_seconds || 0);
     var laps = Number(r.laps || 0);
     var finishTime = cacheTimeToSeconds(r.time_or_gap);
@@ -415,6 +425,7 @@ window.BTG = window.BTG || {};
       finishPoints: Number(r.points || 0),
       bonusPoints: Number(r.bonus_points || 0),
       dnf: dnf,
+      dsq: dsq,
       laps: laps,
       finishTime: finishTime,
       pitStops: Number(r.pit_stops || 0),
@@ -681,7 +692,8 @@ window.BTG = window.BTG || {};
     var teamName = entry.Team && entry.Team.Name;
     var pos = Number(entry.Position || 0);
     var grid = Number(entry.GridPosition || 0);
-    var dnf = (entry.Status || '').toLowerCase().indexOf('dnf') >= 0 || pos >= 99;
+    var dsq = rowIsDsq(entry);
+    var dnf = !dsq && ((entry.Status || '').toLowerCase().indexOf('dnf') >= 0 || pos >= 99);
     var timeMs = Number(entry.TimeInt || 0);   // milliseconds
     var gapMs = Number(entry.GapInt || 0);
     var flMs = Number(entry.FastestLapTimeInt || 0);
@@ -695,6 +707,7 @@ window.BTG = window.BTG || {};
       StartingPos: grid,
       GridPosition: grid,
       dnf: dnf,
+      dsq: dsq,
       Laps: laps,
       Time: timeMs / 1000,            // seconds (for formatRaceTime)
       RaceTime: timeMs / 1000,
@@ -728,7 +741,8 @@ window.BTG = window.BTG || {};
     var pos = Number(row.position || 0);
     var grid = Number(row.gridPosition || 0);
     var status = row.status || row.finishStatus || '';
-    var dnf = /dnf|retired|ret|dns/i.test(status);
+    var dsq = rowIsDsq(row);
+    var dnf = !dsq && /dnf|retired|ret|dns/i.test(status);
     var laps = Number(row.lapsCompleted || 0);
     var timeMs = Number(row.totalTimeMs || 0);
     var flMs = Number(row.fastestLapTimeMs || 0);
@@ -742,6 +756,7 @@ window.BTG = window.BTG || {};
       StartingPos: grid,
       GridPosition: grid,
       dnf: dnf,
+      dsq: dsq,
       Laps: laps,
       Time: timeMs / 1000,
       RaceTime: timeMs / 1000,
@@ -775,7 +790,8 @@ window.BTG = window.BTG || {};
     var pos = Number(row.FinishingPosition || 0);
     var grid = Number(row.InitialPosition || row.GridPosition || 0);
     var status = row.FinishStatus || '';
-    var dnf = /dnf|dns|retired|ret/i.test(status);
+    var dsq = rowIsDsq(row);
+    var dnf = !dsq && /dnf|dns|retired|ret/i.test(status);
     var laps = Number(row.TotalLaps || 0);
     // AMS provides per-lap times + sectors. Derive total time, best lap, median pace.
     var totalMs = 0, bestLapMs = 0, validLapsMs = [];
@@ -829,6 +845,7 @@ window.BTG = window.BTG || {};
       StartingPos: grid,
       GridPosition: grid,
       dnf: dnf,
+      dsq: dsq,
       Laps: laps,
       Time: totalMs / 1000,
       RaceTime: totalMs / 1000,
@@ -886,10 +903,10 @@ window.BTG = window.BTG || {};
     }).filter(Boolean);
     rows.sort(function(a, b) { return Number(a.finishingPos || 99) - Number(b.finishingPos || 99); });
     for (var i = 0; i < rows.length; i++) {
-      if (rows[i].dnf || !Number.isFinite(rows[i].finishTime) || rows[i].finishTime <= 0) { rows[i].gapToNext = null; continue; }
+      if (rows[i].dnf || rows[i].dsq || !Number.isFinite(rows[i].finishTime) || rows[i].finishTime <= 0) { rows[i].gapToNext = null; continue; }
       if (i === 0) { rows[i].gapToNext = 0; continue; }
       var ahead = rows[i - 1];
-      rows[i].gapToNext = (!ahead.dnf && Number.isFinite(ahead.finishTime) && ahead.finishTime > 0)
+      rows[i].gapToNext = (!ahead.dnf && !ahead.dsq && Number.isFinite(ahead.finishTime) && ahead.finishTime > 0)
         ? rows[i].finishTime - ahead.finishTime : null;
     }
     return rows;
@@ -900,7 +917,8 @@ window.BTG = window.BTG || {};
     if (!r) return null;
     var pos = Number(r.finishingPos != null ? r.finishingPos : r.FinishingPos || 0);
     var grid = Number(r.startingPos != null ? r.startingPos : r.StartingPos || 0);
-    var dnf = !!r.dnf || !!r.DNF || pos >= 99;
+    var dsq = !!r.dsq || rowIsDsq(r);
+    var dnf = !dsq && (!!r.dnf || !!r.DNF || pos >= 99);
     var fl = Number(r.fastestLap != null ? r.fastestLap : r.FastestLap || 0);
     var time = Number(r.finishTime != null ? r.finishTime : r.Time != null ? r.Time : 0);
     var laps = Number(r.Laps != null ? r.Laps : 0);
@@ -915,6 +933,7 @@ window.BTG = window.BTG || {};
       StartingPos: grid,
       GridPosition: grid,
       dnf: dnf,
+      dsq: dsq,
       Laps: laps,
       Time: time,
       RaceTime: time,
@@ -1114,7 +1133,7 @@ window.BTG = window.BTG || {};
         if (r.paceMedianMs > 0) {
           html += '<span class="ml-auto font-mono text-[10px] ' + (paceDelta > 0 ? 'text-red-400' : 'text-emerald-400') + '">' + (paceDelta > 0 ? '+' + paceDelta.toFixed(3) : 'PACE') + 's</span>';
         } else {
-          html += '<span class="ml-auto font-mono text-xs text-secondary-text">' + (r.finishTime > 0 ? formatRaceTime(r.finishTime) : (r.dnf ? 'DNF' : '—')) + '</span>';
+          html += '<span class="ml-auto font-mono text-xs text-secondary-text">' + (r.finishTime > 0 ? formatRaceTime(r.finishTime) : (r.dsq ? 'DSQ' : r.dnf ? 'DNF' : '—')) + '</span>';
         }
         html += '</div>';
       });
@@ -1356,10 +1375,10 @@ window.BTG = window.BTG || {};
     var cols = entryColumns(rows);
     var grid = buildRaceResultGridMeta(viewportWidth, isSprint, hasPitData, hasOvertakes, cols);
     var compactMode = grid.compactMode;
-    var podium = rows.filter(function(r) { return r.finishingPos > 0 && r.finishingPos <= 3; }).sort(function(a, b) { return a.finishingPos - b.finishingPos; });
+    var podium = rows.filter(function(r) { return !r.dsq && r.finishingPos > 0 && r.finishingPos <= 3; }).sort(function(a, b) { return a.finishingPos - b.finishingPos; });
     var winnerTeamId = podium[0] ? podium[0].teamId : null;
-    var fastest = rows.filter(function(r) { return r.fastestLap > 10; }).sort(function(a, b) { return a.fastestLap - b.fastestLap; })[0];
-    var bestPit = rows.filter(function(r) { return r.pitBest > 0; }).sort(function(a, b) { return a.pitBest - b.pitBest; })[0];
+    var fastest = rows.filter(function(r) { return !r.dsq && r.fastestLap > 10; }).sort(function(a, b) { return a.fastestLap - b.fastestLap; })[0];
+    var bestPit = rows.filter(function(r) { return !r.dsq && r.pitBest > 0; }).sort(function(a, b) { return a.pitBest - b.pitBest; })[0];
     var fastestTime = fastest ? fastest.fastestLap : 0;
 
     var html = '<div class="overflow-hidden border border-white/10 bg-base-deep shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_60px_rgba(0,0,0,0.35)]">';
@@ -1408,15 +1427,15 @@ window.BTG = window.BTG || {};
 
     rows.forEach(function(r, idx) {
       var rowBg = idx % 2 === 1 ? 'bg-black/25' : 'bg-white/[0.018]';
-      var dnf = r.dnf;
+      var dnf = r.dnf, dsq = r.dsq;
       var cells = [];
-      cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 cell-pos border-b border-white/[0.04] ' + rowBg + '" data-row="' + idx + '"><span class="inline-flex h-6 w-7 items-center justify-center rounded border font-mono text-[10px] font-black ' + posTone(r.finishingPos, dnf) + '">' + (dnf ? 'DNF' : r.finishingPos) + '</span></div>');
+      cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 cell-pos border-b border-white/[0.04] ' + rowBg + '" data-row="' + idx + '"><span class="inline-flex h-6 w-7 items-center justify-center rounded border font-mono text-[10px] font-black ' + posTone(r.finishingPos, dnf, dsq) + '">' + (dsq ? 'DSQ' : dnf ? 'DNF' : r.finishingPos) + '</span></div>');
       cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 cell-driver border-b border-white/[0.04] ' + rowBg + '" data-row="' + idx + '">' + (compactMode !== 'lastNoPhoto' ? photoHtml(r.driverId, r.teamName, 22) : '') + '<span class="min-w-0 truncate font-black text-white">' + esc(driverDisplayName({ name: r.driverId }, compactMode)) + '</span></div>');
       cells.push(entryCellsHtml(r, cols, compactMode, 14, rowBg, idx));
-      cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono text-secondary-text cell-data border-b border-white/[0.04] ' + rowBg + '" data-row="' + idx + '">' + (dnf ? '-' : formatRaceTime(r.finishTime)) + '</div>');
-      cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono text-secondary-text cell-data border-b border-white/[0.04] ' + rowBg + '" data-row="' + idx + '">' + (dnf ? '-' : formatGap(r.gapToNext)) + '</div>');
+      cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono text-secondary-text cell-data border-b border-white/[0.04] ' + rowBg + '" data-row="' + idx + '">' + (dnf || dsq ? '-' : formatRaceTime(r.finishTime)) + '</div>');
+      cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono text-secondary-text cell-data border-b border-white/[0.04] ' + rowBg + '" data-row="' + idx + '">' + (dnf || dsq ? '-' : formatGap(r.gapToNext)) + '</div>');
       cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono text-secondary-text cell-data border-b border-white/[0.04] ' + rowBg + '" data-row="' + idx + '">' + (r.startingPos || '—') + '</div>');
-      cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono text-secondary-text cell-data border-b border-white/[0.04] ' + rowBg + '" data-row="' + idx + '">' + (dnf ? 'DNF' : r.finishingPos || '—') + '</div>');
+      cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono text-secondary-text cell-data border-b border-white/[0.04] ' + rowBg + '" data-row="' + idx + '">' + (dsq ? 'DSQ' : dnf ? 'DNF' : r.finishingPos || '—') + '</div>');
       cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono font-black cell-data border-b border-white/[0.04] ' + rowBg + (r.positionsGained > 0 ? ' text-emerald-300' : r.positionsGained < 0 ? ' text-red-300' : ' text-muted-text') + '" data-row="' + idx + '">' + (r.positionsGained == null ? '—' : r.positionsGained > 0 ? '+' + r.positionsGained : r.positionsGained) + '</div>');
       cells.push('<div class="min-w-0 overflow-hidden truncate px-1 py-1 font-mono font-black text-yellow-300 cell-data border-b border-white/[0.04] ' + rowBg + '" data-row="' + idx + '">' + r.points + (r.bonusPoints > 0 ? '<span class="text-emerald-300" title="+' + r.bonusPoints + ' bonus (fastest lap / pole)">+' + r.bonusPoints + '</span>' : '') + '</div>');
       if (!isSprint) {
@@ -1668,7 +1687,7 @@ window.BTG = window.BTG || {};
         p1row.finishTime > 0 && p2row.finishTime > 0) {
       winMargin = p2row.finishTime - p1row.finishTime;
     }
-    var candidates = rows.filter(function(r) { return !r.dnf && r.finishingPos > 0 && r.finishingPos < 99; }).map(function(r) {
+    var candidates = rows.filter(function(r) { return !r.dnf && !r.dsq && r.finishingPos > 0 && r.finishingPos < 99; }).map(function(r) {
       var perf = r.recentPerformance || {};
       var formRaw = Number(perf.avg || 1.1);
       var winsRaw = Number(perf.wins || 0);

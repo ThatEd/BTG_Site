@@ -935,6 +935,7 @@ body::before {
           + statTile(cur.races, 'Races')
           + statTile(cur.avgFinish, 'Avg Finish')
           + statTile(cur.dnfs, 'DNFs', 'text-red-400')
+          + statTile(cur.dsqs, 'DSQs', 'text-red-300')
           + '</div>')
 
       /* Season Race Results */
@@ -1011,6 +1012,7 @@ body::before {
           + statTile(all.races, 'Races')
           + statTile(all.avgFinish, 'Avg Finish')
           + statTile(all.dnfs, 'DNFs', 'text-red-400')
+          + statTile(all.dsqs, 'DSQs', 'text-red-300')
           + '</div>')
 
       /* Team History (Brand Timeline) */
@@ -1071,17 +1073,25 @@ body::before {
 
   /* ── Small helpers ───────────────────────────────────────────────────── */
   function seasonStats(results) {
-    var points = results.reduce(function (s, x) { return s + num(x.points); }, 0);
-    var wins = results.filter(function (x) { return num(x.finish_position) === 1; }).length;
-    var podiums = results.filter(function (x) { var p = num(x.finish_position); return p >= 1 && p <= 3; }).length;
-    var poles = results.filter(function (x) { return num(x.grid_position) === 1; }).length;
-    var dnfs = results.filter(function (x) { return num(x.dnf) === 1 || /dnf/i.test(str(x.status)); }).length;
-    var finishes = results.filter(function (x) { return num(x.finish_position) > 0; }).map(function (x) { return num(x.finish_position); });
+    var isDsq = function (x) {
+      return /dsq|disq|excluded/i.test(str(x.status)) || /dsq|disq|excluded/i.test(str(x.dnf_reason));
+    };
+    // DSQ's are counted per race WEEKEND for a team: 1 or 2 cars DSQ in the
+    // same race is still only 1 DSQ for the team.
+    var dsqWk = {};
+    results.forEach(function (x) { if (isDsq(x)) dsqWk[String(x.race_id)] = true; });
+    var raced = results.filter(function (x) { return !isDsq(x); });
+    var points = raced.reduce(function (s, x) { return s + num(x.points); }, 0);
+    var wins = raced.filter(function (x) { return num(x.finish_position) === 1; }).length;
+    var podiums = raced.filter(function (x) { var p = num(x.finish_position); return p >= 1 && p <= 3; }).length;
+    var poles = raced.filter(function (x) { return num(x.grid_position) === 1; }).length;
+    var dnfs = raced.filter(function (x) { return num(x.dnf) === 1 || /dnf/i.test(str(x.status)); }).length;
+    var finishes = raced.filter(function (x) { return num(x.finish_position) > 0; }).map(function (x) { return num(x.finish_position); });
     var best = finishes.length ? Math.min.apply(null, finishes) : null;
     var sum = finishes.reduce(function (a, b) { return a + b; }, 0);
     return {
       points: points, wins: wins, podiums: podiums, poles: poles,
-      dnfs: dnfs, races: results.length,
+      dnfs: dnfs, dsqs: Object.keys(dsqWk).length, races: results.length,
       best: best != null ? 'P' + best : '—',
       avgFinish: results.length && finishes.length ? (sum / finishes.length).toFixed(1) : '—'
     };

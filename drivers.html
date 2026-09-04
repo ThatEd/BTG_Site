@@ -307,6 +307,7 @@ body::before {
 <script src="teams/f1.js"></script>
 <script src="js/roster.js"></script>
 <script src="js/db-cache.js"></script>
+<script src="js/circuits.js"></script>
 <script src="js/data-loader.js"></script>
 <script>
 (function() {
@@ -575,11 +576,8 @@ body::before {
       + '<div class="dp-prev__row"><span>Races</span><span>'+(ls&&ls.races?ls.races:'—')+'</span></div>'
       + '</div></div>';
 
-    // Favorite Track — compute from results
-    var fav = computeFavoriteTrack(d);
-    html += '<div class="dp-card"><div class="dp-card__title">Favorite Track</div>'
-      + '<div class="dp-fav-track">'
-      + '<div><div class="dp-fav-track__name">'+(fav?fav.track:'—')+'</div><div class="dp-fav-track__note">'+(fav?(fav.bestCount>0?'Best: P'+fav.best+' · '+fav.bestCount+'x':'—'):'—')+'</div></div></div></div>';
+    // Favorite Track + Favorite Track Type (whole career)
+    html += renderFavCard(d);
 
     html += '</div>'; // left
 
@@ -1082,6 +1080,71 @@ body::before {
       if (score < bestScore) { bestScore = score; bestTrack = t; bestTrack.track = track; }
     });
     return bestTrack;
+  }
+
+  /* ── Favorite track + favorite track type (whole career) ── */
+  function favMeta(track) {
+    try { return (window.BTG && BTG.circuitMeta) ? BTG.circuitMeta(track) : null; } catch (e) { return null; }
+  }
+  function favInfo(d) {
+    var f = d.favorite;
+    if (f && f.track) {
+      if (!f.flag) { var mm = favMeta(f.track); if (mm && mm.flag) f.flag = mm.flag; }
+      return f;
+    }
+    // Fallback: current-season favorite when no career summary is attached.
+    var o = computeFavoriteTrack(d);
+    if (!o) return null;
+    var m = favMeta(o.track);
+    var pk = null;
+    try {
+      if (BTG.pickFavType) {
+        var results = (d.seasonStats && d.seasonStats.results) || [];
+        pk = BTG.pickFavType(results.map(function (r) {
+          return { circuit: r.track, pos: r.pos, dnf: r.dnf, status: r.status };
+        }));
+      }
+    } catch (e2) { pk = null; }
+    return {
+      track: o.track, name: o.track,
+      flag: (m && m.flag) || '',
+      best: o.best, bestCount: o.bestCount || 0,
+      type: (pk && pk.type) || (m && (m.construction || m.character)) || null,
+      typeKind: (pk && pk.kind) || null
+    };
+  }
+  function favColor(what) {
+    var s = String(what || '').toLowerCase();
+    if (s === 'street') return '#f59e0b';
+    if (s === 'road course') return '#a78bfa';
+    if (s === 'low speed') return '#22d3ee';
+    if (s === 'high speed') return '#ef4444';
+    if (s === 'technical') return '#34d399';
+    if (s === 'power') return '#fb923c';
+    if (s === 'balanced') return '#a1a1aa';
+    return '#8a8a94';
+  }
+  function renderFavCard(d) {
+    var f = favInfo(d);
+    var esc = function (v) { return BTG.esc(v); };
+    var html = '<div class="dp-card"><div class="dp-card__title">Favorite</div>';
+    if (!f) { html += '<div style="color:#8a8a94;font-size:12px;padding:4px 2px;">No race data yet.</div></div>'; return html; }
+    var flag = f.flag ? BTG.flagImg(f.flag, 22, 16) : '';
+    var note = f.best ? ('Best: P' + f.best + (f.bestCount > 1 ? ' · ' + f.bestCount + 'x' : '')) : '—';
+    html += '<div style="display:flex;align-items:stretch;gap:12px;">'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">' + flag
+      + '<span style="font-size:12px;font-weight:600;">' + esc(f.name || f.track || '—') + '</span></div>'
+      + '<div style="font-size:9px;color:#8a8a94;">' + note + '</div>'
+      + '</div>'
+      + '<div style="width:1px;background:rgba(255,255,255,0.1);"></div>'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div style="font-size:8px;text-transform:uppercase;letter-spacing:.08em;color:#8a8a94;margin-bottom:6px;">Favorite track type</div>'
+      + (f.type
+          ? '<div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;"><span style="width:9px;height:9px;border-radius:50%;background:' + favColor(f.type) + ';"></span>' + esc(f.type) + '</div>'
+          : '<span style="font-size:10px;color:#8a8a94;">—</span>')
+      + '</div></div></div>';
+    return html;
   }
 
   /** Build the TFG dot-plot sparkline (start→finish per race). */

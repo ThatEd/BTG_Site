@@ -60,11 +60,122 @@
     { circuit: 'Daytona',         gp: 'Daytona 700',             alt: 'United States Grand Prix',      noun: 'United States',        country: 'USA',           flag: 'us', trackId: null, img: 'Daytona' }
   ];
 
+  // Track construction & character (for the driver favorite-track-type stat).
+  // Construction is Road Course or Street — Road Course also covers permanent,
+  // temporary and park circuits, which all read as "Road Course".
+  var TRACK_TYPE = {
+    Bahrain: ['Road Course', 'Power'], Jeddah: ['Street', 'High Speed'],
+    AlbertPark: ['Road Course', 'Balanced'], Suzuka: ['Road Course', 'Technical'],
+    Shanghai: ['Road Course', 'Balanced'], Miami: ['Road Course', 'Balanced'],
+    Imola: ['Road Course', 'Technical'], Monaco: ['Street', 'Low Speed'],
+    Montreal: ['Road Course', 'Power'], Barcelona: ['Road Course', 'Balanced'],
+    RedBullRing: ['Road Course', 'Power'], Silverstone: ['Road Course', 'High Speed'],
+    Hungaroring: ['Road Course', 'Technical'], SpaFrancorchamps: ['Road Course', 'Power'],
+    Zandvoort: ['Road Course', 'Technical'], Monza: ['Road Course', 'Power'],
+    Baku: ['Street', 'Power'], MarinaBay: ['Street', 'Technical'],
+    CircuitOfTheAmericas: ['Road Course', 'Balanced'], HermanosRodriguez: ['Road Course', 'Power'],
+    Interlagos: ['Road Course', 'Balanced'], Vegas: ['Street', 'Power'],
+    Qatar: ['Road Course', 'High Speed'], YasMarina: ['Road Course', 'Balanced'],
+    Kyalami: ['Road Course', 'High Speed'], DubaiAutodrome: ['Road Course', 'Balanced'],
+    TermasRioHondo: ['Road Course', 'Power'], Bathurst: ['Road Course', 'High Speed'],
+    LeMans: ['Road Course', 'Power'], Brno: ['Road Course', 'Balanced'],
+    Nurburgring: ['Road Course', 'Technical'], BuenosAires: ['Road Course', 'Technical'],
+    Sonoma: ['Road Course', 'Technical'], Daytona: ['Road Course', 'Power']
+  };
+  CIRCUITS.forEach(function (c) {
+    var t = TRACK_TYPE[c.circuit] || [];
+    c.construction = t[0] || '';
+    c.character = t[1] || '';
+  });
+
   var bySlug = {};
   CIRCUITS.forEach(function (c) { bySlug[c.circuit] = c; });
 
   BTG.CIRCUITS = CIRCUITS;
   BTG.circuitBySlug = function (slug) { return bySlug[slug] || null; };
+  // Resolve any race-track reference (slug, "Le Mans 800", GP-ish names) to a
+  // circuit object carrying construction/character/flag. Returns null when
+  // unknown.
+  BTG.circuitMeta = function (key) {
+    if (key == null) return null;
+    var k = String(key).trim();
+    if (bySlug[k]) return bySlug[k];
+    var q = k.toLowerCase().replace(/[^a-z0-9]+/g, '').replace(/\d+$/, '');
+    if (!q) return null;
+    for (var i = 0; i < CIRCUITS.length; i++) {
+      var cs = String(CIRCUITS[i].circuit).toLowerCase();
+      if (cs === q || cs.replace(/\d+$/, '') === q) return CIRCUITS[i];
+    }
+    return null;
+  };
+  // Pick a driver's single favorite track type across the races they actually
+  // entered. rows: [{ circuit, pos, dnf, status?, dnf_reason?, season? }].
+  //  • DNS / DSQ results are ignored completely — as if the driver never raced.
+  //  • Classified finishes count full weight; DNFs count HALF weight.
+  //  • Each result is scored against the driver's own season baseline (built
+  //    only from the races they entered that season), so a calendar full of
+  //    Road Courses doesn't bury the few Street races.
+  //  • Returns ONE { type, kind }: the track's physical type (Road Course /
+  //    Street) OR its characteristics (Power / High Speed / Balanced /
+  //    Technical / Low Speed), whichever the driver statistically favours.
+  //    Physical takes precedence when the two are a 50/50.
+  BTG.pickFavType = function (rows) {
+    var physical = ['Road Course', 'Street'];
+    var character = ['Power', 'High Speed', 'Balanced', 'Technical', 'Low Speed'];
+    var qOf = function (pos) {
+      var p = Number(pos);
+      if (!(p > 0)) return 0;
+      return Math.max(0, Math.min(1, (21 - p) / 20));
+    };
+    var items = [];
+    (rows || []).forEach(function (rr) {
+      if (!rr) return;
+      var st = (String(rr.status == null ? '' : rr.status) + ' ' + String(rr.dnf_reason == null ? '' : rr.dnf_reason)).toLowerCase();
+      if (st.indexOf('dsq') >= 0 || st.indexOf('dns') >= 0) return; // never raced
+      var m = BTG.circuitMeta(rr.circuit);
+      if (!m) return;
+      var p = Number(rr.pos);
+      var dnf = !!(rr.dnf) || /dnf|retired|ret/i.test(st) || !(p > 0);
+      items.push({ season: String(rr.season == null ? '' : rr.season), m: m, w: dnf ? 0.5 : 1, q: qOf(p) });
+    });
+    if (!items.length) return null;
+
+    var smQ = {}, smW = {};
+    items.forEach(function (it) {
+      smQ[it.season] = (smQ[it.season] || 0) + it.w * it.q;
+      smW[it.season] = (smW[it.season] || 0) + it.w;
+    });
+    var sm = {};
+    Object.keys(smQ).forEach(function (s) { sm[s] = smQ[s] / smW[s]; });
+
+    var acc = {};
+    items.forEach(function (it) {
+      if (sm[it.season] == null) return;
+      var dev = it.q - sm[it.season];
+      ['phys|' + (it.m.construction || ''), 'char|' + (it.m.character || '')].forEach(function (k) {
+        if (k.length < 6) return;
+        var a = acc[k] || (acc[k] = { sum: 0, w: 0 });
+        a.sum += it.w * dev; a.w += it.w;
+      });
+    });
+    var bestOf = function (prefix, list) {
+      var best = null, bestDev = -Infinity;
+      list.forEach(function (label) {
+        var a = acc[prefix + label];
+        if (!a || !a.w) return;
+        var mean = a.sum / a.w;
+        if (mean > bestDev) { bestDev = mean; best = label; }
+      });
+      return best ? { label: best, dev: bestDev } : null;
+    };
+    var phys = bestOf('phys|', physical);
+    var cha = bestOf('char|', character);
+    if (phys && (!cha || cha.dev <= phys.dev + 1e-6)) return { type: phys.label, kind: 'physical' };
+    if (cha) return { type: cha.label, kind: 'character' };
+    if (phys) return { type: phys.label, kind: 'physical' };
+    return null;
+  };
+
   BTG.gpNameFor = function (circuit, format) {
     var c = bySlug[circuit];
     if (c) {

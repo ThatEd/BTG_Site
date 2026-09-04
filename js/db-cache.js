@@ -134,6 +134,82 @@
     return set;
   }
 
+  // Whole-career favorite circuit + favored track type for a driver, computed
+  // over EVERY race the cache has them in (all seasons/series). DNS/DSQ races
+  // are ignored completely — as if the driver never raced there.
+  //  • Favorite circuit: best average finish per track, nudged for repeat bests.
+  //  • Favorite track type: a SINGLE type — the track's physical type (Road
+  //    Course/Street) OR its characteristics (Power/High Speed/...), whichever
+  //    the driver statistically favours. Each result is compared to the
+  //    driver's own average for the season it came from (only races they were
+  //    in); DNFs count half weight; physical wins on a 50/50.
+  function careerFavorite(name) {
+    var out = { track: null, name: '', flag: '', best: null, bestCount: 0, type: null, typeKind: null };
+    try {
+      if (!(D && D.race_results && D.races)) return out;
+      var raceById = {};
+      (D.races || []).forEach(function (r) { raceById[String(r.race_id)] = r; });
+      var metaFn = null;
+      try { metaFn = (window.BTG && BTG.circuitMeta) ? BTG.circuitMeta : null; } catch (e) {}
+      var metaOf = function (slug) { try { return metaFn ? metaFn(slug) : null; } catch (e2) { return null; } };
+
+      var racesList = [];
+      var perCircuit = {};
+      (D.race_results || []).forEach(function (rr) {
+        if (str(rr.driver_name) !== name) return;
+        var race = raceById[String(rr.race_id)];
+        if (!race) return;
+        var circuit = str(race.circuit) || str(race.name);
+        if (!circuit) return;
+        // DNS / DSQ: ignore completely, as if the driver never raced there.
+        var stLow = (str(rr.status) + ' ' + str(rr.dnf_reason)).toLowerCase();
+        if (stLow.indexOf('dsq') >= 0 || stLow.indexOf('dns') >= 0) return;
+        var season = String(race.season_id == null ? '' : race.season_id);
+        var pos = num(rr.finish_position);
+        var dnf = !!(rr.dnf) || /dnf|retired|ret/i.test(str(rr.status)) || !(pos > 0);
+        var quality = pos > 0 ? Math.max(0, Math.min(1, (21 - pos) / 20)) : 0;
+        racesList.push({ season: season, circuit: circuit, quality: quality, pos: pos, dnf: dnf, status: str(rr.status) });
+        var c = perCircuit[circuit] || (perCircuit[circuit] = { sum: 0, n: 0, best: 99, bestN: 0 });
+        c.sum += pos > 0 ? pos : 21;
+        c.n++;
+        if (pos > 0) {
+          if (pos < c.best) { c.best = pos; c.bestN = 1; }
+          else if (pos === c.best) { c.bestN++; }
+        }
+      });
+      if (!racesList.length) return out;
+
+      var bestCircuit = null, bestScore = 1e9;
+      Object.keys(perCircuit).forEach(function (slug) {
+        var c = perCircuit[slug];
+        var score = (c.sum / c.n) - (c.bestN * 2);
+        if (score < bestScore) { bestScore = score; bestCircuit = slug; }
+      });
+      var favC = perCircuit[bestCircuit] || {};
+      var meta = metaOf(bestCircuit) || {};
+
+      // Single favorite track type via the shared picker (physical vs
+      // characteristics; DNF half weight; DNS/DSQ ignored; season-normalised).
+      var pk = null;
+      try {
+        if (window.BTG && BTG.pickFavType && racesList.length) {
+          pk = BTG.pickFavType(racesList.map(function (r) {
+            return { circuit: r.circuit, pos: r.pos, dnf: r.dnf, status: r.status, season: r.season };
+          }));
+        }
+      } catch (e3) { pk = null; }
+
+      out.track = bestCircuit;
+      out.name = bestCircuit;
+      out.flag = meta.flag ? str(meta.flag) : '';
+      out.best = favC.best < 99 ? favC.best : null;
+      out.bestCount = favC.bestN || 0;
+      out.type = pk ? pk.type : null;
+      out.typeKind = pk ? pk.kind : null;
+      return out;
+    } catch (e) { return out; }
+  }
+
   // Contract history timeline for an entity (driver name or TP name), newest
   // first. Rows from the cached contract_history table.
   function contractHistory(name) {
@@ -666,7 +742,8 @@
           bestFinish: bestFinish < 99 ? bestFinish : '—',
           avgFinish: finishes.length ? (finishSum / finishes.length).toFixed(1) : '—',
           yrs: teamNameStr ? 1 : 0, yrsAtTeam: teamNameStr ? 1 : 0
-        }
+        },
+        favorite: careerFavorite(name)
       };
     }
 
