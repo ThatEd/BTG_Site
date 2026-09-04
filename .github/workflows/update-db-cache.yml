@@ -1,13 +1,6 @@
-name: Update DB Public Cache (auto/daily)
+name: Update DB Public Cache
 
 on:
-  # Every push to main rebuilds the public cache from Supabase. DB-side
-  # changes (race results, penalties, standings…) never touch the repo, so we
-  # can't detect them from the diff — rebuilding on push covers any commit the
-  # site owner makes after doing DB work ("Update site"). The auto-commit below
-  # uses the default GITHUB_TOKEN, which does NOT re-trigger this workflow.
-  push:
-    branches: [main]
   schedule:
     # Daily at 03:15 UTC
     - cron: '15 3 * * *'

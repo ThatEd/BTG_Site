@@ -848,6 +848,15 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
     </div>
 
     <div class="tool-card">
+      <h3>Public cache (site data)</h3>
+      <p class="muted" style="margin-bottom:12px;">The public site — standings, drivers, teams, race weekend — reads <code>cache/public-data.json</code>, which a GitHub Actions workflow rebuilds from this database. After you change race results, penalties or standings, rebuild it so the live site updates (the workflow commits the refreshed cache to main). Applied post-race penalties and result imports trigger this automatically.</p>
+      <div class="field-row">
+        <button class="action action-compact" id="rebuild-cache-btn"><span>⟳ Rebuild public cache now</span></button>
+      </div>
+      <div class="result-line" id="rebuild-cache-result"></div>
+    </div>
+
+    <div class="tool-card">
       <h3>Import race results (RLT / League export)</h3>
       <p class="muted" style="margin-bottom:12px;">Import from a Racing League Tools (RLT) <code>.db</code> <i>or</i> a League-export <code>.db</code> (the schema that mirrors the DB: <code>Teams</code>, <code>races</code>, <code>race_results</code>…). The file is read locally in your browser — only the parsed data is sent to the DB. RLT files: pick the series (RLT can hold any series) and, if there are multiple championships for it, the right one; races are matched to the calendar by circuit (feature → <code>race_results</code>, sprint → <code>race_sprints</code>), replacing existing results for a matched race. League-export files carry their own series/teams/calendar/results and are upserted as-is (safe to re-run).</p>
       <div class="field-row">
@@ -4094,6 +4103,22 @@ async function ppSubmit(apply) {
   });
   raceSel.addEventListener('change', function () { ppLoad(); });
   loadBtn.addEventListener('click', ppLoad);
+})();
+
+/* ── admin: rebuild public cache from DB (GitHub Actions dispatch) ── */
+(function () {
+  var btn = document.getElementById('rebuild-cache-btn');
+  var resEl = document.getElementById('rebuild-cache-result');
+  if (!btn || !resEl) return;
+  btn.addEventListener('click', async function () {
+    btn.disabled = true; setStatus('busy', 'Starting cache rebuild…');
+    try {
+      var data = await callGateway('adminRebuildCache', { username: CURRENT_USER.username, password: CURRENT_USER.password });
+      if (!data.ok) { showResult(resEl, false, '✗ ' + (data.message || data.error || 'failed')); setStatus('ready', 'Ready'); }
+      else { showResult(resEl, true, '✓ ' + (data.message || 'Cache rebuild started.')); setStatus('ok', 'Cache rebuild queued'); }
+    } catch (e) { showResult(resEl, false, '✗ ' + e.message); setStatus('ready', 'Ready'); }
+    finally { btn.disabled = false; }
+  });
 })();
 
 /* ── admin: race data editor ── */
