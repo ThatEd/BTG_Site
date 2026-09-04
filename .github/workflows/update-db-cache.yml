@@ -10,10 +10,11 @@ jobs:
   build-db-cache:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-  pages: write
-  id-token: write  # Add this line
-  deployments: write
+      contents: write
+      pages: write
+      id-token: write
+      deployments: write
+
     steps:
       - uses: actions/checkout@v5
 
