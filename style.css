@@ -1380,6 +1380,13 @@ select option { background: #3a3a3a; color: #ffffff; }
 .cp-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
 .cp-head h2 { font-family: var(--head-face); font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
 .cp-overall { font-family: var(--data-face); font-size: 10px; color: var(--copy-faint); }
+.pdp-row-val.kn-left { text-align: left; color: var(--copy-soft); }
+.pd-kn-designs { margin-top: 2px; }
+.pd-kn-designs .pdp-row { padding: 5px 0; gap: 8px; }
+.pd-kn-designs .pdp-row-label { width: auto; flex: 1; min-width: 0; font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd-kn-designs .pdp-row-val { font-size: 11px; min-width: 46px; }
+.pd-kn-designs .pdp-row.head .pdp-row-label,
+.pd-kn-designs .pdp-row.head .pdp-row-val { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: var(--copy-faint); }
 .cp-section-label { font-family: var(--data-face); font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--copy-faint); margin: 8px 0 4px; }
 .cp-row { padding: 6px 0; border-top: 1px solid var(--edge); }
 .cp-row:first-of-type { border-top: none; }

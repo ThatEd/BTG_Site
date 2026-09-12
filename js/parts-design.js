@@ -124,7 +124,10 @@
     var reach = reachableRaces(part);
     reach.some(function (c) { if (weeksBetween(now, c.race_date) >= 6) { race = c; return true; } return false; });
     if (!race) race = reach[0] || null;
-    return { status: 'setup', focus: {}, cfd_alloc: 0, wth_alloc: 0, target_race: race ? num(race.round) : null, target_weeks: race ? designWeeksFor(part, race) : 1, weeks_elapsed: 0, extend_count: 0, aero_test: null, correlation_mod: null, actual: null, started_at: null };
+    // With no target race there is no design window to compress, so the part's
+    // own default_weeks is the reference (cost scale 1.0) — never 1 week, which
+    // would slam the multiplier into its 3.0 cap.
+    return { status: 'setup', focus: {}, cfd_alloc: 0, wth_alloc: 0, target_race: race ? num(race.round) : null, target_weeks: race ? designWeeksFor(part, race) : (num(part.default_weeks) || 1), base_design_id: null, weeks_elapsed: 0, extend_count: 0, aero_test: null, correlation_mod: null, actual: null, started_at: null };
   };
 
   /* ── helpers ───────────────────────────────────────────────────────── */
@@ -239,17 +242,20 @@
     return Math.max(MIN_DESIGN_DAYS, total - manufacturingDays(part));
   }
   function designWeeksFor(part, race) {
-    // Design length in whole weeks for the time the target race leaves after
-    // manufacturing (min 3 weeks). A race is only offered as a target when this
-    // design PLUS manufacturing genuinely fits before it (designFits).
-    return Math.max(MIN_DESIGN_DAYS / 7, Math.round(designDaysFor(part, race) / 7));
+    // Longest whole-week design that still leaves time to manufacture before the
+    // target race (min 3 weeks). Floored, never rounded: the weeks go into
+    // `weeks * 7 + manufacturing <= days`, so rounding up would need up to 3.5
+    // days that aren't there and would push almost every race out of reach.
+    return Math.max(MIN_DESIGN_DAYS / 7, Math.floor(designDaysFor(part, race) / 7));
   }
-  /** Can this part be designed (whole weeks) AND manufactured before the race? */
+  /** Can this part be designed AND manufactured before the race? Only the
+   *  shortest possible design (MIN_DESIGN_DAYS) has to fit — a race must never
+   *  be hidden from a team that could genuinely still build the part for it. */
   function designFits(part, race) {
     if (!part || !race || !todayStr()) return false;
     var days = daysBetween(todayStr(), race.race_date);
     if (days <= 0) return false;
-    return designWeeksFor(part, race) * 7 + manufacturingDays(part) <= days;
+    return MIN_DESIGN_DAYS + manufacturingDays(part) <= days;
   }
   function computeTargetWeeks(part) {
     var prog = progFor(part.part_id);
@@ -260,6 +266,9 @@
   function computeCostScale(part) {
     var prog = progFor(part.part_id);
     var target = prog.target_weeks > 0 ? prog.target_weeks : computeTargetWeeks(part);
+    // Nothing targeted (no reachable race, or no calendar): no design window is
+    // being compressed, so the part's own spec is the reference — scale 1.0.
+    if (!(target > 0)) target = num(part.default_weeks);
     return clamp(num(part.default_weeks) / Math.max(1, target), 0.3, 3.0);
   }
   /** Laps run with this part fitted (from the DB part state). Drives the
@@ -275,8 +284,10 @@
    *  2 cars ≈ 456 team-laps → ~90%, and 100% is only approached asymptotically
    *  (never within a season). */
   var KNOWLEDGE_HALF_LAPS = 50;
-  function lapsKnowledge(part) {
-    var l = Math.max(0, lapsCompleted(part));
+  /** Knowledge 0..1 from team-laps on a part — the same curve the server uses
+   *  to build the design model (50 team-laps = 50% knowledge). */
+  function knowledgeFromLaps(laps) {
+    var l = Math.max(0, num(laps));
     return l / (l + KNOWLEDGE_HALF_LAPS);
   }
   function resourceScore(cfd, wth) {
@@ -291,8 +302,8 @@
     return clamp(1.35 - (t - 9) * 0.12, 0.75, 1.35);
   }
   /** Per-part range seed, from the part's real design spec: longer manufacturing
-   *  time = a wider uncertainty band. Per-team narrowing comes from lap knowledge
-   *  (lapsKnowledge). No random/arbitrary values. */
+   *  time = a wider uncertainty band. Per-team narrowing comes from the base
+   *  design's lap knowledge (baseKnowledgeFor). No random/arbitrary values. */
   function rangeSeed(part) {
     var mfg = num(part && part.mfg_weeks);
     return mfg > 0 ? (0.6 + mfg * 0.1) : 1;
@@ -314,7 +325,7 @@
     best = mid + width / 2;
     // Lap knowledge narrows the band toward the expected value: the more laps
     // run with this part, the better we know its true performance.
-    var k = lapsKnowledge(part);
+    var k = baseKnowledgeFor(part);
     if (k > 0) { worst += (mid - worst) * k * 0.7; best -= (best - mid) * k * 0.7; }
     return { worst: clamp(worst, -10, 8), best: clamp(best, 0, 28) };
   }
@@ -464,6 +475,7 @@
       + '<div class="pd-maintab active" data-tab="design" id="tab-design">Design Parts</div>'
       + '<div class="pd-maintab" data-tab="development" id="tab-development">In Development <span id="dev-badge" class="pdo-badge" style="display:none">0</span></div>'
       + '<div class="pd-maintab" data-tab="manufacture" id="tab-manufacture">Manufacture</div>'
+      + '<div class="pd-maintab" data-tab="knowledge" id="tab-knowledge">Knowledge</div>'
       + '</div>'
       + '<div id="pd-design-view">'
       + '<div class="pd-parttabs" id="pd-parttabs"></div>'
@@ -474,6 +486,7 @@
       + '<div class="pd-pill">Design work <b id="pd-designwork">—</b></div>'
       + '<div class="pd-pill">Design cost <b id="pd-designcost">—</b></div>'
       + '<div class="pd-pill">Build cost <b id="pd-buildcost">—</b></div>'
+      + '<div class="pd-pill" id="pd-knowledge-pill">Part knowledge <b id="pd-knowledge">—</b></div>'
       + '</div></div>'
       + '<div class="pd-grid" id="pd-grid">'
       + '<div id="pd-left-col">'
@@ -494,7 +507,8 @@
       + '</div>'
       + '</div>'
       + '<div id="pd-development-view" style="display:none;"><div id="pd-dev-list"></div></div>'
-      + '<div id="pd-manufacture-view" style="display:none;"></div>';
+      + '<div id="pd-manufacture-view" style="display:none;"></div>'
+      + '<div id="pd-knowledge-view" style="display:none;"></div>';
   }
 
   /* ── renderers ─────────────────────────────────────────────────────── */
@@ -517,6 +531,7 @@
     el('tab-design').className = 'pd-maintab' + (activeMainTab === 'design' ? ' active' : '');
     el('tab-development').className = 'pd-maintab' + (activeMainTab === 'development' ? ' active' : '');
     el('tab-manufacture').className = 'pd-maintab' + (activeMainTab === 'manufacture' ? ' active' : '');
+    var knTab = el('tab-knowledge'); if (knTab) knTab.className = 'pd-maintab' + (activeMainTab === 'knowledge' ? ' active' : '');
   }
 
   function renderPartTabs() {
@@ -553,6 +568,10 @@
     el('pd-designwork').textContent = designWork.toLocaleString();
     el('pd-designcost').textContent = '$' + designCost.toLocaleString();
     el('pd-buildcost').textContent = '$' + buildCost.toLocaleString();
+    // Knowledge of the design this new part is being based on.
+    var q = knowledgeFor(part);
+    var knEl = el('pd-knowledge');
+    if (knEl) knEl.textContent = q.laps > 0 ? Math.round(q.k * 100) + '% · ' + q.laps.toLocaleString() + ' laps' : 'no laps yet';
   }
 
   function renderProgramme(part) {
@@ -581,7 +600,7 @@
       var sel = rowRace.querySelector('select');
       var reach = reachableRaces(part);
       if (!reach.length) {
-        prog.target_race = null; prog.target_weeks = 1;
+        prog.target_race = null; prog.target_weeks = num(part.default_weeks) || 1;
         rowRace.innerHTML = '<div class="pdp-row-label">Target race</div><div class="pdp-row-val">No reachable races this season</div>';
       } else {
         reach.forEach(function (r) {
@@ -595,6 +614,31 @@
         sel.addEventListener('change', function () { prog.target_race = parseInt(sel.value, 10); prog.target_weeks = computeTargetWeeks(part); renderProgramme(part); renderHeader(part); renderCarPerformance(); refreshStatDisplays(part); });
       }
       body.appendChild(rowRace);
+
+      // Which design the new part is based on: its mileage is what the team's
+      // prediction rests on (more known laps = a tighter estimated range).
+      var rowBase = document.createElement('div'); rowBase.className = 'pdp-row';
+      var baseList = designsForPart(part.part_id);
+      if (!baseList.length) {
+        rowBase.innerHTML = '<div class="pdp-row-label">Based on</div><div class="pdp-row-val kn-left">' + str(part.name) + '</div>';
+      } else {
+        rowBase.innerHTML = '<div class="pdp-row-label">Based on</div><select id="pdp-basedon"></select><div class="pdp-row-val" id="pdp-basedon-val"></div>';
+        var baseSel = rowBase.querySelector('select');
+        var curBase = baseDesignFor(part);
+        baseList.forEach(function (d) {
+          var opt = document.createElement('option');
+          opt.value = num(d.design_id);
+          opt.textContent = str(d.name) + ' · ' + num(d.laps).toLocaleString() + ' laps (' + Math.round(knowledgeFromLaps(num(d.laps)) * 100) + '%)';
+          if (curBase && num(d.design_id) === num(curBase.design_id)) opt.selected = true;
+          baseSel.appendChild(opt);
+        });
+        rowBase.querySelector('#pdp-basedon-val').textContent = curBase ? num(curBase.laps).toLocaleString() + ' laps' : '';
+        baseSel.addEventListener('change', function () {
+          prog.base_design_id = num(baseSel.value);
+          applyBaseDesign(part);
+        });
+      }
+      body.appendChild(rowBase);
 
       // Start button state — kept in sync as allocations change
       var btnStart = null;
@@ -640,7 +684,9 @@
       body.appendChild(rowNote);
 
       var costNote = document.createElement('div'); costNote.className = 'pdp-caption';
-      costNote.innerHTML = 'Design <b>' + prog.target_weeks + ' weeks</b> (min 3) · Manufacturing <b>' + manufacturingDays(part) + ' days</b> at Factory L' + factoryLevel();
+      costNote.innerHTML = prog.target_race
+        ? 'Design <b>' + prog.target_weeks + ' weeks</b> (min 3) · Manufacturing <b>' + manufacturingDays(part) + ' days</b> at Factory L' + factoryLevel()
+        : 'No target race — <b>' + (num(part.default_weeks) || 1) + '-week</b> reference design · Manufacturing <b>' + manufacturingDays(part) + ' days</b> at Factory L' + factoryLevel();
       body.appendChild(costNote);
 
       var actions = document.createElement('div'); actions.className = 'pdp-actions';
@@ -712,7 +758,6 @@
   /** Knowledge of the currently fitted parts, from laps completed with them
    *  (both cars carry identical parts, so 500 team-laps = 2 x 250 laps = full
    *  knowledge). 0 laps = no knowledge → the seeded (widest) range. */
-  var KNOWLEDGE_HALF_LAPS = 50;
   function knowledgeFactor() {
     var total = 0, count = 0;
     Object.keys(S && S.teamState || {}).forEach(function (pid) {
@@ -721,7 +766,7 @@
       if (laps > 0) { total += laps; count++; }
     });
     var laps = count ? total / count : 0;
-    return laps / (laps + KNOWLEDGE_HALF_LAPS);
+    return knowledgeFromLaps(laps);
   }
 
   /* ── Development timeline: today → design (colour 1) → manufacture
@@ -810,6 +855,89 @@
     if (!part.locked) initPartState(part);
     renderPartTabs(); renderHeader(part); renderProgramme(part); renderCategories(part); renderCarPerformance();
     syncEditButtons(part);
+  }
+
+  /* ── knowledge: what the team actually knows about each of its parts ── */
+  /** The team's designs for a part, best known first. */
+  function designsForPart(partId) {
+    return (S && S.designsList || []).filter(function (d) { return num(d.part_id) === num(partId); })
+      .sort(function (a, b) { return num(b.laps) - num(a.laps); });
+  }
+  /** The design currently on the car (from the server's fit history). */
+  function fittedDesignFor(partId) {
+    var list = designsForPart(partId);
+    var fid = num(S && S.fittedDesign && S.fittedDesign[partId]);
+    var hit = list.filter(function (d) { return num(d.design_id) === fid; })[0];
+    return hit || list[0] || null;
+  }
+  /** The design a new part is based on: the player's pick, else the fitted one. */
+  function baseDesignFor(part) {
+    var prog = progFor(part.part_id);
+    var list = designsForPart(part.part_id);
+    if (prog && prog.base_design_id) {
+      var hit = list.filter(function (d) { return num(d.design_id) === num(prog.base_design_id); })[0];
+      if (hit) return hit;
+    }
+    return fittedDesignFor(part.part_id);
+  }
+  function baseLapsFor(part) {
+    var d = baseDesignFor(part);
+    return d ? num(d.laps) : lapsCompleted(part);
+  }
+  function baseKnowledgeFor(part) { return knowledgeFromLaps(baseLapsFor(part)); }
+  /** Rebuild this part's estimate on the chosen base design: the server re-seeds
+   *  the model with that design's knowledge, so Car Performance moves at once. */
+  async function applyBaseDesign(part) {
+    var d = baseDesignFor(part);
+    var data = await api('partsDesignModel', { partId: part.part_id, baseDesignId: d ? num(d.design_id) : null });
+    if (data && data.ok && data.model && S && S.designs) S.designs[part.part_id] = data.model;
+    else if (data && !data.ok) console.error('[PartsDesign] partsDesignModel failed:', data.error);
+    renderProgramme(part); renderHeader(part); renderCarPerformance(); refreshStatDisplays(part);
+    if (activeMainTab === 'knowledge') renderKnowledgeView();
+  }
+  /** Laps + knowledge the current estimate rests on. */
+  function knowledgeFor(part) {
+    var laps = baseLapsFor(part);
+    return { laps: laps, k: knowledgeFromLaps(laps), design: baseDesignFor(part) };
+  }
+
+  function renderKnowledgeView() {
+    var wrap = el('pd-knowledge-view'); if (!wrap) return;
+    wrap.innerHTML = '';
+    var catalog = (S && S.catalog) || [];
+    var sum = 0, counted = 0;
+    catalog.forEach(function (p) { var q = knowledgeFor(p); if (q.laps > 0) { sum += q.k; counted++; } });
+    var avg = counted ? sum / counted : 0;
+
+    var intro = document.createElement('div'); intro.className = 'pd-programme';
+    intro.innerHTML = '<div class="pdp-head"><h3>Part knowledge</h3>' + (counted ? '<span class="pdp-stage live">' + Math.round(avg * 100) + '% average</span>' : '') + '</div>';
+    wrap.appendChild(intro);
+
+    var grid = document.createElement('div'); grid.className = 'pd-mfg-grid';
+    catalog.forEach(function (p) {
+      var ico = partIcon(p.part_id);
+      var designs = designsForPart(p.part_id).slice().sort(function (a, b) { return num(a.design_id) - num(b.design_id); });
+      var card = document.createElement('div'); card.className = 'pd-mfg-card';
+      var html = '<div class="pd-mfg-card-head">'
+        + (ico ? '<span class="pd-mfg-ico"><img src="' + ico + '" alt=""></span>' : '')
+        + '<span class="pd-mfg-name">' + str(p.name) + '</span></div>';
+      if (designs.length) {
+        html += '<div class="pd-kn-designs">'
+          + '<div class="pdp-row head"><div class="pdp-row-label">Design</div><div class="pdp-row-val">Laps</div><div class="pdp-row-val">Knowledge</div></div>';
+        designs.forEach(function (d) {
+          var laps = num(d.laps);
+          html += '<div class="pdp-row"><div class="pdp-row-label">' + (str(d.name) || ('Design #' + num(d.design_id))) + '</div>'
+            + '<div class="pdp-row-val">' + laps.toLocaleString() + '</div>'
+            + '<div class="pdp-row-val">' + Math.round(knowledgeFromLaps(laps) * 100) + '%</div></div>';
+        });
+        html += '</div>';
+      } else {
+        html += '<div class="muted">No designs yet.</div>';
+      }
+      card.innerHTML = html;
+      grid.appendChild(card);
+    });
+    wrap.appendChild(grid);
   }
 
   function initPartState(part) {
@@ -1312,6 +1440,7 @@
     updateResourceUsage();
     renderTopbar(); renderMainTabs(); renderPartTabs();
     el('pd-manufacture-view').style.display = activeMainTab === 'manufacture' ? '' : 'none';
+    el('pd-knowledge-view').style.display = activeMainTab === 'knowledge' ? '' : 'none';
     if (activeMainTab === 'design') {
       el('pd-design-view').style.display = '';
       el('pd-development-view').style.display = 'none';
@@ -1323,6 +1452,10 @@
       el('pd-design-view').style.display = 'none';
       el('pd-development-view').style.display = 'none';
       renderManufactureView();
+    } else if (activeMainTab === 'knowledge') {
+      el('pd-design-view').style.display = 'none';
+      el('pd-development-view').style.display = 'none';
+      renderKnowledgeView();
     } else {
       el('pd-design-view').style.display = 'none';
       el('pd-development-view').style.display = '';
@@ -1346,7 +1479,7 @@
     var cfd = cfdEl ? parseInt(cfdEl.value, 10) : num(prog.cfd_alloc);
     var wth = wthEl ? parseInt(wthEl.value, 10) : num(prog.wth_alloc);
     var targetRace = raceEl ? parseInt(raceEl.value, 10) : num(prog.target_race);
-    var data = await api('partsCommit', { partId: partId, focus: focusState, cfd: cfd, wth: wth, targetRace: targetRace, note: prog.note || '' });
+    var data = await api('partsCommit', { partId: partId, focus: focusState, cfd: cfd, wth: wth, targetRace: targetRace, baseDesignId: prog.base_design_id || null, note: prog.note || '' });
     if (data.ok) {
       await reload(); renderAll();
       await alertModal('Development started. Design cost: <b>$' + Number(data.designCost).toLocaleString() + '</b>.', 'Development started');
@@ -1436,6 +1569,7 @@
     el('btn-commit').addEventListener('click', function () {
       var part = partById(activePartId); if (part && !part.locked) doCommit(part.part_id);
     });
+    el('tab-knowledge').addEventListener('click', function () { selectMainTab('knowledge'); });
 
     var data = await reload();
     if (!data.ok) {
