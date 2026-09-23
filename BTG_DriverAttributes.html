@@ -216,6 +216,23 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 .season-cal-marks{display:flex; flex-wrap:wrap; gap:2px; margin-top:4px;}
 .season-cal-mark{display:block; width:100%; height:4px; border-radius:2px; opacity:.5;}
 .season-cal-mark.race-day{height:7px; opacity:1;}
+/* Per-series league dates (the season clock is per series) */
+.season-series-dates{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;}
+.season-series-date{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--edge); border-radius:6px; background:var(--card); padding:5px 9px; font-size:12px; color:var(--copy-soft);}
+.season-series-date.primary{border-color:var(--moss);}
+.season-series-date__name{font-weight:700; color:var(--copy);}
+.season-series-date__date{font-family:var(--data-face); font-size:11px; color:var(--copy-soft);}
+.season-series-date__tag{font-family:var(--data-face); font-size:9px; text-transform:uppercase; letter-spacing:.06em; color:var(--copy-faint);}
+.season-series-date.primary .season-series-date__tag{color:var(--moss);}
+
+/* Per-driver DNF / DSQ controls in the post-race penalties tool */
+.pp-quick{display:inline-flex; gap:4px; margin-left:10px; flex:0 0 auto;}
+.pp-quick-btn{background:var(--ink); color:var(--copy-soft); border:1px solid var(--edge); border-radius:4px; font-family:var(--data-face); font-size:10px; font-weight:600; letter-spacing:.04em; padding:2px 7px; cursor:pointer;}
+.pp-quick-btn:hover{border-color:var(--team-accent); color:var(--copy);}
+.pp-quick-btn.pp-dsq:hover{border-color:#f87171; color:#f87171;}
+.pp-quick-btn.pp-dnf:hover{border-color:#fbbf24; color:#fbbf24;}
+.pp-row-armed{background:rgba(255,255,255,0.04); box-shadow:inset 2px 0 0 var(--team-accent);}
+.pp-armed{box-shadow:0 0 0 2px var(--team-accent);}
 
 /* Season weekend panel */
 .season-cal-layout{display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap;}
@@ -718,7 +735,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 
     <div class="tool-card">
       <h3>Create series runner</h3>
-      <p class="muted" style="margin-bottom:12px;">A SeriesRunner account can only add race results and edit the calendar for the one series you pick here.</p>
+      <p class="muted" style="margin-bottom:12px;">A SeriesRunner account runs ONE series: it can add/remove races on that series' calendar, move that series' clock, import its race results, apply post-race penalties and rebuild the public cache. Everything else stays admin-only.</p>
       <div class="field-row">
         <div class="field">
           <label for="sr-username">Username</label>
@@ -739,6 +756,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
         </div>
         <button class="action action-compact" id="create-sr-btn"><span>Create Runner</span></button>
       </div>
+      <div class="season-series-dates" id="sr-existing" style="margin-top:2px;"></div>
       <div class="result-line" id="create-sr-result"></div>
     </div>
 
@@ -886,7 +904,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 
     <div class="tool-card" id="pp-card">
       <h3>Post-race penalties</h3>
-      <p class="muted" style="margin-bottom:12px;">Apply stewards' decisions after a race. Every entry is recorded into the DB (<code>race_penalties</code>) as a marker; use <b>Apply</b> to also change the stored results. Penalties: <b>+seconds</b> (time added to the driver's total, finishing order re-sorted &amp; renumbered), <b>DSQ</b> (dropped to the back, 0 pts, status DSQ), <b>Grid</b> (marks a grid drop earned at this race in <code>race_grid_penalties</code>).</p>
+      <p class="muted" style="margin-bottom:12px;">Apply stewards' decisions and retirements after a race. Every entry is recorded into the DB (<code>race_penalties</code>) as a marker; use <b>Apply</b> to also change the stored results. Penalties: <b>+seconds</b> (time added to the driver's total, finishing order re-sorted &amp; renumbered), <b>DNF</b> (did not finish — flagged dnf/DNF, 0 pts, dropped to the back with the other retirements), <b>DSQ</b> (dropped to the back, 0 pts, status DSQ), <b>Grid</b> (marks a grid drop earned at this race in <code>race_grid_penalties</code>). DNF and DSQ never score, in every points schema. The <b>DNF</b>/<b>DSQ</b> buttons on each finishing-order row arm that outcome for the driver, then use Apply or “Add marker only”.</p>
       <div class="field-row">
         <div class="field" style="max-width:180px;">
           <label for="pp-series">Series</label>
@@ -1188,8 +1206,9 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
       <div class="field-row">
         <label for="season-series-select" style="width:auto; min-width:0;">Series</label>
         <select id="season-series-select" style="max-width:180px;"></select>
-        <div class="readout"><div class="value" id="season-current-date">—</div><div class="caption">Current date</div></div>
+        <div class="readout"><div class="value" id="season-current-date">—</div><div class="caption" id="season-current-caption">Current date</div></div>
       </div>
+      <div class="season-series-dates" id="season-series-dates"></div>
       <div class="field-row" id="season-clock-controls">
         <button class="action" id="season-next-day-btn"><span>Next day</span></button>
         <button class="action" id="season-next-week-btn"><span>Next week</span></button>
@@ -2830,16 +2849,24 @@ function seriesRunnerSeries() {
   return (CURRENT_USER && CURRENT_USER.role === 'seriesrunner') ? String(CURRENT_USER.series || (DASH && DASH.series) || '') : '';
 }
 
-/* SeriesRunner: hide admin-only season controls and lock every series picker
- * to the runner's series. */
+/* SeriesRunner: hide the LEAGUE-wide controls, keep the runner's own series
+ * clock controls, and lock every series picker to the runner's series. */
 function applySeriesRunnerMode() {
   const isRunner = CURRENT_USER && CURRENT_USER.role === 'seriesrunner';
   const series = isRunner ? seriesRunnerSeries() : '';
-  ['season-clock-controls', 'season-set-date-btn', 'season-clock-card', 'season-advance-card', 'pts-schema-card'].forEach(function (id) {
+  // League-wide only — the auto clock (real date → race easing), the month
+  // advance (it pays every series' salaries) and the points schema.
+  ['season-clock-card', 'season-advance-card', 'pts-schema-card'].forEach(function (id) {
     const el = document.getElementById(id);
     if (el) el.style.display = isRunner ? 'none' : '';
   });
-  ['season-series-select', 'clock-series-select', 'rd-series-select', 'imp-series-select'].forEach(function (id) {
+  // The runner DOES run their own series' clock: next day / week / next race and
+  // "set date". The backend forces the series and rejects 'ALL' for runners.
+  ['season-clock-controls', 'season-set-date-btn'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = '';
+  });
+  ['season-series-select', 'clock-series-select', 'rd-series-select', 'imp-series-select', 'pp-series'].forEach(function (id) {
     const el = document.getElementById(id);
     if (!el) return;
     if (isRunner && series) {
@@ -2859,6 +2886,17 @@ function applySeriesRunnerMode() {
         RD.races = rows;
         if (typeof rdPopulateRaces === 'function') rdPopulateRaces();
         if (typeof rdRenderFields === 'function') rdRenderFields();
+      });
+    }
+    // Same for the post-race penalties tool: its series picker is disabled.
+    if (typeof ppPopulateSeries === 'function') ppPopulateSeries();
+    const ppSel = document.getElementById('pp-series');
+    if (ppSel) ppSel.value = series;
+    PP.series = series;
+    if (typeof ppFetchRaces === 'function') {
+      ppFetchRaces(series).then(function (rows) {
+        PP.races = rows;
+        if (typeof ppPopulateRaces === 'function') ppPopulateRaces();
       });
     }
   }
@@ -2904,6 +2942,7 @@ function onLoginSuccess(data) {
     MAIL_FILTER = 'BTG Officials';
     document.getElementById('driver-select-wrap').classList.remove('hidden');
     populateAdminDropdowns();
+    renderSeriesRunners();
   } else if (data.role === 'tp') {
     setStatus('driver', 'Team Principal — ' + data.username);
     document.getElementById('driver-select-wrap').classList.add('hidden');
@@ -3100,6 +3139,19 @@ function renderResetUserSelect(filter) {
   const search = document.getElementById('reset-user-search');
   if (search) search.addEventListener('input', function () { renderResetUserSelect(search.value); });
 })();
+
+/** Admin roster: the series runner accounts that already exist (one per series). */
+function renderSeriesRunners() {
+  const el = document.getElementById('sr-existing');
+  if (!el) return;
+  const runners = ((DASH && DASH.accounts) || []).filter(function (a) { return a.role === 'seriesrunner'; })
+    .sort(function (a, b) { return String(a.series || '').localeCompare(String(b.series || '')) || String(a.username).localeCompare(String(b.username)); });
+  if (!runners.length) { el.innerHTML = '<span class="season-series-date"><span class="season-series-date__name">No series runner accounts yet</span></span>'; return; }
+  el.innerHTML = runners.map(function (r) {
+    return '<span class="season-series-date"><span class="season-series-date__name">' + BTG.esc(r.username) + '</span>'
+      + '<span class="season-series-date__tag">' + BTG.esc(String(r.series || '').toUpperCase() || 'no series') + '</span></span>';
+  }).join('');
+}
 
 /* ── admin: team logo picker (site-wide) ────────────────────────────────
    The logo library auto-populates from the server (/api/team-logos) with a
@@ -3963,8 +4015,17 @@ function ppPopulateRaces() {
 function ppTypeLabel(t) {
   if (t === 'time') return 'Time penalty';
   if (t === 'dsq') return 'DSQ';
+  if (t === 'dnf') return 'DNF';
   if (t === 'grid') return 'Grid penalty';
   return t;
+}
+/** Colour for a result status; null = render as finished. */
+function ppStatusColor(s) {
+  var st = String(s || '').toUpperCase();
+  if (!st || st === 'FINISHED') return null;
+  if (st === 'DSQ' || st === 'EXCLUDED') return '#f87171';
+  if (st === 'DNF' || st === 'DNS' || st === 'RETIRED') return '#fbbf24';
+  return '#f87171';
 }
 function ppFmtTime(v) {
   if (v == null || v === '') return '—';
@@ -3983,6 +4044,7 @@ function ppRenderControls(container) {
     + '<div class="field" style="min-width:200px;"><label for="pp-driver">Driver</label><select id="pp-driver">' + driverOpts + '</select></div>'
     + '<div class="field" style="max-width:190px;"><label for="pp-type">Type</label><select id="pp-type">'
     + '<option value="time">Time penalty (+ seconds)</option>'
+    + '<option value="dnf">Did not finish (DNF)</option>'
     + '<option value="dsq">Disqualify (DSQ)</option>'
     + '<option value="grid">Grid penalty (places, next race)</option>'
     + '</select></div>'
@@ -4000,7 +4062,7 @@ function ppRenderControls(container) {
   var valField = document.getElementById('pp-valfield');
   function syncVal() {
     var t = typeSel.value;
-    if (t === 'dsq') { valField.style.display = 'none'; }
+    if (t === 'dsq' || t === 'dnf') { valField.style.display = 'none'; }
     else { valField.style.display = ''; var lab = valField.querySelector('label'); if (lab) lab.textContent = (t === 'time' ? 'Seconds' : 'Places'); }
   }
   typeSel.addEventListener('change', syncVal);
@@ -4026,6 +4088,28 @@ function ppRenderPenaltyList(container) {
     + '</div>';
   container.insertAdjacentHTML('beforeend', html);
 }
+/** Arm the penalty form for one driver + outcome. The DNF/DSQ buttons in the
+ *  finishing order only pre-fill the picks — the explicit Apply button still
+ *  performs the change, so a stray click can never rewrite a result. */
+function ppQuickSet(driver, type) {
+  var dSel = document.getElementById('pp-driver');
+  var tSel = document.getElementById('pp-type');
+  if (!dSel || !tSel) return;
+  dSel.value = driver;
+  tSel.value = type;
+  tSel.dispatchEvent(new Event('change'));
+  var row = document.querySelector('.tx-row[data-pp-driver="' + String(driver).replace(/"/g, '\\"') + '"]');
+  document.querySelectorAll('.pp-row-armed').forEach(function (r) { r.classList.remove('pp-row-armed'); });
+  if (row) row.classList.add('pp-row-armed');
+  var apply = document.getElementById('pp-apply');
+  if (apply) {
+    apply.classList.add('pp-armed');
+    setTimeout(function () { apply.classList.remove('pp-armed'); }, 1800);
+  }
+  var reason = document.getElementById('pp-reason');
+  if (reason) reason.focus();
+  showResult(document.getElementById('pp-result'), true, '✓ Armed: ' + (type === 'dnf' ? 'DNF' : 'DSQ') + ' for ' + driver + ' — press "Apply & change results" (add a reason first if you have one).');
+}
 function ppRenderBody() {
   var body = document.getElementById('pp-body');
   if (!body) return;
@@ -4034,13 +4118,27 @@ function ppRenderBody() {
   body.innerHTML = '';
   var orderRows = PP.results.slice().sort(function (a, b) { return Number(a.finish_position || 99) - Number(b.finish_position || 99); })
     .map(function (r) {
-      return '<div class="tx-row"><span class="tx-label">P' + (r.finish_position != null ? r.finish_position : '—') + ' · ' + BTG.esc(r.driver_name)
-        + (r.status && r.status !== 'Finished' ? ' · <span style="color:#f87171;">' + BTG.esc(r.status) + '</span>' : '') + '</span>'
-        + '<span class="tx-amt">' + ppFmtTime(r.time_or_gap) + '</span></div>';
+      var col = ppStatusColor(r.status);
+      var st = (r.status && String(r.status).toUpperCase() !== 'FINISHED')
+        ? ' · <span style="color:' + (col || '#f87171') + ';font-weight:600;">' + BTG.esc(r.status) + '</span>' : '';
+      // A driver already flagged DNF/DSQ can still be re-flagged (e.g. DNF → DSQ).
+      var armed = String(r.status || '').toUpperCase() === 'DSQ' ? 'dsq' : (String(r.status || '').toUpperCase() === 'DNF' ? 'dnf' : '');
+      var buttons = '<span class="pp-quick">'
+        + '<button type="button" class="pp-quick-btn pp-dnf" data-pp-driver="' + BTG.esc(r.driver_name) + '" data-pp-type="dnf"' + (armed === 'dnf' ? ' style="border-color:#fbbf24;color:#fbbf24;"' : '') + ' title="Mark as did not finish (adjusts results when applied)">DNF</button>'
+        + '<button type="button" class="pp-quick-btn pp-dsq" data-pp-driver="' + BTG.esc(r.driver_name) + '" data-pp-type="dsq"' + (armed === 'dsq' ? ' style="border-color:#f87171;color:#f87171;"' : '') + ' title="Disqualify (adjusts results when applied)">DSQ</button>'
+        + '</span>';
+      return '<div class="tx-row" data-pp-driver="' + BTG.esc(r.driver_name) + '">'
+        + '<span class="tx-label">P' + (r.finish_position != null ? r.finish_position : '—') + ' · ' + BTG.esc(r.driver_name) + st + '</span>'
+        + '<span class="tx-amt">' + ppFmtTime(r.time_or_gap) + '</span>' + buttons + '</div>';
     }).join('');
-  body.insertAdjacentHTML('beforeend', '<h4 style="margin:0 0 4px;font-size:13px;">Finishing order (' + PP.results.length + ')</h4>' + orderRows);
+  body.insertAdjacentHTML('beforeend', '<h4 style="margin:0 0 4px;font-size:13px;">Finishing order (' + PP.results.length + ')</h4>'
+    + '<div class="muted" style="font-size:11px;margin-bottom:4px;">DNF / DSQ arm the outcome for that driver — then use "Apply &amp; change results" (adds the classification change) or "Add marker only" (records it without touching the results).</div>'
+    + orderRows);
   ppRenderControls(body);
   ppRenderPenaltyList(body);
+  body.querySelectorAll('.pp-quick-btn').forEach(function (b) {
+    b.addEventListener('click', function () { ppQuickSet(b.getAttribute('data-pp-driver'), b.getAttribute('data-pp-type')); });
+  });
 }
 async function ppLoad() {
   var raceSel = document.getElementById('pp-race');
@@ -4071,7 +4169,7 @@ async function ppSubmit(apply) {
   };
   if (type === 'time') payload.seconds = Number(document.getElementById('pp-val').value) || 0;
   if (type === 'grid') payload.places = Number(document.getElementById('pp-val').value) || 0;
-  if (type !== 'dsq' && !((type === 'time' ? payload.seconds : payload.places) > 0)) {
+  if (type !== 'dsq' && type !== 'dnf' && !((type === 'time' ? payload.seconds : payload.places) > 0)) {
     showResult(resEl, false, '✗ Enter a valid amount.'); return;
   }
   var btn = apply ? document.getElementById('pp-apply') : document.getElementById('pp-marker');
@@ -4385,6 +4483,12 @@ document.getElementById('create-sr-btn').addEventListener('click', async () => {
       showResult(resultEl, true, '✓ SeriesRunner ' + newUsername + ' created for ' + data.series + '.');
       document.getElementById('sr-username').value = '';
       document.getElementById('sr-password').value = '';
+      if (DASH) {
+        DASH.accounts = (DASH.accounts || []).filter(function (a) { return a.username !== newUsername; });
+        DASH.accounts.push({ username: newUsername, role: 'seriesrunner', name: '', driver: '', tpId: null, series: data.series });
+        renderResetUserSelect(document.getElementById('reset-user-search') ? document.getElementById('reset-user-search').value : '');
+      }
+      renderSeriesRunners();
     } else {
       showResult(resultEl, false, '✗ ' + data.error);
     }
@@ -6505,8 +6609,17 @@ function seasonState() {
   if (SEASON_CAL.series !== 'ALL') return SEASON_CAL.states[SEASON_CAL.series] || null;
   const keys = Object.keys(SEASON_CAL.states);
   if (!keys.length) return null;
+  // "All" = the shared league clock. That is the reference row (app_state id 1),
+  // flagged primary by the backend — NOT whichever series happens to be first in
+  // the table. Falls back to the first synced series, then to any row.
+  const primary = keys.filter(function (k) { return SEASON_CAL.states[k].primary; });
+  if (primary.length) return SEASON_CAL.states[primary[0]];
   const synced = keys.filter(function (k) { return SEASON_CAL.states[k].synced !== false; });
   return SEASON_CAL.states[synced[0] || keys[0]];
+}
+function seriesDisplayName(id) {
+  const s = (SEASON_CAL.seriesList || []).filter(function (x) { return x.id === id; })[0];
+  return (s && (s.name || s.id)) || id;
 }
 function renderSeasonControls() {
   const sel = document.getElementById('season-series-select');
@@ -6518,7 +6631,23 @@ function renderSeasonControls() {
   }
   const st = seasonState();
   document.getElementById('season-current-date').textContent = st ? st.date : '—';
+  const cap = document.getElementById('season-current-caption');
+  if (cap) cap.textContent = SEASON_CAL.series === 'ALL' ? 'League date' : 'Current date';
   document.getElementById('season-selected-date').textContent = SEASON_CAL.selected || '—';
+  // Every series runs its own clock — show all of them so "All" is unambiguous.
+  const listEl = document.getElementById('season-series-dates');
+  if (listEl) {
+    const ids = (SEASON_CAL.seriesList || []).map(function (s) { return s.id; });
+    Object.keys(SEASON_CAL.states).forEach(function (k) { if (ids.indexOf(k) === -1) ids.push(k); });
+    listEl.innerHTML = ids.length ? ids.map(function (k) {
+      const s = SEASON_CAL.states[k] || null;
+      const tag = !s ? 'no date yet' : (s.primary ? 'league clock' : (s.synced === false ? 'own date' : 'follows league'));
+      return '<div class="season-series-date' + (s && s.primary ? ' primary' : '') + '">'
+        + '<span class="season-series-date__name">' + BTG.esc(seriesDisplayName(k)) + '</span>'
+        + '<span class="season-series-date__date">' + BTG.esc(s ? s.date : '—') + '</span>'
+        + '<span class="season-series-date__tag">' + tag + '</span></div>';
+    }).join('') : '<div class="season-series-date"><span class="season-series-date__name">No series clocks yet</span></div>';
+  }
 }
 function renderSeasonCalendar() {
   const el = document.getElementById('season-calendar');
@@ -7025,6 +7154,8 @@ async function sendChatMessage() {
 function startLive() {
   stopLive();
   if (!CURRENT_USER) return;
+  // Series runners have no mailbox or team chat — nothing to poll.
+  if (CURRENT_USER.role === 'seriesrunner') return;
   MAIL_MAX_ID = mailMaxIdFrom(DASH && DASH.mail);
   MAIL_POLL_INTERVAL = setInterval(pollMailOnce, 8000);
   pollMailOnce();
