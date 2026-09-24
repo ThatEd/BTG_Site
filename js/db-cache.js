@@ -134,6 +134,105 @@
     return set;
   }
 
+  /* ── Car / seat order ────────────────────────────────────────────────────
+     `Contracts.seat` is the league's source of truth for who is in which car:
+     1-2 = the race cars (car 1 = seat 1), 3+ = reserve/junior/affiliate seats.
+     It reaches the site as `driver_cars` in the cache; older caches (and
+     non-F1 entries) fall back to the game's own car order, which the `team_staff`
+     driver rows carry as `pos_in_team`.
+
+     Every page that lists a team's drivers uses these helpers so car 1 is
+     always shown first instead of whatever order the source happened to have
+     (contract creation order, alphabetical, OVR, …). */
+
+  // Name key for matching a driver across sources: lower-case, diacritics
+  // stripped, middle names dropped ("Lily Wiśniewska" == "Lily Wisniewska",
+  // "Michiii MaraDöner" == "Michiii Maradoener", "Theo Rafael Amaro" ==
+  // "Theo Amaro"). The race data, the Contracts table and the roster each
+  // spell some names differently, so the key must be accent-insensitive.
+  function nameKey(v) {
+    var s = str(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    s = s.replace(/ø/g, 'o').replace(/ł/g, 'l').replace(/đ/g, 'd').replace(/æ/g, 'ae').replace(/ß/g, 'ss');
+    var parts = s.replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim().split(' ');
+    if (!parts.length || !parts[0]) return '';
+    return parts.length <= 2 ? parts.join(' ') : parts[0] + ' ' + parts[parts.length - 1];
+  }
+
+  // Driver name from whatever shape a page holds: a plain string, a cache
+  // driver row, a contract_history row, or a teams-page {first_name,last_name}.
+  function driverLabel(x) {
+    if (x == null) return '';
+    if (typeof x === 'string') return x;
+    var nm = x.fullName || x.name || x.driver_name || x.entity_name;
+    if (!nm) nm = (str(x.first_name) + ' ' + str(x.last_name)).trim();
+    return str(nm);
+  }
+
+  // driver key -> [{ seat, from, till }] (seat 1 = car 1).
+  function seatRowsByName() {
+    var map = {};
+    function add(nm, seat, from, till, rank) {
+      var k = nameKey(nm);
+      if (!k || !(seat >= 1)) return;
+      (map[k] = map[k] || []).push({ seat: seat, from: from, till: till, rank: rank });
+    }
+    // 1) League contracts (authoritative).
+    (D && D.driver_cars || []).forEach(function (c) {
+      add(c.driver_name, num(c.seat),
+        c.from_year == null || c.from_year === '' ? null : num(c.from_year),
+        c.till_year == null || c.till_year === '' ? null : num(c.till_year), 0);
+    });
+    // 2) Fallback: the game's car position for the team's drivers.
+    (D && D.team_staff || []).forEach(function (s) {
+      if (str(s.role_label) !== 'Driver') return;
+      var nm = (str(s.first_name) + ' ' + str(s.last_name)).trim();
+      if (nameKey(nm) && map[nameKey(nm)]) return;   // contract seat already known
+      add(nm, num(s.pos_in_team), null, null, 1);
+    });
+    return map;
+  }
+
+  /** Car/seat number for a driver (1 = car 1). `year` picks the contract row
+   *  whose window covers that season — the tightest window wins, so a one-year
+   *  deal beats a longer future deal that also spans the season. */
+  function carSeat(name, year) {
+    var rows = seatRowsByName()[nameKey(driverLabel(name))];
+    if (!rows || !rows.length) return null;
+    var y = year == null || year === '' ? null : Number(year);
+    var pool = rows.filter(function (r) {
+      if (y == null) return true;
+      return (r.from == null || r.from <= y) && (r.till == null || r.till >= y);
+    });
+    if (!pool.length) pool = rows;
+    pool = pool.slice().sort(function (a, b) {
+      if (a.rank !== b.rank) return a.rank - b.rank;
+      var wa = a.till == null || a.from == null ? Infinity : a.till - a.from;
+      var wb = b.till == null || b.from == null ? Infinity : b.till - b.from;
+      if (wa !== wb) return wa - wb;
+      if (a.seat !== b.seat) return a.seat - b.seat;
+      return 0;
+    });
+    return pool[0].seat;
+  }
+
+  /** Comparator that orders a team's drivers by car: seat 1, seat 2, then the
+   *  reserve/junior seats, then anything without a seat (by name). */
+  function byCarOrder(year) {
+    return function (a, b) {
+      var la = driverLabel(a), lb = driverLabel(b);
+      var sa = carSeat(la, year), sb = carSeat(lb, year);
+      if (sa == null && sb == null) { }
+      else if (sa == null) return 1;
+      else if (sb == null) return -1;
+      else if (sa !== sb) return sa - sb;
+      var na = nameKey(la), nb = nameKey(lb);
+      return na < nb ? -1 : na > nb ? 1 : 0;
+    };
+  }
+
+  /** Sort a list of driver objects/names into car order (returns a new array). */
+  function sortByCar(list, year) { return (list || []).slice().sort(byCarOrder(year)); }
+
   // Whole-career favorite circuit + favored track type for a driver, computed
   // over EVERY race the cache has them in (all seasons/series). DNS/DSQ races
   // are ignored completely — as if the driver never raced there.
@@ -782,6 +881,9 @@
     getCarPerformance: getCarPerformance,
     getTeamStandings: getTeamStandings,
     buildDriverList: buildDriverList,
+    carSeat: carSeat,
+    byCarOrder: byCarOrder,
+    sortByCar: sortByCar,
     teamName: teamName,
     teamIdentity: teamIdentity,
     teamFullName: teamFullName,

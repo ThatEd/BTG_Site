@@ -885,7 +885,13 @@ function groupDriversBySeries() {
       .sort((a, b) => {
         const ia = orderIdx[a.teamKey] != null ? orderIdx[a.teamKey] : 99;
         const ib = orderIdx[b.teamKey] != null ? orderIdx[b.teamKey] : 99;
-        return ia - ib || a.name.localeCompare(b.name);
+        if (ia !== ib) return ia - ib;
+        // Inside a team the car 1 driver always comes first (Contract seat).
+        if (window.BTG && BTG.DBCache && BTG.DBCache.byCarOrder) {
+          const carCmp = BTG.DBCache.byCarOrder(null)(a, b);
+          if (carCmp) return carCmp;
+        }
+        return a.name.localeCompare(b.name);
       });
   });
 }

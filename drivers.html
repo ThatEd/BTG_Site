@@ -407,6 +407,11 @@ body::before {
       .sort(function(a,b) {
         var ta = a.teamOrder != null ? a.teamOrder : 99, tb = b.teamOrder != null ? b.teamOrder : 99;
         if (ta !== tb) return ta - tb;
+        // Inside a team: car 1, then car 2 (Contract seat), never OVR/name.
+        if (BTG.DBCache && BTG.DBCache.byCarOrder) {
+          var carCmp = BTG.DBCache.byCarOrder(activeSeason)(a, b);
+          if (carCmp) return carCmp;
+        }
         return (b.ovr||0)-(a.ovr||0) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
       });
   }

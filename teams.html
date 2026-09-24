@@ -673,7 +673,12 @@ body::before {
         contract_end_season: e.endSeason != null ? num(e.endSeason) : null,
         number: e.number != null ? num(e.number) : null
       };
-    }).slice(0, 4); // up to 4 drivers per team, per DB rules
+    });
+    // Car order: seat 1 (car 1) first, then seat 2, then reserve/junior seats.
+    // Without this the lineup followed contract-creation order, so the car 2
+    // driver was listed first for teams whose second seat was signed earlier.
+    if (BTG.DBCache && BTG.DBCache.sortByCar) drivers = BTG.DBCache.sortByCar(drivers, activeSeason);
+    drivers = drivers.slice(0, 4); // up to 4 drivers per team, per DB rules
 
     var raceEng = {};
     staff.filter(function (s) { return str(s.role_label) === 'Race Engineer'; }).forEach(function (s) {

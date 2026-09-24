@@ -24,7 +24,7 @@
          season_driver_standings, season_team_standings,
          series_points, series_bonus_points,
          race_car_performance, team_engine_history, team_staff,
-         team_part_stats, contract_history }
+         team_part_stats, contract_history, driver_cars }
    ═══════════════════════════════════════════════════════════════════════════ */
 
 'use strict';
@@ -61,7 +61,10 @@ const TABLES = [
   ['team_engine_history', 'team_engine_history'],
   ['team_staff', 'team_staff'],
   ['team_part_stats', 'team_part_stats'],
-  ['contract_history', 'contract_history']
+  ['contract_history', 'contract_history'],
+  // Car/seat map (Contracts.seat: 1-2 = race cars). Only the edge snapshot
+  // serves this key — the anon read 404s and the fallback fills it in.
+  ['driver_cars', 'driver_cars']
 ];
 
 // Output location: the site root. Local layout is `scripts/../Site DB`; in the

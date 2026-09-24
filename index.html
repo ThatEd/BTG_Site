@@ -111,10 +111,10 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
 .home-qs__label { color: var(--text-muted); width: 56px; flex-shrink: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
 .home-qs__val { font-weight: 600; color: var(--text-primary); }
 .home-cal-dots { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-.home-cal-dot { width: 22px; height: 14px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; }
+.home-cal-dot { position: relative; display: block; width: 22px; height: 17px; line-height: 0; border-radius: 2px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; }
 .home-cal-dot--done { border-color: rgba(52,211,153,0.5); box-shadow: inset 0 0 0 1px rgba(52,211,153,0.3); }
 .home-cal-dot--next { border-color: var(--accent); box-shadow: 0 0 8px rgba(185,29,46,0.5); }
-.home-cal-dot img { width: 100%; height: 100%; object-fit: cover; }
+.home-cal-dot img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
 /* Fights charts */
 .home-fights { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
@@ -870,7 +870,10 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     var tw = [];
     Object.keys(byTeam).forEach(function (tid) {
       var t = byTeam[tid];
+      // Car 1 on the left, car 2 on the right (Contract seat order), not
+      // whatever order the results happened to arrive in.
       var names = Object.keys(t.drivers);
+      if (names.length > 1 && BTG.DBCache && BTG.DBCache.sortByCar) names = BTG.DBCache.sortByCar(names, activeSeason);
       if (names.length < 2) return;
       for (var i = 0; i < names.length; i++) {
         for (var j = i + 1; j < names.length; j++) {

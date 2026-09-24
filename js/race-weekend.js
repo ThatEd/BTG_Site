@@ -95,6 +95,9 @@ window.BTG = window.BTG || {};
   function formatGapToPole(poleTime, driverTime) {
     if (!Number.isFinite(poleTime) || !Number.isFinite(driverTime) || driverTime <= 0) return "—";
     var gap = driverTime - poleTime;
+    // A lap faster than pole can only be a leftover time from another session
+    // (see the session-aware quali load) — never label it as pole.
+    if (gap < -0.0005) return "—";
     if (gap <= 0.0005) return "Pole";
     return "+" + gap.toFixed(3) + "s";
   }
@@ -509,7 +512,13 @@ window.BTG = window.BTG || {};
       .sort(function (a, b) { return (a.finishingPos || 99) - (b.finishingPos || 99); });
     state.qualiQ1 = []; state.qualiQ2 = []; state.qualiQ3 = [];
     // League export: one row per driver, all three times on it; `session` is the
-    // highest session reached (Q1/Q2/Q3). Build the per-session grids from it.
+    // most recent session the driver reached (Q1/Q2/Q3) — that is the session
+    // the grids and the "Gap to Pole" column must be built from.
+    //
+    // A row can also carry a leftover time for a session the driver never took
+    // part in (stale data from another qualifying run). Those must be ignored:
+    // a Q2-eliminated driver holding a stray Q3 time would otherwise be
+    // measured against the Q3 pole and show a nonsense negative gap.
     var quals = (cache.race_qualifying || []).filter(function (q) { return String(q.race_id) === String(raceId); });
     var makeQualRow = function (q, time) {
       return {
@@ -521,10 +530,23 @@ window.BTG = window.BTG || {};
         Laps: 0
       };
     };
+    // Last session reached: the `session` label, else the latest session with a
+    // time (AMS/legacy exports don't always carry the label).
+    var qualSessionRank = function (q) {
+      var s = String(q.session == null ? '' : q.session).trim().toUpperCase();
+      if (s === 'Q3' || s === '3') return 3;
+      if (s === 'Q2' || s === '2') return 2;
+      if (s === 'Q1' || s === '1') return 1;
+      if (Number(q.q3_time_seconds) > 0) return 3;
+      if (Number(q.q2_time_seconds) > 0) return 2;
+      return 1;
+    };
     quals.forEach(function (q) {
-      if (q.q1_time_seconds != null && Number(q.q1_time_seconds) > 0) state.qualiQ1.push(makeQualRow(q, q.q1_time_seconds));
-      if (q.q2_time_seconds != null && Number(q.q2_time_seconds) > 0) state.qualiQ2.push(makeQualRow(q, q.q2_time_seconds));
-      if (q.q3_time_seconds != null && Number(q.q3_time_seconds) > 0) state.qualiQ3.push(makeQualRow(q, q.q3_time_seconds));
+      var last = qualSessionRank(q);
+      var t1 = Number(q.q1_time_seconds), t2 = Number(q.q2_time_seconds), t3 = Number(q.q3_time_seconds);
+      if (last >= 1 && t1 > 0) state.qualiQ1.push(makeQualRow(q, q.q1_time_seconds));
+      if (last >= 2 && t2 > 0) state.qualiQ2.push(makeQualRow(q, q.q2_time_seconds));
+      if (last >= 3 && t3 > 0) state.qualiQ3.push(makeQualRow(q, q.q3_time_seconds));
     });
     // Practice sessions (1/2/3) — one row per driver per session from race_practice.
     state.practiceP1 = []; state.practiceP2 = []; state.practiceP3 = [];
