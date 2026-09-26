@@ -188,13 +188,24 @@
     });
     return out;
   }
+  // Design work in progress — the only programmes that occupy the "2 versions
+  // in development" slots and appear as work in the Development tab.
+  function inDevelopment(p) { return ['developing', 'delayed', 'tested'].indexOf(raw(p && p.status)) !== -1; }
+  // Programmes that share the engineering focus pool: work still being designed.
+  // A finished design ('tested') or a part already on the car ('introduced')
+  // must NOT dilute the focus of the parts still being designed.
+  function sharesFocus(p) { return ['developing', 'delayed'].indexOf(raw(p && p.status)) !== -1; }
   function activeDevList() {
     return (S && S.devList || []).filter(function (p) {
       return ['developing', 'delayed', 'tested', 'introduced'].indexOf(raw(p.status)) !== -1;
     });
   }
+  // Focus pool = only the programmes still being designed (mirrors the server).
+  function focusDevList() {
+    return (S && S.devList || []).filter(sharesFocus);
+  }
   function focusMulFor(prog) {
-    var list = activeDevList();
+    var list = focusDevList();
     var n = list.length || 1;
     var share = prog && prog.focus_share != null ? num(prog.focus_share) : (100 / n);
     return clamp(share / 100, 0, 1);
@@ -212,13 +223,14 @@
   }
 
   /* ── programme math ──────────────────────────────────────────────────
-     Manufacturing time is per-part and spans Factory level 1 (slow) → level 5
-     (fast). Design time is whatever the target race leaves AFTER manufacturing,
-     with a hard floor of MIN_DESIGN_DAYS (3 weeks). */
-  var MFG_DAYS_RANGE = { 3: [28, 14], 4: [5, 3], 5: [14, 7], 6: [7, 5], 7: [21, 14], 8: [21, 14] };
+     Manufacturing time is ONE number per part, sped up by the Factory level:
+     the same time a manufacture order takes. The design window reserves exactly
+     that, so the races offered as targets are races the team can really make.
+     Design time is whatever the target race leaves AFTER manufacturing, with a
+     hard floor of MIN_DESIGN_DAYS (3 weeks). */
   var MIN_DESIGN_DAYS = 21; // 3 weeks minimum design time
-  // Real F1M24 per-part build times (days) for manufacture orders. Building
-  // does not take engineers — only the Factory level speeds it up.
+  // Real F1M24 per-part build times (days) — identical to the server's
+  // PART_BUILD_DAYS: manufacture orders AND the design window both use this.
   var PART_BUILD_DAYS = { 3: 20, 4: 7, 5: 4, 6: 7, 7: 14, 8: 14 };
   function buildDaysFor(partId) {
     var base = num(PART_BUILD_DAYS[num(partId)]);
@@ -230,12 +242,8 @@
     var f = S && S.facilities && S.facilities.Factory;
     return f != null ? clamp(num(f), 1, 5) : 1;
   }
-  function manufacturingDays(part) {
-    var r = part && MFG_DAYS_RANGE[num(part.part_id)];
-    if (!r) return 0;
-    var lvl = factoryLevel();
-    return Math.round(r[0] - (r[0] - r[1]) * (lvl - 1) / 4);
-  }
+  // Manufacturing reserve for a part = its real build time (1 copy).
+  function manufacturingDays(part) { return part ? buildDaysFor(part.part_id) : 0; }
   function designDaysFor(part, race) {
     if (!race) return MIN_DESIGN_DAYS;
     var total = daysBetween(todayStr(), race.race_date);
@@ -495,7 +503,6 @@
       + '<div id="pd-scrapped"></div>'
       + '<div class="pd-actions">'
       + '<button class="btn btn-ghost" id="btn-reset"><span>Reset to balanced</span></button>'
-      + '<button class="btn btn-primary" id="btn-commit"><span>Commit design focus</span></button>'
       + '</div>'
       + '<div class="pd-footnote">Sliders set design focus per attribute (0–100%). Design focus, CFD/WTH allocation and planned time are committed together to start development. Ranges reflect development uncertainty.</div>'
       + '</div>'
@@ -520,13 +527,18 @@
   function el(id) { return document.getElementById(id); }
 
   function renderMainTabs() {
-    var devCount = 0;
-    Object.keys(S && S.dev || {}).forEach(function (pid) {
-      if (['developing', 'delayed', 'tested', 'introduced'].indexOf(raw(S.dev[pid].status)) !== -1) devCount++;
+    // Badge = design work in progress (developing / delayed / awaiting
+    // introduction). Parts already introduced are NOT "in development".
+    var devCount = 0, introducedCount = 0;
+    (S && S.devList || []).forEach(function (p) {
+      if (inDevelopment(p)) devCount++;
+      else if (raw(p.status) === 'introduced') introducedCount++;
     });
     var badge = el('dev-badge');
     if (badge) {
-      if (devCount > 0) { badge.textContent = devCount; badge.style.display = ''; } else { badge.style.display = 'none'; }
+      if (devCount > 0) { badge.textContent = devCount; badge.style.display = ''; }
+      else if (introducedCount > 0) { badge.textContent = '·'; badge.style.display = ''; }
+      else { badge.style.display = 'none'; }
     }
     el('tab-design').className = 'pd-maintab' + (activeMainTab === 'design' ? ' active' : '');
     el('tab-development').className = 'pd-maintab' + (activeMainTab === 'development' ? ' active' : '');
@@ -543,13 +555,23 @@
       var statusText = '', statusCls = '';
       if (!progs.length) { statusText = 'Not started'; }
       else {
-        var fs = progs[0].status;
-        var multi = progs.length > 1 ? ' ×' + progs.length : '';
+        // Headline = the status that matters most for the part (a scrapped v3
+        // must never hide an introduced v2). Live work first, then the newest
+        // finished work, and only then scrapped attempts.
+        var rank = { developing: 0, delayed: 1, tested: 2, introduced: 3, revealed: 4, scrapped: 5 };
+        var fs = progs.slice().sort(function (a, b) {
+          var ra = rank[raw(a.status)] != null ? rank[raw(a.status)] : 9;
+          var rb = rank[raw(b.status)] != null ? rank[raw(b.status)] : 9;
+          if (ra !== rb) return ra - rb;
+          return num(b.version) - num(a.version);
+        })[0].status;
+        var live = progs.filter(inDevelopment).length;
+        var multi = live > 1 ? ' ×' + live : '';
         if (fs === 'developing') { statusText = 'In dev' + multi; statusCls = 'live'; }
         else if (fs === 'delayed') { statusText = 'Delayed' + multi; }
-        else if (fs === 'tested') { statusText = 'Tested' + multi; statusCls = 'testing'; }
-        else if (fs === 'introduced') { statusText = 'Introduced' + multi; statusCls = 'live'; }
-        else if (fs === 'revealed') { statusText = 'Revealed' + multi; statusCls = 'done'; }
+        else if (fs === 'tested') { statusText = 'Testing' + multi; statusCls = 'testing'; }
+        else if (fs === 'introduced') { statusText = 'Introduced' + (live ? ' · ' + live + ' in dev' : ''); statusCls = 'live'; }
+        else if (fs === 'revealed') { statusText = 'Revealed' + (live ? ' · ' + live + ' in dev' : ''); statusCls = 'done'; }
       }
       tab.innerHTML = '<span class="pt-name">' + str(p.name) + '</span><span class="pt-tag">' + str(p.tag) + '</span>'
         + (statusText ? '<span class="pt-status ' + statusCls + '">' + statusText + '</span>' : '');
@@ -581,7 +603,7 @@
       return;
     }
     var prog = progFor(part.part_id);
-    var active = programsForPart(part.part_id).filter(function (p) { return ['developing', 'delayed', 'tested', 'introduced'].indexOf(raw(p.status)) !== -1; });
+    var active = programsForPart(part.part_id).filter(inDevelopment);
     var maxed = active.length >= 2;
     var card = document.createElement('div'); card.className = 'pd-programme';
     var head = document.createElement('div'); head.className = 'pdp-head';
@@ -692,7 +714,7 @@
       var actions = document.createElement('div'); actions.className = 'pdp-actions';
       btnStart = document.createElement('button'); btnStart.className = 'btn btn-primary btn-compact'; btnStart.innerHTML = '<span>Commit & start development</span>';
       syncStart();
-      btnStart.addEventListener('click', function () { doCommit(part.part_id); });
+      btnStart.addEventListener('click', function () { doCommit(part.part_id, btnStart); });
       var btnScrap = document.createElement('button'); btnScrap.className = 'btn btn-ghost btn-compact'; btnScrap.innerHTML = '<span>Reset</span>';
       btnScrap.addEventListener('click', function () { delete progCache[part.part_id]; focusState = {}; renderAll(); });
       actions.appendChild(btnStart); actions.appendChild(btnScrap);
@@ -956,6 +978,17 @@
     var wrap = el('pd-dev-list'); wrap.innerHTML = '';
     var activeProgs = activeDevList();
     if (!activeProgs.length) { wrap.innerHTML = '<div class="pdo-empty">No parts are currently in development. Switch to <b>Design Parts</b> and select a part to start a new design.</div>'; return; }
+    // "In development" = work still to be done (developing / delayed / awaiting
+    // introduction). Parts already introduced are shown separately — they are on
+    // the car, not in development, and they no longer dilute the focus pool.
+    var inDev = activeProgs.filter(inDevelopment).length;
+    var onCar = activeProgs.filter(function (p) { return raw(p.status) === 'introduced'; }).length;
+    var counts = document.createElement('div');
+    counts.className = 'pdp-caption';
+    counts.innerHTML = '<b>' + inDev + '</b> in development'
+      + (onCar ? ' · <b>' + onCar + '</b> introduced — awaiting a track run' : '')
+      + ' · the focus pool is split only between the parts still being designed.';
+    wrap.appendChild(counts);
     var list = document.createElement('div'); list.className = 'pdo-list';
     // Group programmes by part so multiple versions of the same part share one
     // focus slider, shown at the top of the group.
@@ -1010,7 +1043,7 @@
     card.appendChild(body);
     wrap.appendChild(card);
     wrap.querySelectorAll('[data-scrapcontinue]').forEach(function (b) {
-      b.addEventListener('click', function () { doUpdate(num(b.dataset.scrapcontinue), 'resume'); });
+      b.addEventListener('click', function () { doUpdate(num(b.dataset.scrapcontinue), 'resume', null, b); });
     });
   }
 
@@ -1168,14 +1201,14 @@
     });
     var buildBtn = el('mfg-build-btn');
     if (buildBtn) buildBtn.addEventListener('click', function () {
-      if (design) doManufacture(num(design.design_id), num(design.part_id));
+      if (design) doManufacture(num(design.design_id), num(design.part_id), buildBtn);
     });
     var noteBtn = el('mfg-note-btn');
     if (noteBtn) noteBtn.addEventListener('click', function () {
       if (design) doSetNote(design.source === 'developed' ? { designId: num(design.design_id), note: design.note } : { partId: num(design.part_id), note: design.note });
     });
     wrap.querySelectorAll('[data-cancel-order]').forEach(function (b) {
-      b.addEventListener('click', function () { doCancelOrder(num(b.dataset.cancelOrder)); });
+      b.addEventListener('click', function () { doCancelOrder(num(b.dataset.cancelOrder), b); });
     });
   }
 
@@ -1350,7 +1383,7 @@
         var p = card.querySelector('#dev-wth-pct-' + programId); if (p) p.textContent = v + ' h';
       });
       allocBtn.addEventListener('click', function () {
-        doUpdate(programId, 'reallocate', { cfd: parseInt(cfdSl.value, 10), wth: parseInt(wthSl.value, 10) });
+        doUpdate(programId, 'reallocate', { cfd: parseInt(cfdSl.value, 10), wth: parseInt(wthSl.value, 10) }, allocBtn);
       });
     }
     var raceSel = card.querySelector('#dev-race-' + programId);
@@ -1359,26 +1392,26 @@
       raceBtn.addEventListener('click', function () {
         var v = parseInt(raceSel.value, 10);
         if (!v) return;
-        doUpdate(programId, 'retarget', { targetRace: v });
+        doUpdate(programId, 'retarget', { targetRace: v }, raceBtn);
       });
     }
 
     var actions = card.querySelector('#pdo-actions-' + partId);
     function btn(label, cls, onClick) {
       var b = document.createElement('button'); b.className = 'btn btn-compact ' + cls; b.innerHTML = '<span>' + label + '</span>';
-      b.addEventListener('click', function (e) { e.stopPropagation(); onClick(); });
+      b.addEventListener('click', function (e) { e.stopPropagation(); onClick(b); });
       return b;
     }
     if (prog.status === 'developing') {
-      actions.appendChild(btn('Scrap', 'btn-danger', function () { doScrap(programId); }));
+      actions.appendChild(btn('Scrap', 'btn-danger', function (b) { doScrap(programId, b); }));
     } else if (prog.status === 'delayed') {
-      actions.appendChild(btn('Resume', 'btn-primary', function () { doUpdate(programId, 'resume'); }));
-      actions.appendChild(btn('Scrap', 'btn-danger', function () { doScrap(programId); }));
+      actions.appendChild(btn('Resume', 'btn-primary', function (b) { doUpdate(programId, 'resume', null, b); }));
+      actions.appendChild(btn('Scrap', 'btn-danger', function (b) { doScrap(programId, b); }));
     } else if (prog.status === 'tested') {
-      actions.appendChild(btn('Manufacture & introduce', 'btn-primary', function () { doIntroduce(programId); }));
-      actions.appendChild(btn('Scrap', 'btn-danger', function () { doScrap(programId); }));
+      actions.appendChild(btn('Manufacture & introduce', 'btn-primary', function (b) { doIntroduce(programId, b); }));
+      actions.appendChild(btn('Scrap', 'btn-danger', function (b) { doScrap(programId, b); }));
     } else if (prog.status === 'introduced') {
-      actions.appendChild(btn('Run on track', 'btn-primary', function () { doRunTrack(programId); }));
+      actions.appendChild(btn('Run on track', 'btn-primary', function (b) { doRunTrack(programId, b); }));
     }
     return card;
   }
@@ -1386,7 +1419,7 @@
   /* ── focus share (linked sliders) ──────────────────────────────────── */
   function pRound1(x) { return Math.round(x * 10) / 10; }
   function applyFocusShare(programId, newShare) {
-    var list = activeDevList();
+    var list = focusDevList();
     newShare = clamp(newShare, 0, 100);
     var self = list.filter(function (p) { return num(p.program_id) === num(programId); })[0];
     var selfPart = self ? num(self.part_id) : null;
@@ -1404,7 +1437,7 @@
     list.forEach(function (p) { if (selfPart != null && num(p.part_id) === selfPart) p.focus_share = newShare; });
   }
   function syncFocusSliders(excludeId) {
-    activeDevList().forEach(function (p) {
+    focusDevList().forEach(function (p) {
       var id = p.program_id;
       if (num(id) === num(excludeId)) return;
       var sl = document.getElementById('focus-' + id);
@@ -1413,7 +1446,7 @@
   }
   function saveFocusShares() {
     var shares = {};
-    activeDevList().forEach(function (p) { shares[p.program_id] = num(p.focus_share); });
+    focusDevList().forEach(function (p) { shares[p.program_id] = num(p.focus_share); });
     api('partsSetFocus', { shares: shares }).then(function (d) { if (d && !d.ok) console.error('partsSetFocus', d.error); });
   }
 
@@ -1423,6 +1456,56 @@
   }
 
   /* ── actions (server calls) ────────────────────────────────────────── */
+  // One request at a time. A double-click on "Commit" used to send two commits,
+  // create two identical programmes and charge the design cost twice; the same
+  // guard stops duplicate build orders and double scraps.
+  var inFlight = false;
+  async function guard(btn, fn) {
+    if (inFlight) return null;
+    inFlight = true;
+    var wasDisabled = btn ? btn.disabled : null;
+    if (btn) { btn.disabled = true; btn.classList.add('is-busy'); }
+    try { return await fn(); }
+    finally {
+      inFlight = false;
+      if (btn) { btn.classList.remove('is-busy'); try { btn.disabled = !!wasDisabled; } catch (e) {} }
+    }
+  }
+  // Server error code → what actually happened, in words a TP can act on.
+  var PART_ERRORS = {
+    already_exists: 'That version is already in development — nothing was charged twice.',
+    invalid_state: 'That programme has moved on since this page loaded (the season clock or another session changed it). The console has been refreshed — check the current status and try again.',
+    two_already_developing: 'That part already has 2 versions in development. Finish or scrap one before designing another version.',
+    target_too_soon: 'That race is too close — the design and the build would not be finished in time.',
+    target_not_later: 'The new target race has to be later than the current one.',
+    over_resources: 'Not enough CFD / WTH left for that allocation.',
+    over_budget: 'The team budget cannot cover that.',
+    design_not_found: 'That design is not ready to be manufactured.',
+    in_development: 'That part is still in development — it cannot be manufactured yet.',
+    part_not_found: 'Unknown part.',
+    part_locked: 'That part has a fixed specification.',
+    not_found: 'That item no longer exists — the console has been refreshed.',
+    missing_fields: 'The request was incomplete — please try again.',
+    forbidden: 'This account cannot use the parts console.',
+    unauthorized: 'Your session has expired — please sign in again.',
+    not_an_f1_team: 'Parts design is only available to F1 teams.',
+    no_team: 'No team is linked to this account.',
+    network: 'Network problem — please try again.',
+    bad_response: 'The server returned something unexpected — please try again.'
+  };
+  function errText(code) {
+    var k = raw(code);
+    return PART_ERRORS[k] || ('Could not complete that action (' + (k || 'unknown error') + ').');
+  }
+  // A failed action almost always means this page is out of date → refresh it
+  // before reporting, so the buttons on screen match the server again.
+  async function failed(btn, data, title) {
+    var codes = data || {};
+    var stale = ['invalid_state', 'not_found', 'already_exists', 'design_not_found', 'in_development'].indexOf(raw(codes.error)) !== -1;
+    if (stale) { try { await reload(); renderAll(); } catch (e) {} }
+    await alertModal(errText(codes.error) + (codes.cost ? ' (cost $' + Number(codes.cost).toLocaleString() + ')' : ''), title || 'Nothing changed');
+    return data;
+  }
   async function reload() {
     var data = await api('partsCatalog', { team: opts.team || '' });
     if (data.ok) {
@@ -1464,86 +1547,111 @@
   }
 
   function syncEditButtons(part) {
-    var commit = el('btn-commit'), reset = el('btn-reset');
-    if (!commit || !reset) return;
-    var activeCount = part ? programsForPart(part.part_id).filter(function (p) { return ['developing', 'delayed', 'tested', 'introduced'].indexOf(raw(p.status)) !== -1; }).length : 0;
-    var canEdit = part && !part.locked && activeCount < 2;
-    commit.disabled = !canEdit; reset.disabled = !canEdit;
+    // The design card owns the commit action — the old footer "Commit design
+    // focus" button was a second button doing the exact same thing (and a
+    // double commit created a duplicate programme), so only Reset is left here.
+    var reset = el('btn-reset');
+    if (!reset) return;
+    var activeCount = part ? programsForPart(part.part_id).filter(inDevelopment).length : 0;
+    reset.disabled = !(part && !part.locked && activeCount <= 2);
   }
 
-  async function doCommit(partId) {
-    var part = partById(partId);
-    if (!reachableRaces(part).length) { await alertModal('There are no races left this season that you can reach in time.', 'Cannot start development'); return; }
-    var prog = progFor(partId);
-    var cfdEl = el('pdp-cfd'), wthEl = el('pdp-wth'), raceEl = el('pdp-targetrace');
-    var cfd = cfdEl ? parseInt(cfdEl.value, 10) : num(prog.cfd_alloc);
-    var wth = wthEl ? parseInt(wthEl.value, 10) : num(prog.wth_alloc);
-    var targetRace = raceEl ? parseInt(raceEl.value, 10) : num(prog.target_race);
-    var data = await api('partsCommit', { partId: partId, focus: focusState, cfd: cfd, wth: wth, targetRace: targetRace, baseDesignId: prog.base_design_id || null, note: prog.note || '' });
-    if (data.ok) {
-      await reload(); renderAll();
-      await alertModal('Development started. Design cost: <b>$' + Number(data.designCost).toLocaleString() + '</b>.', 'Development started');
-    } else {
-      await alertModal('Could not start development — ' + data.error + (data.designCost ? ' (design cost $' + Number(data.designCost).toLocaleString() + ')' : ''), 'Development not started');
-    }
+  async function doCommit(partId, btn) {
+    return guard(btn, async function () {
+      var part = partById(partId);
+      if (!reachableRaces(part).length) { await alertModal('There are no races left this season that you can reach in time.', 'Cannot start development'); return null; }
+      var prog = progFor(partId);
+      var cfdEl = el('pdp-cfd'), wthEl = el('pdp-wth'), raceEl = el('pdp-targetrace');
+      var cfd = cfdEl ? parseInt(cfdEl.value, 10) : num(prog.cfd_alloc);
+      var wth = wthEl ? parseInt(wthEl.value, 10) : num(prog.wth_alloc);
+      var targetRace = raceEl ? parseInt(raceEl.value, 10) : num(prog.target_race);
+      var data = await api('partsCommit', { partId: partId, focus: focusState, cfd: cfd, wth: wth, targetRace: targetRace, baseDesignId: prog.base_design_id || null, note: prog.note || '' });
+      if (data.ok) {
+        await reload(); renderAll();
+        await alertModal('Development started. Design cost: <b>$' + Number(data.designCost).toLocaleString() + '</b>.<br>The design runs until the target race weekend.', 'Development started');
+      } else {
+        await failed(btn, data, 'Development not started');
+      }
+      return data;
+    });
   }
-  async function doUpdate(programId, action, extra) {
-    var data = await api('partsUpdate', Object.assign({ programId: programId, op: action }, extra || {}));
-    if (data.ok) { await reload(); renderAll(); } else { await alertModal(data.error, 'Update failed'); }
+  async function doUpdate(programId, action, extra, btn) {
+    return guard(btn, async function () {
+      var data = await api('partsUpdate', Object.assign({ programId: programId, op: action }, extra || {}));
+      if (data.ok) { await reload(); renderAll(); return data; }
+      return failed(btn, data, 'Nothing changed');
+    });
   }
   async function saveNote(target) {
     var data = await api('partsSetNote', target);
-    if (data.ok) { await reload(); renderAll(); } else { await alertModal(data.error, 'Note failed'); }
+    if (data.ok) { await reload(); renderAll(); } else { await alertModal(errText(data.error), 'Note not saved'); }
   }
   async function doSetNote(target) {
     var val = await promptModal('Add a note to this design. It shows as flair text under the name.', 'Add note', target.note || '');
     if (val == null) return;
     await saveNote(Object.assign({}, target, { note: val }));
   }
-  async function doContinue(programId) {
-    var data = await api('partsContinue', { programId: programId });
-    if (data.ok) { await reload(); renderAll(); } else { await alertModal(data.error, 'Continue failed'); }
+  async function doIntroduce(programId, btn) {
+    return guard(btn, async function () {
+      var data = await api('partsIntroduce', { programId: programId });
+      if (data.ok) {
+        await reload(); renderAll();
+        await alertModal('Part introduced as <b>' + (data.name || '—') + '</b>.<br>Run it on track to correlate the aero result and lock the gain in.', 'Introduced');
+        return data;
+      }
+      return failed(btn, data, 'Not introduced');
+    });
   }
-  async function doIntroduce(programId) {
-    var data = await api('partsIntroduce', { programId: programId });
-    if (data.ok) { await reload(); renderAll(); await alertModal('Part introduced as <b>' + (data.name || '—') + '</b>. Build cost charged to the team budget.', 'Introduced'); }
-    else { await alertModal(data.error, 'Introduce failed'); }
+  async function doManufacture(designId, partId, btn) {
+    return guard(btn, async function () {
+      var data = await api('partsManufacture', { designId: designId, partId: partId, quantity: mfgQty, approach: mfgApproach === 1 ? 'outsource' : 'normal' });
+      if (data.ok) {
+        await reload(); renderAll();
+        await alertModal('Manufacture order placed for <b>' + data.name + '</b>. Build time: <b>' + data.build_total_days + ' days</b> · cost <b>$' + Number(data.cost).toLocaleString() + '</b>.<br>It finishes by itself when the season clock passes the completion date.', 'Order placed');
+        return data;
+      }
+      return failed(btn, data, 'Order not placed');
+    });
   }
-  async function doManufacture(designId, partId) {
-    var data = await api('partsManufacture', { designId: designId, partId: partId, quantity: mfgQty, approach: mfgApproach === 1 ? 'outsource' : 'normal' });
-    if (data.ok) {
-      await reload(); renderAll();
-      await alertModal('Manufacture order placed for <b>' + data.name + '</b>. Build time: <b>' + data.build_total_days + ' days</b> · cost <b>$' + Number(data.cost).toLocaleString() + '</b>.', 'Order placed');
-    } else {
-      await alertModal(data.error + (data.cost ? ' (cost $' + Number(data.cost).toLocaleString() + ')' : ''), 'Manufacture failed');
-    }
+  async function doBuildContinue(orderId, btn) {
+    return guard(btn, async function () {
+      var data = await api('partsBuildContinue', { orderId: orderId });
+      if (data.ok) { await reload(); renderAll(); return data; }
+      return failed(btn, data, 'Build not advanced');
+    });
   }
-  async function doBuildContinue(orderId) {
-    var data = await api('partsBuildContinue', { orderId: orderId });
-    if (data.ok) { await reload(); renderAll(); }
-    else { await alertModal(data.error, 'Build continue failed'); }
-  }
-  async function doCancelOrder(orderId) {
-    var ok = await confirmModal('Cancel this build order? The full cost will be refunded to your team. No parts are produced.', 'Cancel build order');
+  async function doCancelOrder(orderId, btn) {
+    var ok = await confirmModal('Cancel this build order?<br><br>The full build cost is refunded to your team and no parts are produced.', 'Cancel build order');
     if (!ok) return;
-    var data = await api('partsCancelOrder', { orderId: orderId });
-    if (data.ok) { await reload(); renderAll(); await alertModal('Build order cancelled. <b>$' + Number(data.refunded || 0).toLocaleString() + '</b> refunded.', 'Order cancelled'); }
-    else { await alertModal(data.error, 'Cancel failed'); }
+    return guard(btn, async function () {
+      var data = await api('partsCancelOrder', { orderId: orderId });
+      if (data.ok) {
+        await reload(); renderAll();
+        await alertModal('Build order cancelled. <b>$' + Number(data.refunded || 0).toLocaleString() + '</b> refunded.', 'Order cancelled');
+        return data;
+      }
+      return failed(btn, data, 'Order not cancelled');
+    });
   }
-  async function doRunTrack(programId) {
-    var data = await api('partsRunTrack', { programId: programId });
-    if (data.ok) { await reload(); renderAll(); await alertModal('Track correlation result revealed (<b>' + Number(data.actual).toFixed(1) + '%</b>).', 'Track run complete'); }
-    else { await alertModal(data.error, 'Track run failed'); }
+  async function doRunTrack(programId, btn) {
+    return guard(btn, async function () {
+      var data = await api('partsRunTrack', { programId: programId });
+      if (data.ok) {
+        await reload(); renderAll();
+        await alertModal('Track correlation result revealed (<b>' + Number(data.actual).toFixed(1) + '%</b>). The gain is now locked into the car.', 'Track run complete');
+        return data;
+      }
+      return failed(btn, data, 'Track run not completed');
+    });
   }
-  async function doScrap(programId) {
-    var ok = await confirmModal('Scrap this development programme? This cannot be undone.', 'Scrap programme');
+  async function doScrap(programId, btn) {
+    var ok = await confirmModal('Scrap this development programme?<br><br>Its weeks of work are lost and <b>the design cost is not refunded</b> — only cancelling a build order refunds money. Scrapped programmes stay listed so they can be continued later.', 'Scrap programme');
     if (!ok) return;
-    var data = await api('partsUpdate', { programId: programId, op: 'scrap' });
-    if (data.ok) { await reload(); renderAll(); } else { await alertModal(data.error, 'Scrap failed'); }
-  }
-  async function doStartNew(partId) {
-    var data = await api('partsUpdate', { partId: partId, op: 'scrap' });
-    if (data.ok) { await reload(); renderAll(); } else { await alertModal(data.error, 'Failed to reset'); }
+    return guard(btn, async function () {
+      var data = await api('partsUpdate', { programId: programId, op: 'scrap' });
+      if (data.ok) { await reload(); renderAll(); return data; }
+      return failed(btn, data, 'Not scrapped');
+    });
   }
 
   /* ── mount ─────────────────────────────────────────────────────────── */
@@ -1565,9 +1673,6 @@
     el('tab-manufacture').addEventListener('click', function () { selectMainTab('manufacture'); });
     el('btn-reset').addEventListener('click', function () {
       var part = partById(activePartId); if (part && !part.locked) { initPartState(part); renderCategories(part); renderCarPerformance(); }
-    });
-    el('btn-commit').addEventListener('click', function () {
-      var part = partById(activePartId); if (part && !part.locked) doCommit(part.part_id);
     });
     el('tab-knowledge').addEventListener('click', function () { selectMainTab('knowledge'); });
 
