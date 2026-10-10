@@ -986,7 +986,7 @@
     var counts = document.createElement('div');
     counts.className = 'pdp-caption';
     counts.innerHTML = '<b>' + inDev + '</b> in development'
-      + (onCar ? ' · <b>' + onCar + '</b> introduced — awaiting a track run' : '')
+      + (onCar ? ' · <b>' + onCar + '</b> introduced' : '')
       + ' · the focus pool is split only between the parts still being designed.';
     wrap.appendChild(counts);
     var list = document.createElement('div'); list.className = 'pdo-list';
@@ -1235,7 +1235,7 @@
     var partId = num(prog.part_id);
     var programId = num(prog.program_id);
     var part = partById(partId);
-    var stageMap = { developing: ['In development', 'live'], delayed: ['Delayed', 'paused'], tested: ['Testing complete', 'testing'], introduced: ['Introduced — awaiting track run', 'live'] };
+    var stageMap = { developing: ['In development', 'live'], delayed: ['Delayed', 'paused'], tested: ['Testing complete', 'testing'], introduced: ['Introduced — completing on track', 'live'] };
     var stage = stageMap[prog.status] || ['Unknown', ''];
     var env = (prog.status === 'developing' || prog.status === 'delayed') ? currentEnvelope(part, prog) : finalEnvelope(part, prog);
     var progressPct = prog.target_weeks > 0 ? clamp(Math.round(num(prog.weeks_elapsed) / num(prog.target_weeks) * 100), 0, 100) : 0;
@@ -1411,7 +1411,13 @@
       actions.appendChild(btn('Manufacture & introduce', 'btn-primary', function (b) { doIntroduce(programId, b); }));
       actions.appendChild(btn('Scrap', 'btn-danger', function (b) { doScrap(programId, b); }));
     } else if (prog.status === 'introduced') {
-      actions.appendChild(btn('Run on track', 'btn-primary', function (b) { doRunTrack(programId, b); }));
+      // No button: an introduced part is realised by actually completing laps
+      // on the car, which the season clock does for it.
+      var note = document.createElement('div');
+      note.className = 'pd-mfg-meta';
+      note.style.color = 'var(--copy-faint)';
+      note.textContent = 'On the car — the gain is realised as the part completes its laps.';
+      actions.appendChild(note);
     }
     return card;
   }
@@ -1476,6 +1482,7 @@
     already_exists: 'That version is already in development — nothing was charged twice.',
     invalid_state: 'That programme has moved on since this page loaded (the season clock or another session changed it). The console has been refreshed — check the current status and try again.',
     two_already_developing: 'That part already has 2 versions in development. Finish or scrap one before designing another version.',
+    no_laps_yet: 'The part has not completed a lap on the car yet — it becomes real as it runs.',
     target_too_soon: 'That race is too close — the design and the build would not be finished in time.',
     target_not_later: 'The new target race has to be later than the current one.',
     over_resources: 'Not enough CFD / WTH left for that allocation.',
@@ -1631,17 +1638,6 @@
         return data;
       }
       return failed(btn, data, 'Order not cancelled');
-    });
-  }
-  async function doRunTrack(programId, btn) {
-    return guard(btn, async function () {
-      var data = await api('partsRunTrack', { programId: programId });
-      if (data.ok) {
-        await reload(); renderAll();
-        await alertModal('Track correlation result revealed (<b>' + Number(data.actual).toFixed(1) + '%</b>). The gain is now locked into the car.', 'Track run complete');
-        return data;
-      }
-      return failed(btn, data, 'Track run not completed');
     });
   }
   async function doScrap(programId, btn) {
