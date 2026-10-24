@@ -69,6 +69,26 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
   background-position:calc(100% - 18px) center, calc(100% - 13px) center; background-size:5px 5px; background-repeat:no-repeat;}
 .field select option{background:#3a3a3a; color:#ffffff;}
 .field input:focus-visible, .field select:focus-visible{outline:none; box-shadow:var(--focus-ring);}
+/* ---- Tagged recipient search ---- */
+.tagpick{position:relative;}
+.tagpick-box{display:flex; flex-wrap:wrap; gap:6px; align-items:center; background:var(--card-high); border:1px solid var(--edge-strong); padding:6px 8px; min-height:44px; cursor:text;}
+.tagpick-box:focus-within{box-shadow:var(--focus-ring);}
+.tagpick-tag{display:inline-flex; align-items:center; gap:6px; font-family:var(--data-face); font-size:12px; letter-spacing:.04em; color:var(--copy); background:color-mix(in oklab, var(--team-accent) 14%, transparent); border:1px solid var(--team-accent); padding:3px 4px 3px 9px; max-width:100%;}
+.tagpick-tag.kind-official{border-color:var(--brass);}
+.tagpick-tag-x{background:none; border:0; color:var(--copy-soft); cursor:pointer; font-size:13px; line-height:1; padding:2px 5px;}
+.tagpick-tag-x:hover{color:var(--copy);}
+.field .tagpick-input{flex:1 1 120px; min-width:80px; width:auto; background:transparent; border:0; padding:6px 4px; box-shadow:none; color:var(--copy); font-family:var(--data-face); font-size:14px;}
+.field .tagpick-input:focus-visible{box-shadow:none;}
+.tagpick-menu{position:absolute; left:0; right:0; top:calc(100% + 2px); z-index:60; max-height:240px; overflow-y:auto; background:var(--card-high); border:1px solid var(--edge-strong); box-shadow:0 10px 28px rgba(0,0,0,.45); display:none;}
+.tagpick.open .tagpick-menu{display:block;}
+.tagpick-group{font-family:var(--data-face); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--copy-faint); padding:8px 12px 4px;}
+.tagpick-opt{padding:8px 12px; font-size:14px; color:var(--copy); cursor:pointer;}
+.tagpick-opt.active, .tagpick-opt:hover{background:color-mix(in oklab, var(--team-accent) 16%, transparent);}
+.tagpick-opt mark{background:none; color:var(--team-accent); font-weight:700;}
+.compose-fw{border:1px solid var(--edge); border-left:3px solid var(--brass); background:var(--card-high); padding:10px 12px; margin-bottom:14px; font-family:var(--data-face); font-size:12px; color:var(--copy-soft); line-height:1.6;}
+.compose-fw b{color:var(--copy); font-weight:600;}
+.compose-fw-lock{float:right; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--copy-faint);}
+.tagpick-empty{padding:12px; font-size:13px; color:var(--copy-faint);}
 .field-row{display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;}
 .field-row .field{flex:1; min-width:150px;}
 .error-line{font-family:var(--data-face); font-size:12px; color:var(--team-accent-hot); display:none;}
@@ -1020,7 +1040,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
       <h3>Send mail</h3>
       <div class="field">
         <label for="tp-mail-to">To</label>
-        <select id="tp-mail-to"></select>
+        <div class="tagpick" id="tp-mail-to"></div>
       </div>
       <div class="field">
         <label for="tp-mail-message">Message</label>
@@ -1526,16 +1546,17 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 <div class="modal-overlay" id="compose-modal">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">New message</div>
+      <div class="modal-title" id="compose-title">New message</div>
       <button class="modal-close" onclick="closeMailCompose()">✕</button>
     </div>
     <div class="modal-body">
       <div class="field">
         <label for="compose-to">To</label>
-        <select id="compose-to"></select>
+        <div class="tagpick" id="compose-to"></div>
       </div>
+      <div class="compose-fw hidden" id="compose-fw"></div>
       <div class="field">
-        <label for="compose-body">Message</label>
+        <label for="compose-body" id="compose-body-label">Message</label>
         <textarea id="compose-body" rows="5" placeholder="Write your message…"></textarea>
       </div>
       <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
@@ -5529,6 +5550,7 @@ function renderMailbox() {
       var isBlocked = canBlock && (DASH.blocked || []).indexOf(sel.from) !== -1;
       html += '<div class="read-actions">'
         + (replyTo ? '<button class="action action-lead action-compact" data-to="' + BTG.esc(replyTo) + '" onclick="replyMailTo(this.dataset.to)"><span>Reply</span></button>' : '')
+        + '<button class="action action-quiet action-compact" onclick="openMailForward(' + sel.row + ')"><span>Forward</span></button>'
         + (sel.kind === 'mail' && !sel.read
             ? '<button class="action action-quiet action-compact" onclick="markMailReadItem(' + sel.row + ')"><span>Mark as read</span></button>'
             : '')
@@ -5555,50 +5577,200 @@ function renderMailbox() {
 function setMailFolder(f) { MAIL_FOLDER = f; MAIL_SEL[f] = MAIL_SEL[f] || 0; renderMailbox(); }
 function selectMailItem(i) { MAIL_SEL[MAIL_FOLDER] = i; renderMailbox(); }
 
-function mailRecipientOptions() {
-  var html = '<option value="">— choose a recipient —</option>';
+function mailRecipientGroups() {
   var seen = {};
-  var driverOpts = '';
-  var tpOpts = '';
-  try {
-    if (window.BTG && BTG.Roster && BTG.Roster.drivers) {
-      BTG.Roster.drivers.forEach(function (d) {
-        var n = d.name || d.fullName || '';
-        if (!n || seen[n]) return;
-        seen[n] = true;
-        driverOpts += '<option value="' + BTG.esc(n) + '">' + BTG.esc(n) + '</option>';
-      });
+  var drivers = [];
+  var tps = [];
+  var driverNames = [];
+  if (DRIVERS && DRIVERS.length) {
+    driverNames = DRIVERS.map(function (d) { return d.driver || d.full_name || d.fullName || d.name || ''; });
+  } else if (DASH && DASH.allDrivers && DASH.allDrivers.length) {
+    driverNames = DASH.allDrivers;
+  }
+  if (!driverNames.length) {
+    try {
+      if (window.BTG && BTG.Roster && BTG.Roster.drivers) {
+        driverNames = BTG.Roster.drivers.map(function (d) { return d.name || d.fullName || ''; });
+      }
+    } catch (e) {}
+  }
+  seen['BTG Officials'] = true;
+  driverNames.forEach(function (n) { if (!n || seen[n]) return; seen[n] = true; drivers.push(n); });
+  ((DASH && DASH.teamPrincipals) || []).forEach(function (t) { if (!t.name || seen[t.name]) return; seen[t.name] = true; tps.push(t.name); });
+  return [
+    { label: 'Officials', kind: 'official', names: ['BTG Officials'] },
+    { label: 'Drivers', kind: 'driver', names: drivers },
+    { label: 'Team Principals', kind: 'tp', names: tps }
+  ].filter(function (g) { return g.names.length; });
+}
+
+/* ---- Tagged recipient search (replaces the recipient dropdowns) ---- */
+var TAGPICK = {};
+function tagPickInit(id) {
+  var root = document.getElementById(id);
+  if (!root) return;
+  var st = TAGPICK[id] = { tags: [], active: 0, flat: [] };
+  root.innerHTML = '<div class="tagpick-box"><input type="text" class="tagpick-input" autocomplete="off" spellcheck="false" placeholder="Search recipients…" aria-label="Search recipients"></div><div class="tagpick-menu" role="listbox"></div>';
+  var box = root.querySelector('.tagpick-box');
+  var input = root.querySelector('.tagpick-input');
+  var menu = root.querySelector('.tagpick-menu');
+  st.root = root; st.box = box; st.input = input; st.menu = menu;
+  box.addEventListener('mousedown', function (e) { if (e.target !== input) { e.preventDefault(); input.focus(); } });
+  input.addEventListener('focus', function () { tagPickRender(id); root.classList.add('open'); });
+  input.addEventListener('input', function () { st.active = 0; tagPickRender(id); root.classList.add('open'); });
+  input.addEventListener('blur', function () { setTimeout(function () { root.classList.remove('open'); }, 120); });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); root.classList.add('open'); st.active = Math.min(st.active + 1, st.flat.length - 1); tagPickRender(id); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); st.active = Math.max(st.active - 1, 0); tagPickRender(id); }
+    else if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab') {
+      if (st.flat.length && input.value.trim()) { e.preventDefault(); tagPickAdd(id, st.flat[st.active]); }
+      else if (e.key === 'Enter') { e.preventDefault(); }
     }
-  } catch (e) {}
-  ((DASH && DASH.teamPrincipals) || []).forEach(function (t) {
-    if (!t.name || seen[t.name]) return;
-    seen[t.name] = true;
-    tpOpts += '<option value="' + BTG.esc(t.name) + '">' + BTG.esc(t.name) + '</option>';
+    else if (e.key === 'Backspace' && !input.value && st.tags.length) { st.tags.pop(); tagPickRender(id); }
+    else if (e.key === 'Escape') { root.classList.remove('open'); }
   });
-  html += '<optgroup label="Officials"><option value="BTG Officials">BTG Officials</option></optgroup>';
-  if (driverOpts) html += '<optgroup label="Drivers">' + driverOpts + '</optgroup>';
-  if (tpOpts) html += '<optgroup label="Team Principals">' + tpOpts + '</optgroup>';
-  return html;
+  menu.addEventListener('mousedown', function (e) {
+    var o = e.target.closest('.tagpick-opt');
+    if (o) { e.preventDefault(); tagPickAdd(id, o.getAttribute('data-name')); }
+  });
+  box.addEventListener('click', function (e) {
+    var x = e.target.closest('.tagpick-tag-x');
+    if (x) { tagPickRemove(id, x.getAttribute('data-name')); }
+  });
+  tagPickRender(id);
+}
+function tagPickAdd(id, name) {
+  var st = TAGPICK[id]; if (!st || !name) return;
+  if (st.tags.indexOf(name) === -1) st.tags.push(name);
+  st.input.value = ''; st.active = 0;
+  tagPickRender(id);
+  st.input.focus();
+}
+function tagPickRemove(id, name) {
+  var st = TAGPICK[id]; if (!st) return;
+  st.tags = st.tags.filter(function (t) { return t !== name; });
+  tagPickRender(id);
+}
+function tagPickGet(id) { return TAGPICK[id] ? TAGPICK[id].tags.slice() : []; }
+function tagPickSet(id, names) {
+  if (!TAGPICK[id]) tagPickInit(id);
+  TAGPICK[id].tags = (names || []).filter(Boolean);
+  TAGPICK[id].input.value = '';
+  tagPickRender(id);
+}
+function tagPickRender(id) {
+  var st = TAGPICK[id]; if (!st) return;
+  var kinds = {};
+  mailRecipientGroups().forEach(function (g) { g.names.forEach(function (n) { kinds[n] = g.kind; }); });
+  // tags
+  st.box.querySelectorAll('.tagpick-tag').forEach(function (n) { n.remove(); });
+  st.tags.forEach(function (n) {
+    var el = document.createElement('span');
+    el.className = 'tagpick-tag kind-' + (kinds[n] || 'other');
+    el.innerHTML = BTG.esc(n) + '<button type="button" class="tagpick-tag-x" data-name="' + BTG.esc(n) + '" aria-label="Remove ' + BTG.esc(n) + '">✕</button>';
+    st.box.insertBefore(el, st.input);
+  });
+  st.input.placeholder = st.tags.length ? '' : 'Search recipients…';
+  // suggestions
+  var q = st.input.value.trim().toLowerCase();
+  var html = '';
+  st.flat = [];
+  mailRecipientGroups().forEach(function (g) {
+    var matches = g.names.filter(function (n) { return st.tags.indexOf(n) === -1 && (!q || n.toLowerCase().indexOf(q) !== -1); });
+    if (!matches.length) return;
+    html += '<div class="tagpick-group">' + BTG.esc(g.label) + '</div>';
+    matches.forEach(function (n) {
+      var idx = st.flat.push(n) - 1;
+      var label = BTG.esc(n);
+      if (q) {
+        var p = n.toLowerCase().indexOf(q);
+        label = BTG.esc(n.slice(0, p)) + '<mark>' + BTG.esc(n.slice(p, p + q.length)) + '</mark>' + BTG.esc(n.slice(p + q.length));
+      }
+      html += '<div class="tagpick-opt' + (idx === st.active ? ' active' : '') + '" role="option" data-name="' + BTG.esc(n) + '">' + label + '</div>';
+    });
+  });
+  if (!html) html = '<div class="tagpick-empty">' + (q ? 'No matching recipients.' : 'Everyone is already added.') + '</div>';
+  if (st.active >= st.flat.length) st.active = Math.max(0, st.flat.length - 1);
+  st.menu.innerHTML = html;
+  var act = st.menu.querySelector('.tagpick-opt.active');
+  if (act && act.scrollIntoView) act.scrollIntoView({ block: 'nearest' });
+}
+
+/** Send one mail per tagged recipient; returns {sent:[], failed:[{to,error}]}. */
+async function sendMailToTags(tags, message) {
+  var sent = [], failed = [];
+  for (var i = 0; i < tags.length; i++) {
+    try {
+      var data = await callGateway('sendMail', {
+        username: CURRENT_USER.username, password: CURRENT_USER.password,
+        to: tags[i], message: message
+      });
+      if (data.ok) sent.push(tags[i]); else failed.push({ to: tags[i], error: data.error });
+    } catch (e) {
+      failed.push({ to: tags[i], error: 'Could not reach the gateway script.' });
+    }
+  }
+  return { sent: sent, failed: failed };
+}
+
+/* First line of a message = its title. Skips a leading "Recipients:" line. */
+function mailTitleOf(body) {
+  var lines = String(body || '').split('\n');
+  var i = 0;
+  if (/^Recipients:/i.test(lines[0] || '')) { i = 1; while (i < lines.length && !lines[i].trim()) i++; }
+  return (lines[i] || '').trim() || '(no subject)';
+}
+
+/**
+ * Builds the text actually sent.
+ *  - 2+ recipients: a "Recipients: A, B, C" line is added.
+ *  - forward: first line is forced to "FW: <title>", followed by "Forwarded from: <sender>".
+ *    (For a forward to 2+ people, the Recipients line goes after the FW line so the title stays "FW: …".)
+ */
+function buildOutgoingMessage(tags, note, fwd) {
+  var multi = tags.length > 1;
+  var recLine = multi ? 'Recipients: ' + tags.join(', ') : '';
+  if (fwd) {
+    var out = fwd.title + '\n' + (recLine ? recLine + '\n' : '') + 'Forwarded from: ' + fwd.from + '\n\n';
+    if (note) out += note + '\n\n';
+    return out + '— — —\n' + fwd.body;
+  }
+  return (recLine ? recLine + '\n\n' : '') + note;
+}
+
+var COMPOSE_FWD = null;
+function openMailForward(row, kind) {
+  var list = (DASH && DASH.mail) || [];
+  var m = list.filter(function (x) { return String(x.row) === String(row); })[0];
+  if (!m) return;
+  openMailCompose();
+  var title = mailTitleOf(m.message);
+  COMPOSE_FWD = {
+    title: /^FW:\s/i.test(title) ? title : 'FW: ' + title,
+    from: m.from || '?',
+    body: m.message || ''
+  };
+  document.getElementById('compose-title').textContent = 'Forward message';
+  document.getElementById('compose-body-label').textContent = 'Note (optional)';
+  var fw = document.getElementById('compose-fw');
+  fw.innerHTML = '<span class="compose-fw-lock">Locked</span><b>' + BTG.esc(COMPOSE_FWD.title) + '</b><br>Forwarded from: ' + BTG.esc(COMPOSE_FWD.from);
+  fw.classList.remove('hidden');
 }
 
 function openMailCompose() {
+  COMPOSE_FWD = null;
+  document.getElementById('compose-title').textContent = 'New message';
+  document.getElementById('compose-body-label').textContent = 'Message';
+  document.getElementById('compose-fw').classList.add('hidden');
   document.getElementById('compose-modal').classList.add('open');
-  document.getElementById('compose-to').innerHTML = mailRecipientOptions();
+  tagPickInit('compose-to');
   document.getElementById('compose-body').value = '';
   const res = document.getElementById('compose-result');
   res.style.display = 'none';
 }
 function replyMailTo(to) {
   openMailCompose();
-  var sel = document.getElementById('compose-to');
-  var found = false;
-  for (var i = 0; i < sel.options.length; i++) { if (sel.options[i].value === to) { found = true; break; } }
-  if (!found && to) {
-    var opt = document.createElement('option');
-    opt.value = to; opt.textContent = to;
-    sel.appendChild(opt);
-  }
-  sel.value = to;
+  if (to) tagPickSet('compose-to', [to]);
   document.getElementById('compose-body').value = '';
   document.getElementById('compose-body').focus();
 }
@@ -5651,27 +5823,30 @@ async function submitContractModify() {
   }
 }
 async function sendMailCompose() {
-  const to = document.getElementById('compose-to').value.trim();
+  const tags = tagPickGet('compose-to');
+  const pending = TAGPICK['compose-to'] && TAGPICK['compose-to'].input.value.trim();
   const message = document.getElementById('compose-body').value.trim();
   const resultEl = document.getElementById('compose-result');
   const btn = document.getElementById('compose-send-btn');
   resultEl.style.display = 'none';
-  if (!to || !message) { showResult(resultEl, false, 'Enter a recipient and a message.'); return; }
+  if (!tags.length || (!message && !COMPOSE_FWD)) {
+    showResult(resultEl, false, pending ? 'Pick “' + pending + '” from the suggestions to add it as a recipient.' : 'Enter a recipient and a message.');
+    return;
+  }
   btn.disabled = true;
   try {
-    const data = await callGateway('sendMail', {
-      username: CURRENT_USER.username, password: CURRENT_USER.password,
-      to: to, message: message
-    });
-    if (data.ok) {
-      showResult(resultEl, true, '✓ Message sent to ' + to + '.');
+    const r = await sendMailToTags(tags, buildOutgoingMessage(tags, message, COMPOSE_FWD));
+    if (!r.failed.length) {
+      showResult(resultEl, true, '✓ Message sent to ' + r.sent.join(', ') + '.');
       closeMailCompose();
       pollMailOnce();
     } else {
-      showResult(resultEl, false, '✗ ' + data.error);
+      // keep only the failed recipients tagged so the user can retry
+      tagPickSet('compose-to', r.failed.map(function (f) { return f.to; }));
+      showResult(resultEl, false, (r.sent.length ? '✓ Sent to ' + r.sent.join(', ') + '. ' : '')
+        + '✗ ' + r.failed.map(function (f) { return f.to + ': ' + f.error; }).join('; '));
+      if (r.sent.length) pollMailOnce();
     }
-  } catch (e) {
-    showResult(resultEl, false, '✗ Could not reach the gateway script.');
   } finally {
     btn.disabled = false;
   }
@@ -5803,7 +5978,7 @@ function renderTp() {
   const sel = document.getElementById('tp-offer-driver');
   sel.innerHTML = '<option value="">— choose a driver —</option>'
     + all.map(function (d) { return '<option>' + BTG.esc(d) + '</option>'; }).join('');
-  document.getElementById('tp-mail-to').innerHTML = mailRecipientOptions();
+  tagPickInit('tp-mail-to');
   const y = CURRENT_YEAR || 2024;
   document.getElementById('tp-offer-from').value = y;
   document.getElementById('tp-offer-till').value = y + 2;
@@ -6989,28 +7164,25 @@ document.getElementById('tp-send-offer-btn').addEventListener('click', async () 
 
 /* --- TP: send mail --- */
 document.getElementById('tp-send-mail-btn').addEventListener('click', async () => {
-  const to = document.getElementById('tp-mail-to').value.trim();
+  const tags = tagPickGet('tp-mail-to');
   const message = document.getElementById('tp-mail-message').value.trim();
   const resultEl = document.getElementById('tp-mail-result');
   const btn = document.getElementById('tp-send-mail-btn');
   resultEl.style.display = 'none';
-  if (!to || !message) { showResult(resultEl, false, 'Fill in recipient and message.'); return; }
+  if (!tags.length || !message) { showResult(resultEl, false, 'Fill in recipient and message.'); return; }
 
   btn.disabled = true;
   try {
-    const data = await callGateway('sendMail', {
-      username: CURRENT_USER.username, password: CURRENT_USER.password,
-      to: to, message: message
-    });
-    if (data.ok) {
-      showResult(resultEl, true, '✓ Mail sent to ' + to + '.');
-      document.getElementById('tp-mail-to').innerHTML = mailRecipientOptions();
+    const r = await sendMailToTags(tags, buildOutgoingMessage(tags, message, null));
+    if (!r.failed.length) {
+      showResult(resultEl, true, '✓ Mail sent to ' + r.sent.join(', ') + '.');
+      tagPickSet('tp-mail-to', []);
       document.getElementById('tp-mail-message').value = '';
     } else {
-      showResult(resultEl, false, '✗ ' + data.error);
+      tagPickSet('tp-mail-to', r.failed.map(function (f) { return f.to; }));
+      showResult(resultEl, false, (r.sent.length ? '✓ Sent to ' + r.sent.join(', ') + '. ' : '')
+        + '✗ ' + r.failed.map(function (f) { return f.to + ': ' + f.error; }).join('; '));
     }
-  } catch (e) {
-    showResult(resultEl, false, '✗ Could not reach the gateway script.');
   } finally {
     btn.disabled = false;
   }
