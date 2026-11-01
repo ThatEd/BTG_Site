@@ -2380,7 +2380,7 @@ function openPartModal(partId, car, teamKey) {
     // happily accept it and the car would run a phantom spec).
     const chosen = designs.find(function (d) { return Number(d.design_id) === Number(sel); });
     if (!chosen || (Number(chosen.quantity) || 0) <= 0) {
-      showResult(resultEl, false, 'Ã¢Å“â€” ' + BTG.esc(chosen ? chosen.name : 'That design') + ' has no copies built yet Ã¢â‚¬â€ manufacture it first.');
+      showResult(resultEl, false, '✗ ' + BTG.esc(chosen ? chosen.name : 'That design') + ' has no copies built yet — manufacture it first.');
       return;
     }
     if (btn) btn.disabled = true;
@@ -2434,7 +2434,7 @@ async function renderTransactions() {
   let rows = data.rows || [];
   // A TP can run two teams, and moneyLog returns BOTH clubs' rows (with only a
   // team_id). The rest of the dashboard is scoped to the selected team, so the
-  // transaction list must be too Ã¢â‚¬â€ otherwise the overview silently mixes another
+  // transaction list must be too — otherwise the overview silently mixes another
   // team's parts and salaries into what looks like this team's spend.
   const role = CURRENT_USER && CURRENT_USER.role;
   if (role === 'tp' && tpTeams().length) {
