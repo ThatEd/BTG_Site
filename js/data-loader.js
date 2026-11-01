@@ -147,16 +147,14 @@ async function autoDiscover() {
 
   var manifest;
   try {
-    var mRes = await fetch('Data/data-manifest.json');
-    manifest = await mRes.json();
+    manifest = await (BTG.dataManifest ? BTG.dataManifest() : Promise.resolve({}));
   } catch(e) { manifest = {}; }
 
   // Discover series folders via the server (auto-discovery), union with the
   // root manifest keys so both formats are picked up with zero config.
   var folders = [];
   try {
-    var sRes = await fetch('/api/series');
-    folders = await sRes.json();
+    folders = (await (BTG.apiSeries ? BTG.apiSeries() : Promise.resolve(null))) || [];
   } catch(e) {}
   var seriesSet = {};
   (folders || []).forEach(function(f) { seriesSet[f] = true; });
@@ -180,8 +178,7 @@ async function autoDiscover() {
     //    committed cache's file list when it is available.
     var files = null;
     try {
-      var fRes = await fetch('/api/series-files?series=' + encodeURIComponent(seriesId));
-      if (fRes.ok) files = await fRes.json();
+      files = await (BTG.apiSeriesFiles ? BTG.apiSeriesFiles(seriesId) : Promise.resolve(null));
     } catch(e) {}
     if (!Array.isArray(files)) files = BTG.Data.getSeriesFiles(seriesId) || [];
     fresh._files[seriesId] = files;

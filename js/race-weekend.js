@@ -143,7 +143,7 @@ window.BTG = window.BTG || {};
 
   function ptsTable(series, session) {
     var k = String(series || '') + '|' + session;
-    if (ptsCache[k]) return ptsCache[k];
+    if (ptsCache[k] !== undefined) return ptsCache[k];
     var table = null;
     try {
       var cache = window.BTG && BTG.DBCache && BTG.DBCache.data ? BTG.DBCache.data() : null;
@@ -162,13 +162,48 @@ window.BTG = window.BTG || {};
     return table;
   }
 
+  /* Race-format scoring. XGT is not a single scale: the DB carries separate
+     `series_points` tables per weekend format (sprint / double / major /
+     flagship / race) and `races.format` names which one applies. Reading only
+     the generic 'race' table under-scored every XGT double/major/flagship
+     round (a flagship win is 60, not 30). A format with no table of its own
+     ('Main') maps to 'race', so nothing changes for F1/F2/GT1 (no formats). */
+  var FORMAT_SESSION = {
+    sprint: 'sprint', double: 'double', major: 'major',
+    flagship: 'flagship', main: 'race', race: 'race'
+  };
+
+  /** Session key that carries the points scale for the selected race. */
+  var scoreSessionCache = {};   // series|raceId -> session key
+  function scoringSession(base) {
+    if (base !== 'race') return base;   // sprints always use the sprint table
+    var race = state.selectedRace;
+    var memo = String(state.activeSeries) + '|' + (race ? race.id : '');
+    if (scoreSessionCache[memo]) return scoreSessionCache[memo];
+    var fmt = '';
+    try {
+      var cache = window.BTG && BTG.DBCache && BTG.DBCache.data ? BTG.DBCache.data() : null;
+      if (cache && race && race.cacheRace) {
+        (cache.races || []).forEach(function (r) {
+          if (String(r.race_id) === String(race.id)) fmt = String(r.format || '');
+        });
+      }
+      if (!fmt && race && race.format) fmt = String(race.format);
+    } catch (e) {}
+    var key = fmt.trim().toLowerCase();
+    var session = FORMAT_SESSION[key];
+    var out = (session && ptsTable(state.activeSeries, session)) ? session : 'race';
+    scoreSessionCache[memo] = out;
+    return out;
+  }
+
   function racePts(pos) {
-    var t = ptsTable(state.activeSeries, 'race');
+    var t = ptsTable(state.activeSeries, scoringSession('race'));
     if (t && t[pos] != null) return t[pos];
     return DEFAULT_RACE_PTS[pos - 1] || 0;
   }
   function sprintPts(pos) {
-    var t = ptsTable(state.activeSeries, 'sprint');
+    var t = ptsTable(state.activeSeries, scoringSession('sprint'));
     if (t && t[pos] != null) return t[pos];
     return DEFAULT_SPRINT_PTS[pos - 1] || 0;
   }
@@ -275,8 +310,7 @@ window.BTG = window.BTG || {};
 
     try {
       // 1. Root manifest (F1-style race files), when present
-      var mRes = await fetch('Data/data-manifest.json');
-      var manifest = mRes.ok ? await mRes.json() : {};
+      var manifest = BTG.dataManifest ? await BTG.dataManifest() : {};
       var data = manifest[seriesId] && manifest[seriesId][String(year)];
       if (data && (data.races || data.sprints)) {
         var sprintFiles = (data.sprints || []).map(fileSlug);
@@ -381,9 +415,7 @@ window.BTG = window.BTG || {};
   /** Get the active series' file list from the Node server, falling back to
    *  the cache (which exists on static hosting like GitHub Pages). */
   function seriesFiles() {
-    return fetch('/api/series-files?series=' + encodeURIComponent(state.activeSeries))
-      .then(function(r) { return r.ok ? r.json() : null; })
-      .catch(function() { return null; })
+    return (BTG.apiSeriesFiles ? BTG.apiSeriesFiles(state.activeSeries) : Promise.resolve(null))
       .then(function(files) {
         return (files === null) ? (BTG.Data.getSeriesFiles(state.activeSeries) || []) : files;
       });
@@ -520,6 +552,9 @@ window.BTG = window.BTG || {};
           flag: c ? c.flag : '',
           tag: (c && c.img) ? c.img.slice(0, 3).toUpperCase() : circuit.slice(0, 3).toUpperCase(),
           day: i,
+          // `format` picks the points scale for series with per-format tables
+          // (XGT: double / major / flagship / sprint).
+          format: String(r.format || ''),
           isSprintWeekend: (cache.race_sprints || []).some(function (x) { return String(x.race_id) === String(r.race_id); }) || /sprint/i.test(String(r.weekend_type)),
           cacheRace: true,
           hasResults: hasResults
@@ -1931,6 +1966,7 @@ window.BTG = window.BTG || {};
       if (id === state.activeSeries) return;
       state.activeSeries = id;
       ptsCache = {};
+      scoreSessionCache = {};
       state.seasons = BTG.Data.getSeasons(id);
       state.activeSeason = state.seasons[0] || 2024;
       state.selectedRaceId = null;

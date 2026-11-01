@@ -7,32 +7,32 @@ window.BTG = window.BTG || {};
 
 /** F1 team definitions. */
 BTG.F1_TEAMS = [
-  { id: 1,  name: 'Ferrari',        color: '220,0,0',      colorSecondary: '142,147,150',  logo: 'logos/f1.png' },
-  { id: 2,  name: 'McLaren',        color: '255,128,0',    colorSecondary: '45,45,45',     logo: 'logos/f1.png' },
-  { id: 3,  name: 'Red Bull',       color: '30,91,198',    colorSecondary: '247,195,0',    logo: 'logos/f1.png' },
-  { id: 4,  name: 'Mercedes',       color: '0,210,190',    colorSecondary: '61,61,61',     logo: 'logos/f1.png' },
-  { id: 5,  name: 'Alpine',         color: '0,144,255',    colorSecondary: '255,135,188',  logo: 'logos/f1.png' },
-  { id: 6,  name: 'Williams',       color: '0,90,255',     colorSecondary: '4,30,66',      logo: 'logos/f1.png' },
-  { id: 7,  name: 'Haas',           color: '230,0,43',     colorSecondary: '61,61,61',     logo: 'logos/f1.png' },
-  { id: 8,  name: 'Racing Bulls',   color: '22,52,203',    colorSecondary: '38,71,216',    logo: 'logos/f1.png' },
-  { id: 9,  name: 'Audi',           color: '192,0,0',      colorSecondary: '127,133,137',  logo: 'logos/f1.png' },
-  { id: 10, name: 'Aston Martin',   color: '0,111,98',     colorSecondary: '206,220,0',    logo: 'logos/f1.png' },
-  { id: 32, name: 'Cadillac',       color: '200,16,46',    colorSecondary: '123,127,130',  logo: 'logos/f1.png' }
+  { id: 1,  name: 'Ferrari',        color: '220,0,0',      colorSecondary: '142,147,150',  logo: 'logos/F1.png' },
+  { id: 2,  name: 'McLaren',        color: '255,128,0',    colorSecondary: '45,45,45',     logo: 'logos/F1.png' },
+  { id: 3,  name: 'Red Bull',       color: '30,91,198',    colorSecondary: '247,195,0',    logo: 'logos/F1.png' },
+  { id: 4,  name: 'Mercedes',       color: '0,210,190',    colorSecondary: '61,61,61',     logo: 'logos/F1.png' },
+  { id: 5,  name: 'Alpine',         color: '0,144,255',    colorSecondary: '255,135,188',  logo: 'logos/F1.png' },
+  { id: 6,  name: 'Williams',       color: '0,90,255',     colorSecondary: '4,30,66',      logo: 'logos/F1.png' },
+  { id: 7,  name: 'Haas',           color: '230,0,43',     colorSecondary: '61,61,61',     logo: 'logos/F1.png' },
+  { id: 8,  name: 'Racing Bulls',   color: '22,52,203',    colorSecondary: '38,71,216',    logo: 'logos/F1.png' },
+  { id: 9,  name: 'Audi',           color: '192,0,0',      colorSecondary: '127,133,137',  logo: 'logos/F1.png' },
+  { id: 10, name: 'Aston Martin',   color: '0,111,98',     colorSecondary: '206,220,0',    logo: 'logos/F1.png' },
+  { id: 32, name: 'Cadillac',       color: '200,16,46',    colorSecondary: '123,127,130',  logo: 'logos/F1.png' }
 ];
 
 /** F2 team definitions. */
 BTG.F2_TEAMS = [
-  { id: 11, name: 'PREMA',                 color: '239,1,1',     colorSecondary: '61,61,61',     logo: 'logos/f2.png' },
-  { id: 12, name: 'Invicta Virtuosi',      color: '254,242,15',  colorSecondary: '142,147,150',  logo: 'logos/f2.png' },
-  { id: 13, name: 'Rodin Carlin',          color: '45,45,45',    colorSecondary: '61,61,61',     logo: 'logos/f2.png' },
-  { id: 14, name: 'Hitech',                color: '112,112,112', colorSecondary: '61,61,61',     logo: 'logos/f2.png' },
-  { id: 15, name: 'ART',                   color: '237,28,36',   colorSecondary: '61,61,61',     logo: 'logos/f2.png' },
-  { id: 16, name: 'MP',                    color: '0,61,165',    colorSecondary: '109,110,113',  logo: 'logos/f2.png' },
-  { id: 17, name: 'AIX Racing',            color: '61,190,74',   colorSecondary: '109,110,113',  logo: 'logos/f2.png' },
-  { id: 18, name: 'DAMS',                  color: '0,61,165',    colorSecondary: '109,110,113',  logo: 'logos/f2.png' },
-  { id: 19, name: 'Campos Racing',         color: '203,32,15',   colorSecondary: '109,110,113',  logo: 'logos/f2.png' },
-  { id: 20, name: 'Van Amersfoort Racing', color: '232,119,34',  colorSecondary: '109,110,113',  logo: 'logos/f2.png' },
-  { id: 21, name: 'Trident',               color: '40,58,142',   colorSecondary: '109,110,113',  logo: 'logos/f2.png' }
+  { id: 11, name: 'PREMA',                 color: '239,1,1',     colorSecondary: '61,61,61',     logo: 'logos/F2.png' },
+  { id: 12, name: 'Invicta Virtuosi',      color: '254,242,15',  colorSecondary: '142,147,150',  logo: 'logos/F2.png' },
+  { id: 13, name: 'Rodin Carlin',          color: '45,45,45',    colorSecondary: '61,61,61',     logo: 'logos/F2.png' },
+  { id: 14, name: 'Hitech',                color: '112,112,112', colorSecondary: '61,61,61',     logo: 'logos/F2.png' },
+  { id: 15, name: 'ART',                   color: '237,28,36',   colorSecondary: '61,61,61',     logo: 'logos/F2.png' },
+  { id: 16, name: 'MP',                    color: '0,61,165',    colorSecondary: '109,110,113',  logo: 'logos/F2.png' },
+  { id: 17, name: 'AIX Racing',            color: '61,190,74',   colorSecondary: '109,110,113',  logo: 'logos/F2.png' },
+  { id: 18, name: 'DAMS',                  color: '0,61,165',    colorSecondary: '109,110,113',  logo: 'logos/F2.png' },
+  { id: 19, name: 'Campos Racing',         color: '203,32,15',   colorSecondary: '109,110,113',  logo: 'logos/F2.png' },
+  { id: 20, name: 'Van Amersfoort Racing', color: '232,119,34',  colorSecondary: '109,110,113',  logo: 'logos/F2.png' },
+  { id: 21, name: 'Trident',               color: '40,58,142',   colorSecondary: '109,110,113',  logo: 'logos/F2.png' }
 ];
 
 /** All teams merged (F1 + F2). */

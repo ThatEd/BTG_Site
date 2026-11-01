@@ -1882,9 +1882,27 @@ let MAIL_FILTER = null; // admin: which driver/TP's mail to view
 let TP_TEAM_SEL = null; // TP: which of their teams is currently shown
 let PARTS_TEAM_SEL = null; // admin: which team the Parts Design console is showing
 
-/* ---------- season year (from race data, fallback 2024) ---------- */
+/* ---------- season year (from the live DB cache, fallback 2024) ---------- */
 async function currentYear() {
   if (CURRENT_YEAR) return CURRENT_YEAR;
+  // Season years come from the same cache the public site renders from
+  // (BTG.DBCache → cache/public-data.json, rebuilt from the DB daily). The
+  // committed data-cache.json only ever holds file-based seasons and stopped
+  // being regenerated in Aug 2026, so reading it froze the dashboard on the
+  // old season while the rest of the site moved on.
+  try {
+    const D = (BTG.DBCache && BTG.DBCache.init) ? await BTG.DBCache.init() : null;
+    let max = 0;
+    ((D && D.race_seasons) || []).forEach(s => {
+      const v = Number(s.year); if (v > max) max = v;
+    });
+    if (!max) {
+      ((D && D.app_state) || []).forEach(s => {
+        const v = Number(s.year); if (v > max) max = v;
+      });
+    }
+    if (max) { CURRENT_YEAR = max; return CURRENT_YEAR; }
+  } catch (e) {}
   try {
     const res = await fetch('data-cache.json', { cache: 'no-store' });
     const cache = await res.json();
@@ -3247,8 +3265,14 @@ function tlTeams() { return (TEAMS && TEAMS.length) ? TEAMS : []; }
 async function tlLoadLibrary() {
   var list = [];
   try {
-    var res = await fetch('api/team-logos', { cache: 'no-store' });
-    if (res.ok) { var j = await res.json(); if (Array.isArray(j)) list = j; }
+    // Only ask the dev server when it is actually there — on static hosting
+    // (/api/* absent) the request is a guaranteed 404, and the committed
+    // manifest already lists every image under logos/.
+    var devApi = BTG.apiSeries ? await BTG.apiSeries() : null;
+    if (devApi) {
+      var res = await fetch('api/team-logos', { cache: 'no-store' });
+      if (res.ok) { var j = await res.json(); if (Array.isArray(j)) list = j; }
+    }
   } catch (e) {}
   if (!list.length) {
     try {

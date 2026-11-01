@@ -1560,7 +1560,7 @@ select option { background: #3a3a3a; color: #ffffff; }
 .tx-amt.pos { color: var(--moss); }
 .tx-amt.neg { color: var(--team-accent-hot); }
 
-/* Parts allocation � two cars with clickable parts */
+/* Parts allocation — two cars with clickable parts */
 .pa-cars { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 12px; }
 .pa-car { background: var(--card-raised); border: 1px solid var(--edge); border-radius: 12px; overflow: hidden; }
 .pa-car-head { padding: 12px 14px; border-bottom: 1px solid var(--edge); font-family: var(--head-face); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-size: 14px; color: var(--copy); }
@@ -1584,7 +1584,7 @@ select option { background: #3a3a3a; color: #ffffff; }
 .pa-stepper .val { min-width: 34px; text-align: center; font-family: var(--head-face); font-size: 15px; font-weight: 700; color: var(--copy); }
 .pa-modal-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
 
-/* Parts allocation � design fit options (a car runs ONE part per component) */
+/* Parts allocation — design fit options (a car runs ONE part per component) */
 .pa-design-list { display: flex; flex-direction: column; gap: 8px; }
 .pa-design-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left; background: var(--card); border: 1px solid var(--edge); border-radius: 8px; padding: 10px 12px; cursor: pointer; color: var(--copy); font-family: var(--body-face); transition: border-color .12s, background .12s; }
 .pa-design-option:hover { border-color: var(--edge-strong); }
@@ -1596,7 +1596,7 @@ select option { background: #3a3a3a; color: #ffffff; }
 .pa-design-name { font-family: var(--head-face); font-size: 13px; font-weight: 700; }
 .pa-design-src { font-family: var(--data-face); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--copy-faint); }
 
-/* Parts allocation � spec quantities */
+/* Parts allocation — spec quantities */
 .pa-design-right { display: inline-flex; align-items: center; gap: 8px; }
 .pa-design-qty { font-family: var(--data-face); font-size: 12px; font-weight: 700; color: var(--brass); white-space: nowrap; }
 .pa-part-count { font-family: var(--data-face); font-size: 12px; font-weight: 700; color: var(--brass); white-space: nowrap; }

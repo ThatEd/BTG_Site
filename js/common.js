@@ -102,6 +102,45 @@ BTG.loadLogoManifest = function() {
   return BTG._logoManifestPromise;
 };
 
+/* ── Data endpoint probes ───────────────────────────────────────────────────
+   Auto-discovery asks the dev server for the Data/ folder listing (/api/*).
+   Static hosting (GitHub Pages) has no such endpoints, so each probe is a 404,
+   and pages asked more than once per load. These memos keep it to one request
+   per endpoint per page load in both cases. Resolving to null means "this host
+   has no such endpoint" — distinct from an empty array ("folder is empty"). */
+BTG.dataManifest = function() {
+  if (BTG._dataManifestPromise) return BTG._dataManifestPromise;
+  BTG._dataManifestPromise = fetch('Data/data-manifest.json')
+    .then(function(r) { return r.ok ? r.json() : {}; })
+    .catch(function() { return {}; })
+    .then(function(m) { return (m && typeof m === 'object') ? m : {}; });
+  return BTG._dataManifestPromise;
+};
+
+BTG.apiSeries = function() {
+  if (BTG._apiSeriesPromise) return BTG._apiSeriesPromise;
+  BTG._apiSeriesPromise = fetch('/api/series')
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .catch(function() { return null; })
+    .then(function(list) { return Array.isArray(list) ? list : null; });
+  return BTG._apiSeriesPromise;
+};
+
+/** File list for a series from the dev server, or null when /api is absent. */
+BTG.apiSeriesFiles = function(series) {
+  if (!series) return Promise.resolve(null);
+  BTG._apiFiles = BTG._apiFiles || {};
+  if (BTG._apiFiles[series]) return BTG._apiFiles[series];
+  BTG._apiFiles[series] = BTG.apiSeries().then(function(supported) {
+    if (!supported) return null;
+    return fetch('/api/series-files?series=' + encodeURIComponent(series))
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .catch(function() { return null; })
+      .then(function(list) { return Array.isArray(list) ? list : null; });
+  });
+  return BTG._apiFiles[series];
+};
+
 /* ── Team Colors ──────────────────────────────────────────────────────────── */
 
 /** Parse "r,g,b" strings and set CSS --team-* variables on <html>.
