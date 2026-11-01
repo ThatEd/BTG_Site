@@ -120,8 +120,19 @@ async function readTable(name) {
 
 async function main() {
   console.log('Reading public tables from', SUPABASE_URL);
+
+  // Previous cache (if any). Used to protect the live site from a transient DB
+  // failure: a table that fails to read must never be published as empty, or
+  // the daily commit would wipe that data from the site until the next run.
+  let prev = null;
+  try {
+    if (fs.existsSync(OUT_FILE)) prev = JSON.parse(fs.readFileSync(OUT_FILE, 'utf8'));
+  } catch (e) {
+    console.log('  (could not read the previous cache — continuing without it)');
+  }
+
   const data = { generatedAt: new Date().toISOString(), version: 1 };
-  const failedKeys = [];
+  const failedKeys = [];      // read failed (table could not be fetched)
   let directFailed = false;
 
   for (const [dbTable, key] of TABLES) {
@@ -155,10 +166,10 @@ async function main() {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const snap = await res.json();
       if (snap && Array.isArray(snap.races)) {
-        // Only fill tables the direct (anon) read couldn't get — never clobber
-        // fresh direct reads (e.g. standings) with a stale snapshot.
-        Object.keys(snap).forEach(function (k) {
-          if (Array.isArray(snap[k]) && Array.isArray(data[k]) && data[k].length === 0) data[k] = snap[k];
+        // Only fill the tables the direct (anon) read couldn't get — never
+        // clobber fresh direct reads (e.g. standings) with a stale snapshot.
+        failedKeys.forEach(function (k) {
+          if (Array.isArray(snap[k]) && snap[k].length) data[k] = snap[k];
         });
         console.log('  edge snapshot applied.');
       } else {
@@ -168,6 +179,23 @@ async function main() {
       console.error('  edge fallback also failed:', e2 && e2.message);
     }
   }
+
+  // Never publish data loss. Any table that failed to read and that the edge
+  // snapshot could not fill keeps its previous contents, so a transient DB or
+  // network problem cannot silently wipe team colours/logos, contract history
+  // or the car/seat map off the live site.
+  const restored = [];
+  if (prev) {
+    failedKeys.forEach(function (k) {
+      if (data[k].length === 0 && Array.isArray(prev[k]) && prev[k].length) {
+        data[k] = prev[k];
+        restored.push(k);
+      }
+    });
+  }
+  if (restored.length) console.log('  kept previous contents for unreadable tables:', restored.join(', '));
+  const stillEmpty = failedKeys.filter(function (k) { return data[k].length === 0; });
+  if (stillEmpty.length) console.log('  WARNING: no data available for:', stillEmpty.join(', '));
 
   if (!Array.isArray(data.races) || data.races.length === 0) {
     throw new Error('No race data could be fetched from any source.');

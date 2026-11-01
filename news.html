@@ -127,11 +127,22 @@
       });
       if (tag === 'a') {
         var h = node.getAttribute('href') || '';
-        if (/^javascript:/i.test(h)) node.removeAttribute('href');
+        // Block every script-bearing scheme, not just javascript: — `data:` can
+        // carry text/html, and vbscript:/blob: are accepted by some browsers.
+        // Leading control/space characters are stripped first so
+        // " java\tscript:" cannot slip through.
+        if (!/^\s*(https?:|mailto:|#|\/|\.{0,2}\/)/i.test(h.replace(/[\u0000-\u0020]+/g, ''))) {
+          node.removeAttribute('href');
+        }
+        if (node.getAttribute('target') === '_blank') {
+          node.setAttribute('rel', 'noopener noreferrer');
+        }
       }
       if (tag === 'img') {
         var s = node.getAttribute('src') || '';
-        if (/^javascript:/i.test(s)) node.removeAttribute('src');
+        if (!/^\s*(https?:\/\/|data:image\/|\/|\.{0,2}\/)/i.test(s.replace(/[\u0000-\u0020]+/g, ''))) {
+          node.removeAttribute('src');
+        }
       }
       Array.prototype.slice.call(node.childNodes).forEach(walk);
     }

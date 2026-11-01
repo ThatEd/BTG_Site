@@ -1,0 +1,24 @@
+# Normalise line endings in the repository.
+#
+# The working copies on Windows use CRLF (core.autocrlf=true), but the repo
+# stores LF. Without this file a text file that gets rewritten locally shows up
+# as a whole-file change (every line modified), which makes real diffs
+# impossible to review. Declaring the rules here keeps the stored form stable
+# and lets Git handle the CRLF translation on checkout/commit.
+* text=auto eol=lf
+
+# Binary assets — never translate.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.db binary
+*.xlsx binary
+*.zip binary
+*.exe binary

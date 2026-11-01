@@ -1589,6 +1589,10 @@ select option { background: #3a3a3a; color: #ffffff; }
 .pa-design-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left; background: var(--card); border: 1px solid var(--edge); border-radius: 8px; padding: 10px 12px; cursor: pointer; color: var(--copy); font-family: var(--body-face); transition: border-color .12s, background .12s; }
 .pa-design-option:hover { border-color: var(--edge-strong); }
 .pa-design-option.active { border-color: var(--team-accent); background: var(--card-raised); box-shadow: 0 0 0 1px var(--team-accent); }
+/* A spec with no copies built yet cannot be fitted — show it as unavailable
+   instead of letting the TP fit a part that does not exist. */
+.pa-design-option--empty { opacity: .55; }
+.pa-design-option--empty .pa-design-qty { color: var(--copy-faint); }
 .pa-design-name { font-family: var(--head-face); font-size: 13px; font-weight: 700; }
 .pa-design-src { font-family: var(--data-face); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--copy-faint); }
 

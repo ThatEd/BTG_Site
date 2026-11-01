@@ -27,40 +27,92 @@
   function str(v) { return v == null ? '' : String(v); }
   function by(arr, key, val) { return (arr || []).filter(function (r) { return String(r[key]) === String(val); }); }
 
+  /* ── Placeholder rows ─────────────────────────────────────────────────────
+     The league DB keeps an unassigned/free-agent team row (team_id 999,
+     team_key/team_name "None"). It is a valid FK target for contracts whose
+     driver has no team, but it must never be rendered as a real team name —
+     pages would show a "None" constructor. Treat those ids/keys, plus null
+     and empty input, as "unknown" everywhere a team is looked up. */
+  var PLACEHOLDER_TEAM_IDS = { '0': true, '999': true };
+  var PLACEHOLDER_TEAM_KEYS = { 'none': true, 'null': true, 'undefined': true, 'n/a': true, '-': true, '—': true };
+
+  function isPlaceholderTeamKey(v) {
+    var s = str(v).trim().toLowerCase();
+    return !s || PLACEHOLDER_TEAM_KEYS[s] === true;
+  }
+  function isPlaceholderTeam(row) {
+    if (!row) return true;
+    if (PLACEHOLDER_TEAM_IDS[str(row.team_id)] === true) return true;
+    return isPlaceholderTeamKey(row.team_key) && isPlaceholderTeamKey(row.team_name);
+  }
+  /** Normalise a team reference; '' for null/undefined/"None"/999. */
+  function teamRef(key) {
+    if (key == null) return '';
+    var k = str(key).trim();
+    if (isPlaceholderTeamKey(k) || PLACEHOLDER_TEAM_IDS[k] === true) return '';
+    return k;
+  }
+
+  /** Loose comparison key for a team reference: the DB stores the same team as
+   *  "red_bull" (Teams.team_key), "Red Bull" (contract_history.team_key /
+   *  driver_cars.team_key) and "RB" in places, so exact string equality misses
+   *  real matches and makes one constructor look like two. Lower-case and drop
+   *  every non-alphanumeric character: "red_bull", "Red Bull" and "RedBull"
+   *  all become "redbull". */
+  function teamMatchKey(v) {
+    return str(v).toLowerCase().replace(/[^a-z0-9]+/g, '');
+  }
+
   function teamName(key) {
-    var k = String(key);
-    var t = (D && D.teams || []).filter(function (x) { return String(x.team_key) === k || String(x.team_id) === k; })[0];
-    return (t && t.team_name) || k;
+    var k = teamRef(key);
+    if (!k) return '';
+    // The league DB mixes key styles ("haas" / "red_bull" vs contract_history's
+    // "Haas" / "Red Bull"), so match loosely — the same way teamRow() does.
+    var kl = teamMatchKey(k);
+    var rows = (D && D.teams || []).filter(function (x) { return !isPlaceholderTeam(x); });
+    var t = rows.filter(function (x) {
+      return teamMatchKey(x.team_key) === kl || teamMatchKey(x.team_name) === kl || String(x.team_id) === k;
+    })[0];
+    // team_name and team_key are the same value for some DB rows; a row whose
+    // only name is the key adds nothing, so fall back to the raw reference.
+    if (!t) return k;
+    return str(t.team_name) || str(t.team_key) || k;
   }
   // Official per-season team names from the "Team Identity" table (Short Name
   // and Full Name keyed by team_id + Season). Short name preferred for general
   // display; pass long=true for the Full Name. Falls back to teamName.
   function teamIdentity(key, year, long) {
-    var k = String(key);
+    var k = teamRef(key);
+    if (!k) return '';
     var rows = D && D.team_identity || [];
     var hit = null, bestSeason = null;
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i];
       var rid = r.team_id != null ? String(r.team_id) : '';
-      if (rid !== k && String(r.Team_key || '') !== k) continue;
+      if (rid !== k && teamMatchKey(r.Team_key) !== teamMatchKey(k)) continue;
       if (year != null && String(r.Season) !== String(year)) continue;
       if (hit == null || (r.Season != null && (bestSeason == null || Number(r.Season) > Number(bestSeason)))) { hit = r; bestSeason = r.Season; }
     }
-    if (!hit) return teamName(key);
+    if (!hit) return teamName(k);
     var n = long ? (hit['Full Name'] || hit['Short Name']) : (hit['Short Name'] || hit['Full Name']);
-    return n ? String(n) : teamName(key);
+    return n ? String(n) : teamName(k);
   }
   function teamFullName(key, year) { return teamIdentity(key, year, true); }
   function seriesOfTeam(key) {
-    var k = String(key);
-    var t = (D && D.teams || []).filter(function (x) { return String(x.team_key) === k || String(x.team_id) === k; })[0];
+    var k = teamRef(key);
+    if (!k) return '';
+    var kl = teamMatchKey(k);
+    var t = (D && D.teams || []).filter(function (x) {
+      return !isPlaceholderTeam(x) &&
+        (teamMatchKey(x.team_key) === kl || teamMatchKey(x.team_name) === kl || String(x.team_id) === k);
+    })[0];
     return t ? str(t.series) : '';
   }
   // DB team colour (hex) by team_key / team_id — the site-wide source of truth.
   function teamRow(key) {
-    var k = String(key || '').trim().toLowerCase();
+    var k = teamRef(key).toLowerCase();
     if (!k) return null;
-    var rows = D && D.teams || [];
+    var rows = (D && D.teams || []).filter(function (x) { return !isPlaceholderTeam(x); });
     // Exact first: team_key / team_id / team_name.
     for (var i = 0; i < rows.length; i++) {
       var x = rows[i];
@@ -168,42 +220,88 @@
     return str(nm);
   }
 
-  // driver key -> [{ seat, from, till }] (seat 1 = car 1).
+  /* ── Seat resolution ─────────────────────────────────────────────────────
+     `Contracts.seat` is the league's source of truth for who is in which car,
+     but a driver can hold several CONCURRENT seats: a race seat in one series
+     plus a reserve/junior seat at an F1 team (e.g. an F2 driver who is also an
+     F1 academy member). A name-only lookup picks whichever row happens to win
+     the tie-break, so the same driver would sort as "car 1" on both teams.
+
+     Seats are therefore resolved per (driver, team) — and per series when the
+     caller knows it — so each team's lineup is ordered from its own contracts.
+     Rows whose contract window misses the season fall back to an unwindowed
+     row from the same team, then to the game's `team_staff.pos_in_team`. */
   function seatRowsByName() {
     var map = {};
-    function add(nm, seat, from, till, rank) {
+    function add(nm, seat, from, till, rank, teamId, teamSeries) {
       var k = nameKey(nm);
       if (!k || !(seat >= 1)) return;
-      (map[k] = map[k] || []).push({ seat: seat, from: from, till: till, rank: rank });
+      (map[k] = map[k] || []).push({
+        seat: seat, from: from, till: till, rank: rank,
+        team_id: teamRef(teamId), series: str(teamSeries)
+      });
     }
     // 1) League contracts (authoritative).
     (D && D.driver_cars || []).forEach(function (c) {
       add(c.driver_name, num(c.seat),
         c.from_year == null || c.from_year === '' ? null : num(c.from_year),
-        c.till_year == null || c.till_year === '' ? null : num(c.till_year), 0);
+        c.till_year == null || c.till_year === '' ? null : num(c.till_year), 0,
+        c.team_id, c.series || seriesOfTeam(c.team_id));
     });
     // 2) Fallback: the game's car position for the team's drivers.
     (D && D.team_staff || []).forEach(function (s) {
       if (str(s.role_label) !== 'Driver') return;
       var nm = (str(s.first_name) + ' ' + str(s.last_name)).trim();
-      if (nameKey(nm) && map[nameKey(nm)]) return;   // contract seat already known
-      add(nm, num(s.pos_in_team), null, null, 1);
+      add(nm, num(s.pos_in_team), null, null, 1, s.team_id, seriesOfTeam(s.team_id));
     });
     return map;
   }
 
-  /** Car/seat number for a driver (1 = car 1). `year` picks the contract row
-   *  whose window covers that season — the tightest window wins, so a one-year
-   *  deal beats a longer future deal that also spans the season. */
-  function carSeat(name, year) {
+  /** Normalise the optional `scope` argument into { team, series }. */
+  function seatScope(scope) {
+    if (scope == null) return { team: '', series: '' };
+    if (typeof scope === 'object') {
+      return {
+        team: teamRef(scope.team != null ? scope.team : (scope.team_id != null ? scope.team_id : scope.teamKey)),
+        series: str(scope.series)
+      };
+    }
+    // A bare string is a team key or team id.
+    return { team: teamRef(scope), series: '' };
+  }
+
+  /** Car/seat number for a driver (1 = car 1).
+   *
+   *  `year`  — prefer the contract row whose window covers that season (the
+   *            tightest window wins, so a one-year deal beats a longer future
+   *            deal that also spans the season).
+   *  `scope` — optional { team, series } (or a team key/id) so a driver with
+   *            concurrent seats in different teams/series is ordered by the
+   *            seat that belongs to the team being rendered. Omit it to keep
+   *            the old best-row behaviour. */
+  function carSeat(name, year, scope) {
     var rows = seatRowsByName()[nameKey(driverLabel(name))];
     if (!rows || !rows.length) return null;
+    var sc = seatScope(scope);
+    var teamId = sc.team ? String((teamRow(sc.team) || {}).team_id || sc.team) : '';
+    var scoped = rows;
+    if (teamId || sc.series) {
+      var hit = rows.filter(function (r) {
+        if (teamId && String(r.team_id) !== teamId) return false;
+        if (sc.series && r.series && r.series !== sc.series) return false;
+        return true;
+      });
+      // A scope that matches nothing here means the driver has no seat on this
+      // team — report "no seat" instead of falling back to another team's car.
+      if (!hit.length) return null;
+      scoped = hit;
+    }
     var y = year == null || year === '' ? null : Number(year);
-    var pool = rows.filter(function (r) {
+    var pool = scoped.filter(function (r) {
       if (y == null) return true;
       return (r.from == null || r.from <= y) && (r.till == null || r.till >= y);
     });
-    if (!pool.length) pool = rows;
+    if (!pool.length) pool = scoped;
     pool = pool.slice().sort(function (a, b) {
       if (a.rank !== b.rank) return a.rank - b.rank;
       var wa = a.till == null || a.from == null ? Infinity : a.till - a.from;
@@ -215,23 +313,61 @@
     return pool[0].seat;
   }
 
-  /** Comparator that orders a team's drivers by car: seat 1, seat 2, then the
-   *  reserve/junior seats, then anything without a seat (by name). */
-  function byCarOrder(year) {
-    return function (a, b) {
-      var la = driverLabel(a), lb = driverLabel(b);
-      var sa = carSeat(la, year), sb = carSeat(lb, year);
-      if (sa == null && sb == null) { }
-      else if (sa == null) return 1;
-      else if (sb == null) return -1;
-      else if (sa !== sb) return sa - sb;
-      var na = nameKey(la), nb = nameKey(lb);
-      return na < nb ? -1 : na > nb ? 1 : 0;
-    };
+  /** Team key for a driver-like value (object with teamKey/team, or a name). */
+  function teamKeyOf(x) {
+    if (x && typeof x === 'object') {
+      if (x.teamKey != null) return teamRef(x.teamKey);
+      if (x.team != null) return teamRef(x.team);
+      return '';
+    }
+    return '';
   }
 
-  /** Sort a list of driver objects/names into car order (returns a new array). */
-  function sortByCar(list, year) { return (list || []).slice().sort(byCarOrder(year)); }
+  /** Order two drivers by car seat. `scope` behaves like carSeat()'s, plus
+   *  { perTeam: true } which scopes each driver to their own team. */
+  function compareByCar(a, b, year, scope) {
+    var la = driverLabel(a), lb = driverLabel(b);
+    var sa, sb;
+    if (scope && typeof scope === 'object' && scope.perTeam) {
+      var series = str(scope.series);
+      var ta = teamKeyOf(a), tb = teamKeyOf(b);
+      sa = carSeat(la, year, { team: ta, series: series || seriesOfTeam(ta) });
+      sb = carSeat(lb, year, { team: tb, series: series || seriesOfTeam(tb) });
+    } else {
+      sa = carSeat(la, year, scope);
+      sb = carSeat(lb, year, scope);
+    }
+    if (sa == null && sb == null) { }
+    else if (sa == null) return 1;
+    else if (sb == null) return -1;
+    else if (sa !== sb) return sa - sb;
+    var na = nameKey(la), nb = nameKey(lb);
+    return na < nb ? -1 : na > nb ? 1 : 0;
+  }
+
+  /** Comparator that orders a team's drivers by car: seat 1, seat 2, then the
+   *  reserve/junior seats, then anything without a seat (by name).
+   *  `scope` is passed through to carSeat() — pass { team, series } so each
+   *  team's lineup uses that team's own contracts. */
+  function byCarOrder(year, scope) {
+    return function (a, b) { return compareByCar(a, b, year, scope); };
+  }
+
+  /** Sort a list of drivers into car order (returns a new array).
+   *
+   *  `scope` is optional:
+   *   • omitted                  → every driver is ordered by their best seat
+   *                                across all teams (legacy behaviour).
+   *   • { team, series }         → one team's lineup, ordered by that team's
+   *                                own contracts.
+   *   • { perTeam: true, series } → a mixed list spanning several teams: each
+   *                                driver is scoped to their own team so a
+   *                                driver holding seats in two series is never
+   *                                ordered by the other team's car. */
+  function sortByCar(list, year, scope) {
+    var arr = (list || []).slice();
+    return arr.sort(function (a, b) { return compareByCar(a, b, year, scope); });
+  }
 
   // Whole-career favorite circuit + favored track type for a driver, computed
   // over EVERY race the cache has them in (all seasons/series). DNS/DSQ races
@@ -311,13 +447,36 @@
 
   // Contract history timeline for an entity (driver name or TP name), newest
   // first. Rows from the cached contract_history table.
+  //
+  // Ordering must not depend on the payload order: the DB returns rows in
+  // insertion order, which is not the timeline. Current contracts come first,
+  // then the latest end year, then the latest start year, then the row itself.
+  //
+  // Team identity is normalised here too: the league DB stores an
+  // unassigned/free-agent team as team_id 999 with team_key "None". Pages
+  // render `team_key` directly, so it is blanked rather than showing "None".
   function contractHistory(name) {
     return (D && D.contract_history || [])
       .filter(function (h) { return str(h.entity_name) === name; })
-      .slice().sort(function (a, b) {
-        var ka = str(a.from_year) + str(a.till_year) + (a.created_at || '');
-        var kb = str(b.from_year) + str(b.till_year) + (b.created_at || '');
-        return ka < kb ? 1 : ka > kb ? -1 : 0;
+      .map(function (h) {
+        var team = teamRef(h.team_key) || teamRef(h.team_id);
+        return Object.assign({}, h, {
+          team_key: isPlaceholderTeamKey(h.team_key) ? '' : str(h.team_key),
+          // Display name for the row's team (falls back to the raw key).
+          team_name: team ? teamName(team) : ''
+        });
+      })
+      .sort(function (a, b) {
+        if (!!a.is_current !== !!b.is_current) return a.is_current ? -1 : 1;
+        var ta = a.till_year == null || a.till_year === '' ? -Infinity : num(a.till_year);
+        var tb = b.till_year == null || b.till_year === '' ? -Infinity : num(b.till_year);
+        if (ta !== tb) return tb - ta;
+        var fa = a.from_year == null || a.from_year === '' ? -Infinity : num(a.from_year);
+        var fb = b.from_year == null || b.from_year === '' ? -Infinity : num(b.from_year);
+        if (fa !== fb) return fb - fa;
+        var ca = str(a.created_at), cb = str(b.created_at);
+        if (ca !== cb) return ca < cb ? 1 : -1;
+        return num(b.history_id) - num(a.history_id);
       });
   }
 
@@ -341,6 +500,20 @@
       return cur ? str(cur.team_key) : '';
     }
     var myTeam = teamOf(name);
+    // Teams can arrive as a key ("haas") from contract_history and a display
+    // name ("Haas") from the Teams table, so dedupe case-insensitively rather
+    // than showing the same constructor twice in the career panel.
+    function teamSeen(st, tk) {
+      if (!tk) return true;
+      var low = tk.toLowerCase();
+      for (var i = 0; i < st.teamKeys.length; i++) if (str(st.teamKeys[i]).toLowerCase() === low) return true;
+      return false;
+    }
+    function addTeam(st, tk) {
+      if (!tk || teamSeen(st, tk)) return;
+      st.teams[tk] = true;
+      st.teamKeys.push(tk);
+    }
     (D && D.race_results || []).filter(function (r) { return str(r.driver_name) === name; }).forEach(function (r) {
       var series = seasonSeries[raceToSeason[String(r.race_id)]];
       if (!series) return;
@@ -351,7 +524,9 @@
       if (p === 1) st.wins++;
       if (p >= 1 && p <= 3) st.podiums++;
       if (num(r.dnf) === 1 || /dnf/i.test(str(r.status))) st.dnfs++;
-      if (p > 0 && (st.bestPos == null || p < st.bestPos)) st.bestPos = p;
+      // NOTE: a race FINISH is not a championship POSITION. bestPos below is
+      // driven by season_driver_standings so it means "best championship
+      // result", which is what every caller (driver modal) labels it as.
     });
     (D && D.race_sprints || []).filter(function (s) { return str(s.driver_name) === name; }).forEach(function (s) {
       var series = seasonSeries[raceToSeason[String(s.race_id)]];
@@ -373,13 +548,31 @@
     }).forEach(function (h) {
       var s = str(h.series);
       if (!s) return;
-      var st = acc(s);
-      var tk = str(h.team_key);
-      if (tk && !st.teams[tk]) { st.teams[tk] = true; st.teamKeys.push(tk); }
+      addTeam(acc(s), str(h.team_key));
     });
-    var list = Object.keys(out).map(function (k) { return out[k]; });
-    if (myTeam) list.forEach(function (st) { if (st.teamKeys.indexOf(myTeam) === -1) st.teamKeys.push(myTeam); });
-    return list.sort(function (a, b) { return a.series < b.series ? -1 : a.series > b.series ? 1 : 0; });
+    // Live-race teams: a driver can have raced for a team that their current
+    // contract_history row doesn't mention (history is only backfilled from the
+    // latest contract), so fold in the teams actually seen in results.
+    var teamKeyById = {};
+    (D && D.teams || []).forEach(function (t) { teamKeyById[str(t.team_id)] = isPlaceholderTeam(t) ? '' : str(t.team_key); });
+    (D && D.race_results || []).filter(function (r) { return str(r.driver_name) === name; }).forEach(function (r) {
+      var series = seasonSeries[raceToSeason[String(r.race_id)]];
+      if (!series) return;
+      addTeam(acc(series), teamKeyById[str(r.team_id)]);
+    });
+    // The driver's CURRENT team only belongs to the series that team races in.
+    // Adding it to every series made multi-series drivers look like they drove
+    // for their F1 team in F2/XGT too (e.g. an F1 academy driver's F2 row
+    // listing "Red Bull").
+    if (myTeam) {
+      var mySeries = seriesOfTeam(myTeam);
+      Object.keys(out).forEach(function (k) {
+        if (mySeries && k !== mySeries) return;
+        addTeam(out[k], myTeam);
+      });
+    }
+    return Object.keys(out).map(function (k) { return out[k]; })
+      .sort(function (a, b) { return a.series < b.series ? -1 : a.series > b.series ? 1 : 0; });
   }
 
   function seasonIdFor(series, year) {
@@ -583,6 +776,7 @@
             // XGT/GT teams the roster doesn't know); canon() passes names
             // through if the roster has no match.
             team: teamName(dd.team_id),
+            teamRef: dd.team_id,
             nation: dd.nation || '',
             number: dd.driver_number != null ? dd.driver_number : null
           };
@@ -594,6 +788,7 @@
             name: d.name,
             fullName: d.fullName || d.name,
             team: d.team,
+            teamRef: d.team,
             nation: d.nation || dbNation(d.name || d.fullName || ''),
             number: d.number != null ? d.number : null
           };
@@ -622,6 +817,7 @@
             name: nm,
             fullName: str(dd.full_name) || nm,
             team: teamName(h.team_id),
+            teamRef: h.team_id,
             nation: str(dd.nation) || dbNation(nm),
             number: dd.driver_number != null ? dd.driver_number : null
           });
@@ -630,9 +826,9 @@
       if (!rows.length) return [];
 
       // Canonical team display name for a raw ref (roster key or DB name).
-      function canon(teamRef) {
-        if (teamRef == null) return '';
-        var nm = rs && rs.teamName ? rs.teamName(teamRef) : teamRef;
+      function canon(teamRefIn) {
+        if (teamRefIn == null) return '';
+        var nm = rs && rs.teamName ? rs.teamName(teamRefIn) : teamRefIn;
         return nm || '';
       }
 
@@ -673,12 +869,13 @@
           name: d.name,
           fullName: d.fullName || d.name,
           team: team,
-          teamOrder: teamSort[team] != null ? teamSort[team] : 99,
+          teamKey: teamRef(d.teamRef != null ? d.teamRef : team),
+          teamOrder: team != null && team !== '' && teamSort[team] != null ? teamSort[team] : 99,
           car: null, className: null,
           carNumber: d.number != null ? d.number : null,
           series: series,
           nation: d.nation || '',
-          ovr: 0, targetOvr: 0, teamColor: teamColorOf[team] || null, skills: {},
+          ovr: 0, targetOvr: 0, teamColor: team ? (teamColorOf[team] || null) : null, skills: {},
           standings: null,
           seasonStats: null,
           history: [],
@@ -687,6 +884,9 @@
       }).sort(function (a, b) {
         var ta = a.teamOrder != null ? a.teamOrder : 99, tb = b.teamOrder != null ? b.teamOrder : 99;
         if (ta !== tb) return ta - tb;
+        // Inside a team: car 1 first (each driver scoped to their own team).
+        var carCmp = byCarOrder(year, { perTeam: true, series: series })(a, b);
+        if (carCmp) return carCmp;
         var na = a.carNumber != null ? a.carNumber : 99, nb = b.carNumber != null ? b.carNumber : 99;
         if (na !== nb) return na - nb;
         return (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
@@ -703,7 +903,8 @@
       var sprintWins = sprints.filter(function (s) { return str(s.driver_name) === name && num(s.finish_position) === 1; }).length;
       var mySprints = sprints.filter(function (s) { return str(s.driver_name) === name; });
       var sprintPodiums = mySprints.filter(function (s) { var p = num(s.finish_position); return p >= 1 && p <= 3; }).length;
-      var sprintPts = mySprints.reduce(function (a, s) { return a + num(s.points); }, 0);
+      // Sprint bonus points count towards the same total as the race's.
+      var sprintPts = mySprints.reduce(function (a, s) { return a + num(s.points) + num(s.bonus_points); }, 0);
       var dnfs = mine.filter(function (r) { return num(r.dnf) === 1 || /dnf/i.test(str(r.status)); }).length;
       var finishes = mine.filter(function (r) { return num(r.finish_position) > 0; }).map(function (r) { return num(r.finish_position); });
       var bestFinish = finishes.length ? Math.min.apply(null, finishes) : 99;
@@ -712,8 +913,11 @@
       var avgGrid = gridPos.length ? gridPos.reduce(function (a, b) { return a + b; }, 0) / gridPos.length : null;
       var poles = mine.filter(function (r) { return num(r.grid_position) === 1; }).length;
       var sortedResults = mine.slice().sort(function (a, b) { return num(a.race_id) - num(b.race_id); });
-      var lastResult = mine[mine.length - 1] || null;
-      var teamKey = lastResult ? str(lastResult.team_id) : '';
+      // Current team = the team from the driver's MOST RECENT race of the
+      // season, not whatever row happened to come last in the cache payload
+      // (results arrive grouped by race, but never guaranteed sorted).
+      var lastResult = sortedResults.length ? sortedResults[sortedResults.length - 1] : null;
+      var teamKey = lastResult ? teamRef(lastResult.team_id) : '';
       var teamNameStr = teamKey ? teamName(teamKey) : '';
       var teamSeries = teamKey ? seriesOfTeam(teamKey) : series;
       var nation = rosterNation(name) || dbNation(name);
@@ -798,8 +1002,9 @@
         id: name.toLowerCase().replace(/\s+/g, '-'),
         name: name,
         fullName: name,
-        team: normTeam(teamNameStr),
-        teamOrder: rosterTeamOrder(teamSeries, teamNameStr),
+        team: teamNameStr ? normTeam(teamNameStr) : '',
+        teamKey: teamKey,
+        teamOrder: teamNameStr ? rosterTeamOrder(teamSeries, teamNameStr) : 99,
         car: null, className: null, carNumber: dbNum != null ? dbNum : null,
         series: series,
         nation: nation,

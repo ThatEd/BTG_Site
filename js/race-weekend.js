@@ -133,9 +133,45 @@ window.BTG = window.BTG || {};
     return parts[parts.length - 1] || full;
   }
 
-  /* F1 / sprint points tables (same as data-loader) */
-  function racePts(pos) { var p=[25,18,15,12,10,8,6,4,2,1]; return p[pos-1]||0; }
-  function sprintPts(pos) { var p=[8,7,6,5,4,3,2,1]; return p[pos-1]||0; }
+  /* Points tables. The league DB carries a configurable per-series schema
+     (series_points: F1 race 25/18/…, XGT race 30/25/…, XGT sprint 14/12/…,
+     F2 sprint 10/8/…), so build the lookup from the cache when it is present
+     and only fall back to the F1 defaults for file-based data with no DB. */
+  var DEFAULT_RACE_PTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
+  var DEFAULT_SPRINT_PTS = [8, 7, 6, 5, 4, 3, 2, 1];
+  var ptsCache = {};   // series|session -> { position: points }
+
+  function ptsTable(series, session) {
+    var k = String(series || '') + '|' + session;
+    if (ptsCache[k]) return ptsCache[k];
+    var table = null;
+    try {
+      var cache = window.BTG && BTG.DBCache && BTG.DBCache.data ? BTG.DBCache.data() : null;
+      var rows = (cache && cache.series_points) || [];
+      if (rows.length) {
+        var want = String(series || state.activeSeries || '');
+        table = {};
+        rows.forEach(function (r) {
+          if (String(r.series_id) !== want || String(r.session_type) !== session) return;
+          table[Number(r.position)] = Number(r.points) || 0;
+        });
+        if (!Object.keys(table).length) table = null;
+      }
+    } catch (e) { table = null; }
+    ptsCache[k] = table;
+    return table;
+  }
+
+  function racePts(pos) {
+    var t = ptsTable(state.activeSeries, 'race');
+    if (t && t[pos] != null) return t[pos];
+    return DEFAULT_RACE_PTS[pos - 1] || 0;
+  }
+  function sprintPts(pos) {
+    var t = ptsTable(state.activeSeries, 'sprint');
+    if (t && t[pos] != null) return t[pos];
+    return DEFAULT_SPRINT_PTS[pos - 1] || 0;
+  }
 
   /* ── State ──────────────────────────────────────────────────────────────── */
   var state = {
@@ -1894,6 +1930,7 @@ window.BTG = window.BTG || {};
     setSeries: function(id) {
       if (id === state.activeSeries) return;
       state.activeSeries = id;
+      ptsCache = {};
       state.seasons = BTG.Data.getSeasons(id);
       state.activeSeason = state.seasons[0] || 2024;
       state.selectedRaceId = null;

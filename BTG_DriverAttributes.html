@@ -2089,7 +2089,14 @@ function mailIsInboxUnread(m) {
 function navBadgeCount(tabId) {
   if (tabId !== 'mail') return null;
   if (CURRENT_USER && CURRENT_USER.role === 'admin') return null; // admins aren't pinged about others' mail
-  const offers = (DASH && DASH.offers) || [];
+  var offers = (DASH && DASH.offers) || [];
+  // A TP can run two teams; the Contracts tab only shows the SELECTED team's
+  // offers, so the badge must count the same set (it used to count every offer
+  // of both teams, so the badge could never reach 0).
+  if (CURRENT_USER && CURRENT_USER.role === 'tp' && tpTeams().length) {
+    var stk = selectedTpTeam();
+    offers = offers.filter(function (o) { return o.team === stk || o.loanTeam === stk || o.parentTeam === stk; });
+  }
   const open = offers.filter(function (o) { var st = String(o.status || ''); return st === '' || st === 'On Hold'; });
   const unread = (DASH && DASH.mail) ? DASH.mail.filter(mailIsInboxUnread).length : 0;
   const total = open.length + unread;
@@ -2122,6 +2129,14 @@ function tabVisibleForRole(tabId, role) {
 
 function tpTeams() {
   return (DASH && DASH.tp && DASH.tp.teams) || [];
+}
+
+/** Team ids for one of the TP's teams (empty when the payload has no id).
+ *  Used to scope id-keyed data (money log) to the selected team. */
+function tpTeamIds(teamKey) {
+  var t = tpTeams().filter(function (x) { return x.key === teamKey; })[0];
+  var id = t && t.id != null ? Number(t.id) : 0;
+  return id > 0 ? [id] : [];
 }
 
 function selectedTpTeam() {
@@ -2213,7 +2228,15 @@ async function renderPartOrders() {
   const teamKey = partsConsoleTeam();
   if (!teamKey) { wrap.innerHTML = '<p class="muted">Select a team to view its parts design.</p>'; return; }
   const series = partsTeamSeries(teamKey);
-  if (series && series !== 'F1') { wrap.innerHTML = '<p class="muted">Parts design is currently only available to F1 teams — ' + BTG.esc(teamKey) + ' runs ' + BTG.esc(series) + '.</p>'; return; }
+  // Any message rendered INSTEAD of the console must clear the mounted-team
+  // guard, otherwise the next render for the same team short-circuits on the
+  // stale marker and leaves this notice on screen (e.g. a TP who runs an F1
+  // team and a non-F1 team switching back and forth).
+  if (series && series !== 'F1') {
+    delete wrap.dataset.mountedTeam;
+    wrap.innerHTML = '<p class="muted">Parts design is currently only available to F1 teams — ' + BTG.esc(teamKey) + ' runs ' + BTG.esc(series) + '.</p>';
+    return;
+  }
   if (wrap.dataset.mountedTeam === teamKey) return; // already mounted for this team
   wrap.dataset.mountedTeam = teamKey;
   wrap.innerHTML = '<div class="pd-locked-notice">Loading parts design…</div>';
@@ -2326,9 +2349,11 @@ function openPartModal(partId, car, teamKey) {
     + '<p class="muted" style="margin-bottom:12px;">Choose which design is fitted to this car.</p>'
     + '<div class="pa-design-list">'
     + designs.map(function (d) {
-        return '<button type="button" class="pa-design-option' + (d.design_id === sel ? ' active' : '') + '" data-design="' + d.design_id + '">'
+        var qty = Number(d.quantity) || 0;
+        var outOfStock = qty <= 0;
+        return '<button type="button" class="pa-design-option' + (d.design_id === sel ? ' active' : '') + (outOfStock ? ' pa-design-option--empty' : '') + '" data-design="' + d.design_id + '">'
           + '<span class="pa-design-name">' + BTG.esc(d.name) + '</span>'
-          + '<span class="pa-design-right"><span class="pa-design-src">' + (d.source === 'fitted' ? 'fitted' : 'developed') + '</span><span class="pa-design-qty">×' + (Number(d.quantity) || 0) + '</span></span>'
+          + '<span class="pa-design-right"><span class="pa-design-src">' + (d.source === 'fitted' ? 'fitted' : 'developed') + '</span><span class="pa-design-qty">×' + qty + '</span></span>'
           + '</button>';
       }).join('')
     + '</div>'
@@ -2350,6 +2375,14 @@ function openPartModal(partId, car, teamKey) {
   overlay.querySelector('#pa-save').onclick = async function () {
     const resultEl = overlay.querySelector('#pa-modal-result');
     const btn = overlay.querySelector('#pa-save');
+    // A design with no copies built yet cannot be bolted to a car. Checking here
+    // keeps the TP from "fitting" a part that does not exist (the server would
+    // happily accept it and the car would run a phantom spec).
+    const chosen = designs.find(function (d) { return Number(d.design_id) === Number(sel); });
+    if (!chosen || (Number(chosen.quantity) || 0) <= 0) {
+      showResult(resultEl, false, 'Ã¢Å“â€” ' + BTG.esc(chosen ? chosen.name : 'That design') + ' has no copies built yet Ã¢â‚¬â€ manufacture it first.');
+      return;
+    }
     if (btn) btn.disabled = true;
     const res = await callGateway('partsAllocate', { username: CURRENT_USER.username, password: CURRENT_USER.password, team: teamKey, partType: pt.part_id, car: car, designId: sel });
     if (res.ok) {
@@ -2398,7 +2431,20 @@ async function renderTransactions() {
   try { data = await callGateway('moneyLog', { username: CURRENT_USER.username, password: CURRENT_USER.password }); }
   catch (e) { wrap.innerHTML = '<div class="muted">Could not load the money log.</div>'; return; }
   if (!data || !data.ok) { wrap.innerHTML = '<div class="muted">Could not load the money log.</div>'; return; }
-  const rows = data.rows || [];
+  let rows = data.rows || [];
+  // A TP can run two teams, and moneyLog returns BOTH clubs' rows (with only a
+  // team_id). The rest of the dashboard is scoped to the selected team, so the
+  // transaction list must be too Ã¢â‚¬â€ otherwise the overview silently mixes another
+  // team's parts and salaries into what looks like this team's spend.
+  const role = CURRENT_USER && CURRENT_USER.role;
+  if (role === 'tp' && tpTeams().length) {
+    const ids = tpTeamIds(selectedTpTeam());
+    if (ids.length) {
+      rows = rows.filter(function (r) {
+        return r.team_id == null || ids.indexOf(Number(r.team_id)) !== -1;
+      });
+    }
+  }
   if (!rows.length) {
     wrap.innerHTML = '<div class="muted">No transactions yet. Salaries, sponsor payments, parts and bonuses are logged here as money moves.</div>';
     return;
@@ -2543,6 +2589,24 @@ function contractTeamOptions(selected) {
   return opts;
 }
 
+/* Options for the "loan a driver" picker.
+ *
+ * A TP can run two teams (one DB row per team), so `DASH.teamDrivers` is the
+ * concatenation of BOTH contracts lists. Offering every name lets the TP
+ * pick a driver who belongs to their OTHER team — `sendLoanOffer` then rejects
+ * it with `driver_not_on_team`. Restrict the list to the currently selected
+ * team, using the per-team map when the server provides one. */
+function loanDriverOptionsHtml(teamKey) {
+  var byTeam = (DASH && DASH.teamDriversByTeam) || null;
+  var list;
+  if (byTeam && teamKey && byTeam[teamKey]) list = byTeam[teamKey];
+  else list = (DASH && DASH.teamDrivers) || [];
+  list = list.filter(function (d, i) { return d && list.indexOf(d) === i; });
+  if (!list.length) return '<option value="">- none -</option>';
+  return '<option value="">- choose -</option>'
+    + list.map(function (d) { return '<option>' + BTG.esc(d) + '</option>'; }).join('');
+}
+
 function contractDriverOptions(selected, excludeName) {
   var opts = '<option value="">— choose a driver —</option>';
   var seen = {};
@@ -2665,7 +2729,7 @@ function renderContracts() {
       + '<button class="action action-lead" id="c-send-btn"><span>Send offer</span></button><div class="result-line" id="c-result"></div></div>'
       + '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Loan a driver</div>'
       + '<p class="muted" style="margin-bottom:10px;">Loan your driver to another team. They race there; your team keeps them as reserve/junior. The driver and the racing team must both accept.</p>'
-      + '<div class="field-row"><div class="field"><label for="l-driver">Driver</label><select id="l-driver">' + ((DASH.teamDrivers && DASH.teamDrivers.length) ? '<option value="">- choose -</option>' + DASH.teamDrivers.map(function (d) { return '<option>' + BTG.esc(d) + '</option>'; }).join('') : '<option value="">- none -</option>') + '</select></div>'
+      + '<div class="field-row"><div class="field"><label for="l-driver">Driver</label><select id="l-driver">' + loanDriverOptionsHtml(tpTeamSel) + '</select></div>'
       + '<div class="field"><label for="l-team">Loan to team</label><select id="l-team">' + contractTeamOptions('') + '</select></div></div>'
       + '<div class="field-row"><div class="field"><label for="l-from">From</label><input type="text" id="l-from" placeholder="2025"></div><div class="field"><label for="l-till">Till</label><input type="text" id="l-till" placeholder="2026"></div><div class="field"><label for="l-salary">Race salary</label><input type="text" id="l-salary" placeholder="8,000,000"></div></div>'
       + '<div class="field-row"><div class="field"><label for="l-parent-role">Parent role</label><select id="l-parent-role"><option value="Reserve">Reserve</option><option value="Junior">Junior</option></select></div></div>'
@@ -5969,7 +6033,9 @@ function renderTp() {
   document.getElementById('tp-salary').textContent = fmtMoney(tp.salary ? tp.salary.annual : 0);
   document.getElementById('tp-salary-paid').textContent = fmtMoney(tp.salary ? tp.salary.paidToDate : 0);
 
-  const drivers = DASH.teamDrivers || [];
+  const drivers = DASH.teamDriversByTeam && DASH.teamDriversByTeam[selTeam]
+    ? DASH.teamDriversByTeam[selTeam]
+    : (DASH.teamDrivers || []);
   document.getElementById('tp-drivers').innerHTML = drivers.length
     ? drivers.map(function (d) { return '<span class="driver-meta-tag">' + BTG.esc(d) + '</span>'; }).join('')
     : '<span class="muted">No drivers yet.</span>';

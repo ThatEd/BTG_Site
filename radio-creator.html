@@ -887,8 +887,10 @@ function groupDriversBySeries() {
         const ib = orderIdx[b.teamKey] != null ? orderIdx[b.teamKey] : 99;
         if (ia !== ib) return ia - ib;
         // Inside a team the car 1 driver always comes first (Contract seat).
+        // Scoped per driver's own team so an additional seat at another
+        // team/series does not decide this lineup's order.
         if (window.BTG && BTG.DBCache && BTG.DBCache.byCarOrder) {
-          const carCmp = BTG.DBCache.byCarOrder(null)(a, b);
+          const carCmp = BTG.DBCache.byCarOrder(null, { perTeam: true, series: s.id })(a, b);
           if (carCmp) return carCmp;
         }
         return a.name.localeCompare(b.name);

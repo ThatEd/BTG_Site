@@ -705,7 +705,9 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
         if (!k) return;
         var nm = BTG.DBCache.teamName ? BTG.DBCache.teamName(s.team_id != null ? s.team_id : '') : '';
         if (!teamPts[k]) { teamPts[k] = { name: nm, arr: raceIds.map(function () { return 0; }) }; teamOrder.push(k); }
-        teamPts[k].arr[raceIds.indexOf(rid)] += Number(s.points || 0);
+        // Sprints carry their own bonus points (e.g. F2 sprint fastest lap);
+        // the season standings include them, so the charts must too.
+        teamPts[k].arr[raceIds.indexOf(rid)] += Number(s.points || 0) + Number(s.bonus_points || 0);
       });
     });
     // cumulative
@@ -728,7 +730,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
       sprints.forEach(function (s) {
         if (String(s.race_id) !== rid) return;
         if (!drvPts[s.driver_name]) { drvPts[s.driver_name] = { name: s.driver_name, arr: raceIds.map(function () { return 0; }) }; drvOrder.push(s.driver_name); }
-        drvPts[s.driver_name].arr[raceIds.indexOf(rid)] += Number(s.points || 0);
+        drvPts[s.driver_name].arr[raceIds.indexOf(rid)] += Number(s.points || 0) + Number(s.bonus_points || 0);
       });
     });
     Object.keys(drvPts).forEach(function (k) {
@@ -870,10 +872,14 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     var tw = [];
     Object.keys(byTeam).forEach(function (tid) {
       var t = byTeam[tid];
-      // Car 1 on the left, car 2 on the right (Contract seat order), not
-      // whatever order the results happened to arrive in.
       var names = Object.keys(t.drivers);
-      if (names.length > 1 && BTG.DBCache && BTG.DBCache.sortByCar) names = BTG.DBCache.sortByCar(names, activeSeason);
+      // Car 1 on the left, car 2 on the right (Contract seat order), not
+      // whatever order the results happened to arrive in. This is a single
+      // team's lineup, so scope the seats to that team — a driver may hold a
+      // second seat at another team/series that must not decide this order.
+      if (names.length > 1 && BTG.DBCache && BTG.DBCache.sortByCar) {
+        names = BTG.DBCache.sortByCar(names, activeSeason, { team: tid, series: activeSeries });
+      }
       if (names.length < 2) return;
       for (var i = 0; i < names.length; i++) {
         for (var j = i + 1; j < names.length; j++) {
