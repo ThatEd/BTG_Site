@@ -76,10 +76,31 @@ BTG.closeDonate = function() {
     if (!page && location.hash) page = location.hash.replace('#','');
     BTG.renderNav(page);
     BTG.ensureDonateModal();
+    BTG.loadLogoManifest();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();
+
+/* ── Logo manifest ──────────────────────────────────────────────────────────
+   The list of images that actually exist under logos/. Several views build
+   candidate paths and fall back on 404 (team crests, series logos); knowing the
+   real file list up front avoids those wasted requests. Resolves to the same
+   Set on every call, so it is safe to await more than once. */
+BTG.LOGO_FILES = BTG.LOGO_FILES || new Set();
+BTG.loadLogoManifest = function() {
+  if (BTG._logoManifestPromise) return BTG._logoManifestPromise;
+  BTG._logoManifestPromise = fetch('logos/logos-manifest.json', { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (m) {
+      (m && m.logos || []).forEach(function (p) {
+        BTG.LOGO_FILES.add('logos/' + String(p).replace(/^\/+/, ''));
+      });
+      return BTG.LOGO_FILES;
+    })
+    .catch(function () { return BTG.LOGO_FILES; });
+  return BTG._logoManifestPromise;
+};
 
 /* ── Team Colors ──────────────────────────────────────────────────────────── */
 
@@ -118,8 +139,9 @@ BTG.resetTeamColors = function() {
 
 /* ── Flags ────────────────────────────────────────────────────────────────── */
 
-/** IOC 3-letter code → local SVG flag <img> HTML (Flags/{a2}.svg). */
-BTG.flagImg = function(ioc, w, h) {
+/** IOC 3-letter code → local SVG flag <img> HTML (Flags/{a2}.svg).
+ *  `cls` is an optional class for the <img> (e.g. the home-row flag size). */
+BTG.flagImg = function(ioc, w, h, cls) {
   if (!ioc) return '';
   // Common IOC → A2 mappings (plus ISO 3166-1 alpha-3 variants some exports use)
   var map = {
@@ -146,7 +168,7 @@ BTG.flagImg = function(ioc, w, h) {
   // Only emit when it looks like a valid A2 code (letters)
   if (!/^[a-z]{2}(-[a-z]{2})?$/.test(a2)) return '';
   w = w || 24; h = h || 18;
-  return '<img src="Flags/' + a2 + '.svg"'
+  return '<img' + (cls ? ' class="' + String(cls) + '"' : '') + ' src="Flags/' + a2 + '.svg"'
     + ' width="' + w + '" height="' + h + '" alt="' + code + '" loading="lazy"'
     + ' onerror="this.style.visibility=\'hidden\';"'
     + ' style="object-fit:cover;border-radius:1px;">';

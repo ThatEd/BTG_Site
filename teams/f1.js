@@ -420,15 +420,39 @@ BTG.entryColLogo = function(row, col, series, size, teamField, carField) {
 };
 
 /**
- * Resolve a series' logo path dynamically: logos/{series}.png.
- * This auto-discovers any new series — as long as a PNG exists in logos/,
- * it loads with no code changes. Returns '' if the file is missing.
+ * Resolve a series' logo path. Tries, in order:
+ *   1. logos/{seriesId}.png                      (F1.png, F2.png, XGT.png)
+ *   2. the series' DB display name               (GT1 → "GT Class One.png")
+ *   3. the logo manifest, if it has been loaded   (any file containing the id)
+ * Returns '' when nothing matches, so no 404 is requested.
  * @param {string} seriesId - e.g. "F1", "F2", "GT1", "XGT"
  * @returns {string} relative logo URL
  */
 BTG.seriesLogo = function(seriesId) {
   if (!seriesId) return '';
-  return 'logos/' + seriesId + '.png';
+  var direct = 'logos/' + seriesId + '.png';
+  var known = BTG.LOGO_FILES;
+  // Without the manifest we keep the historical behaviour (one 404 at worst).
+  if (!known || !known.size) return direct;
+  if (known.has(direct)) return direct;
+  // Fall back to the DB display name for the series ("GT Class One" etc.).
+  try {
+    var rows = (BTG.DBCache && BTG.DBCache.data && BTG.DBCache.data()) || {};
+    var hit = (rows.series || []).filter(function (s) { return String(s.series_id) === String(seriesId); })[0];
+    if (hit && hit.name) {
+      var byName = 'logos/' + hit.name + '.png';
+      if (known.has(byName)) return byName;
+    }
+  } catch (e) {}
+  // Last resort: any manifest file whose name matches the series id.
+  var want = String(seriesId).toLowerCase();
+  var match = null;
+  known.forEach(function (p) {
+    if (match) return;
+    var base = p.split('/').pop().replace(/\.(png|webp|svg|jpe?g|gif)$/i, '').toLowerCase();
+    if (base === want || base.replace(/[^a-z0-9]/g, '') === want.replace(/[^a-z0-9]/g, '')) match = p;
+  });
+  return match || '';
 };
 
 /**
@@ -443,6 +467,7 @@ BTG.seriesLogo = function(seriesId) {
  */
 BTG.seriesLogoImg = function(seriesId, size, className) {
   var primary = BTG.seriesLogo(seriesId);
+  if (!primary) return '';
   var cls = className || 'dp-series-logo';
   return '<img class="' + cls + '" src="' + primary + '" alt="' + BTG.esc(seriesId || '') + '" '
     + 'onerror="this.style.display=\'none\';">';

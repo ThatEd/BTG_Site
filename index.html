@@ -451,7 +451,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
       var num = d.carNumber != null ? d.carNumber : '';
       return '<div class="home-row" style="--team-rgb:' + rgb + '" data-name="' + esc(full) + '">'
         + '<span class="home-row__pos home-row__pos--' + posMod + '">' + (pos > 99 ? '—' : pos) + '</span>'
-        + (d.nation ? '<img class="home-row__flag" src="Flags/' + esc(d.nation) + '.svg" alt="" onerror="this.style.display=\'none\'">' : '')
+        + (d.nation ? BTG.flagImg(d.nation, 18, 12, 'home-row__flag') : '')
         + '<span class="home-row__photo">' + BTG.driverPhotoImg(full, 30, '') + '</span>'
         + (num ? '<span class="home-row__num">#' + num + '</span>' : '')
         + '<span class="home-row__name" style="color:' + teamColorCss(d.team) + '">' + esc(full) + '</span>'

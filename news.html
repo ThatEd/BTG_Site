@@ -77,6 +77,8 @@
 
   function loadIndex() {
     // F1CC-style news/index.json = array of keys; fall back to manifest.json.
+    // Both are optional: when the news/ folder is empty the page simply shows
+    // "No news in this section", so the two requests are cheap probes.
     return fetch('news/index.json')
       .then(function(r) { return r.ok ? r.json() : null; })
       .catch(function() { return null; })

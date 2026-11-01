@@ -357,7 +357,14 @@ body::before {
         out.push('logos/full/' + y + '/' + v + '.webp');
       });
     }
-    return out;
+    // Only offer files the manifest says exist. The full-logo folder is mostly
+    // empty, so building every candidate produced ~28 404s per teams-page load
+    // before the onerror chain collapsed the hero. When the manifest has not
+    // loaded yet we keep the old behaviour (the fallback chain still works).
+    var known = BTG.LOGO_FILES;
+    if (!known || !known.size) return out;
+    var hits = out.filter(function (p) { return known.has(p); });
+    return hits;
   }
   function fullLogoImg(teamName, year, altNames) {
     var cands = fullLogoCandidates(teamName, year, altNames);
@@ -386,13 +393,17 @@ body::before {
   }
 
   /* ── Boot ────────────────────────────────────────────────────────────── */
-  BTG.DBCache.init().then(function (dbData) {
-    if (!dbData) { document.getElementById('detail-panel').innerHTML = 'No team data available'; return; }
-    D = dbData;
-    (D.races || []).forEach(function (r) { raceToSeason[String(r.race_id)] = String(r.season_id); });
-    buildSeries();
-    load();
-  });
+  // The logo manifest now loads in common.js; wait for it so the full-logo
+  // hero only requests files that exist.
+  (BTG.loadLogoManifest ? BTG.loadLogoManifest() : Promise.resolve())
+    .then(function () { return BTG.DBCache.init(); })
+    .then(function (dbData) {
+      if (!dbData) { document.getElementById('detail-panel').innerHTML = 'No team data available'; return; }
+      D = dbData;
+      (D.races || []).forEach(function (r) { raceToSeason[String(r.race_id)] = String(r.season_id); });
+      buildSeries();
+      load();
+    });
 
   function buildSeries() {
     var order = {};

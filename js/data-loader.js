@@ -282,8 +282,15 @@ async function loadSeasonStats(store, seriesId, files) {
   // Try data-manifest.json first, then circuits.json (both are SeasonStatistics exports)
   var candidates = ['data-manifest.json', 'circuits.json'];
   var manifestPath = null;
+  // When a file list is available (server API or the committed cache) it is
+  // authoritative — probing the network for files it does not contain just
+  // produces a 404 per series per page load (the console showed ~10 per visit).
+  var haveList = Array.isArray(files);
   for (var ci = 0; ci < candidates.length; ci++) {
-    if (files && files.indexOf(candidates[ci]) !== -1) { manifestPath = candidates[ci]; break; }
+    if (haveList) {
+      if (files.indexOf(candidates[ci]) !== -1) { manifestPath = candidates[ci]; break; }
+      continue;
+    }
     try {
       var probe = await fetch('Data/' + encodeURIComponent(seriesId) + '/' + candidates[ci]);
       if (probe.ok) { manifestPath = candidates[ci]; break; }
@@ -741,6 +748,20 @@ BTG.Data.getSeasons = function(seriesId) {
 /* ── Internal ─────────────────────────────────────────────────────────────── */
 
 async function loadCircuits(store, seriesId, year) {
+  // Circuit metadata (names, flags, track art) comes from js/circuits.js and
+  // the DB cache. The per-series Data folder only exists for file-based
+  // imports, so only probe when there is nothing to lose by it — otherwise
+  // every page load fired one 404 per series per year.
+  try {
+    if (window.BTG && typeof BTG.circuitBySlug === 'function') {
+      // Probe a circuit the league actually runs. The registry is keyed by
+      // display name ("Monza"), so take the first entry rather than guessing a
+      // slug — a lowercase guess missed and re-enabled the 404 on every load.
+      var anyCircuit = (BTG.CIRCUITS && BTG.CIRCUITS[0]) || null;
+      var probeName = anyCircuit ? (anyCircuit.circuit || anyCircuit.slug) : null;
+      if (probeName && BTG.circuitBySlug(probeName)) return;
+    }
+  } catch (e) {}
   try {
     var res = await fetch('Data/' + seriesId + '/' + year + '/circuits.json');
     if (!res.ok) return;
