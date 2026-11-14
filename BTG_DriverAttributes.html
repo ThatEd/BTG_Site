@@ -924,7 +924,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 
     <div class="tool-card" id="pp-card">
       <h3>Post-race penalties</h3>
-      <p class="muted" style="margin-bottom:12px;">Apply stewards' decisions and retirements after a race. Every entry is recorded into the DB (<code>race_penalties</code>) as a marker; use <b>Apply</b> to also change the stored results. Penalties: <b>+seconds</b> (time added to the driver's total, finishing order re-sorted &amp; renumbered), <b>DNF</b> (did not finish — flagged dnf/DNF, 0 pts, dropped to the back with the other retirements), <b>DSQ</b> (dropped to the back, 0 pts, status DSQ), <b>Grid</b> (marks a grid drop earned at this race in <code>race_grid_penalties</code>). DNF and DSQ never score, in every points schema. The <b>DNF</b>/<b>DSQ</b> buttons on each finishing-order row arm that outcome for the driver, then use Apply or “Add marker only”.</p>
+      <p class="muted" style="margin-bottom:12px;">Apply stewards' decisions and retirements after a race. Every entry is recorded into the DB (<code>race_penalties</code>) as a marker; use <b>Apply</b> to also change the stored results. Penalties: <b>+seconds</b> (time added to the driver's total, finishing order re-sorted &amp; renumbered), <b>DNF</b> (did not finish — flagged dnf/DNF, 0 pts, dropped to the back with the other retirements), <b>DSQ</b> (dropped to the back, 0 pts, status DSQ), <b>Grid</b> (marks a grid drop earned at this race in <code>race_grid_penalties</code>). DNF and DSQ never score, in every points schema. The <b>DNF</b>/<b>DSQ</b> buttons on each finishing-order row arm that outcome for the driver, then use Apply or “Add marker only”. <b>Remove record</b> deletes only the audit marker; it does not reverse an applied result or grid effect.</p>
       <div class="field-row">
         <div class="field" style="max-width:180px;">
           <label for="pp-series">Series</label>
@@ -4185,7 +4185,9 @@ function ppRenderPenaltyList(container) {
   (PP.penalties || []).forEach(function (p) {
     var val = p.type === 'time' ? ('+' + p.seconds + 's') : p.type === 'grid' ? (p.places + ' place' + (p.places > 1 ? 's' : '')) : '';
     items.push('<div class="tx-row"><span class="tx-label">' + BTG.esc(ppTypeLabel(p.type) + (val ? ' · ' + val : '') + ' · ' + (p.driver_name || '')) + '</span>'
-      + '<span class="tx-amt" style="color:var(--copy-faint);">' + BTG.esc(p.applied ? 'applied' : 'marker') + '</span></div>'
+      + '<span class="tx-amt" style="color:var(--copy-faint);">' + BTG.esc(p.applied ? 'applied' : 'marker') + '</span>'
+      + '<button type="button" class="action action-quiet action-compact pp-remove-penalty" data-penalty-id="' + BTG.esc(p.penalty_id) + '" data-applied="' + (p.applied ? '1' : '0') + '">Remove record</button></div>'
+      + (p.applied ? '<div class="muted" style="font-size:11px;padding:0 12px 4px 14px;">Removing this record will not undo its applied result or grid effect.</div>' : '')
       + (p.reason ? '<div class="muted" style="font-size:11px;padding:0 12px 4px 14px;">' + BTG.esc(p.reason) + '</div>' : ''));
   });
   (PP.grids || []).forEach(function (g) {
@@ -4196,6 +4198,37 @@ function ppRenderPenaltyList(container) {
     + (items.length ? items.join('') : '<div class="muted" style="font-size:12px;">None yet.</div>')
     + '</div>';
   container.insertAdjacentHTML('beforeend', html);
+  container.querySelectorAll('.pp-remove-penalty').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      ppRemovePenalty(Number(btn.getAttribute('data-penalty-id')), btn.getAttribute('data-applied') === '1');
+    });
+  });
+}
+async function ppRemovePenalty(penaltyId, applied) {
+  if (!(penaltyId > 0)) return;
+  var message = applied
+    ? 'Remove this penalty record only? Its applied result/grid effect will remain.'
+    : 'Remove this unapplied penalty marker?';
+  if (!window.confirm(message)) return;
+  var resEl = document.getElementById('pp-result');
+  setStatus('busy', 'Removing penalty record…');
+  try {
+    var data = await callGateway('adminRacePenalties', {
+      username: CURRENT_USER.username, password: CURRENT_USER.password,
+      race_id: PP.raceId, penalty_id: penaltyId, mode: 'remove'
+    });
+    if (!data.ok) {
+      showResult(resEl, false, '✗ ' + data.error);
+      setStatus('ready', 'Ready');
+      return;
+    }
+    showResult(resEl, true, '✓ Penalty record removed; any applied effect was left unchanged.');
+    setStatus('ok', 'Penalty record removed');
+    await ppLoad();
+  } catch (e) {
+    showResult(resEl, false, '✗ ' + e.message);
+    setStatus('ready', 'Ready');
+  }
 }
 /** Arm the penalty form for one driver + outcome. The DNF/DSQ buttons in the
  *  finishing order only pre-fill the picks — the explicit Apply button still
