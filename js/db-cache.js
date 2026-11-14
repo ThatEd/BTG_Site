@@ -912,7 +912,9 @@
       var gridPos = mine.map(function (r) { return r.grid_position != null ? num(r.grid_position) : null; }).filter(function (v) { return v != null; });
       var avgGrid = gridPos.length ? gridPos.reduce(function (a, b) { return a + b; }, 0) / gridPos.length : null;
       var poles = mine.filter(function (r) { return num(r.grid_position) === 1; }).length;
-      var sortedResults = mine.slice().sort(function (a, b) { return num(a.race_id) - num(b.race_id); });
+      var sortedResults = mine.slice().sort(function (a, b) {
+        return raceRound(a.race_id) - raceRound(b.race_id) || num(a.race_id) - num(b.race_id);
+      });
       // Current team = the team from the driver's MOST RECENT race of the
       // season, not whatever row happened to come last in the cache payload
       // (results arrive grouped by race, but never guaranteed sorted).
