@@ -2611,18 +2611,13 @@ function renderTpOverview() {
 /* Roster-backed option lists so contract forms auto-fill from the data. */
 function contractTeamOptions(selected) {
   var opts = '<option value="">— choose a team —</option>';
-  try {
-    if (window.BTG && BTG.Roster && BTG.Roster.teamsFor) {
-      ['F1', 'F2'].forEach(function (sid) {
-        (BTG.Roster.teamsFor(sid) || []).forEach(function (t) {
-          var key = t.key || t.name || '';
-          var label = t.name || key;
-          if (!key) return;
-          opts += '<option value="' + BTG.esc(key) + '"' + (selected === key ? ' selected' : '') + '>' + BTG.esc(label) + '</option>';
-        });
-      });
-    }
-  } catch (e) {}
+  var data=BTG.DBCache&&BTG.DBCache.data?BTG.DBCache.data():null;
+  var teams=(data&&data.teams||[]).filter(function(t){return t.team_id!=999&&BTG.seriesIsVisible(t.series);});
+  if(teams.length){
+    teams.forEach(function(t){var key=t.team_key;if(!key)return;opts+='<option value="'+BTG.esc(key)+'"'+(selected===key?' selected':'')+'>'+BTG.esc((t.team_name||key)+' · '+t.series)+'</option>';});
+    return opts;
+  }
+  if(BTG.Roster&&BTG.Roster.teamsFor){['F1','F2','XGT'].forEach(function(sid){(BTG.Roster.teamsFor(sid)||[]).forEach(function(t){var key=t.key||t.name;if(key)opts+='<option value="'+BTG.esc(key)+'"'+(selected===key?' selected':'')+'>'+BTG.esc(t.name||key)+'</option>';});});}
   return opts;
 }
 
