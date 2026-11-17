@@ -50,9 +50,10 @@ function buildGlowVars(glowColor, intensity) {
  */
 BTG.wrapCard = function(inner, opts) {
   opts = opts || {};
-  var teamRgb = opts.teamColor ? opts.teamColor.replace(/\s*,\s*/g, ' ') : '99 102 241';
-  var glowColor = opts.glowColor || BTG.rgbToHslDeg(opts.teamColor) || '40 80 80';
-  var glowVars = buildGlowVars(glowColor, opts.glowIntensity);
+  var themeRgb = BTG.readCssVar('--accent-rgb') || '220 38 38';
+  var teamRgb = (opts.teamColor ? opts.teamColor.replace(/\s*,\s*/g, ' ') : themeRgb);
+  var glowColor = opts.glowColor || BTG.rgbToHslDeg(opts.teamColor) || null;
+  var glowVars = buildGlowVars(glowColor || BTG.rgbToHslDeg(teamRgb), opts.glowIntensity);
 
   var style = '--card-bg:' + (opts.backgroundColor || '#161618') + ';'
     + '--border-radius:' + (opts.borderRadius || 12) + 'px;'

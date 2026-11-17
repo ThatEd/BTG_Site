@@ -143,6 +143,18 @@ BTG.apiSeriesFiles = function(series) {
 
 /* ── Team Colors ──────────────────────────────────────────────────────────── */
 
+/**
+ * The colour to fall back to when there is no team to paint with: the interface theme's accent.
+ *
+ * Read live rather than captured, because the theme can change while the app is running, and the value is
+ * needed as a triplet for the glow maths rather than as a finished colour.
+ */
+BTG.readThemeRgb = function() {
+  var val = '';
+  try { val = getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim(); } catch (e) {}
+  return val ? val.replace(/\s*,\s*/g, ' ') : '220 38 38';
+};
+
 /** Parse "r,g,b" strings and set CSS --team-* variables on <html>.
     rgb2 (secondary team colour) feeds the second background gradient. */
 BTG.setTeamColors = function(rgb, rgb2) {
@@ -174,6 +186,54 @@ BTG.resetTeamColors = function() {
   root.style.setProperty('--team-edge', 'rgba(185,29,46,0.30)');
   root.style.setProperty('--team-glow', 'rgba(185,29,46,0.18)');
   root.style.setProperty('--team-glow2', 'rgba(185,29,46,0.18)');
+};
+
+/* ── Team bands ───────────────────────────────────────────────────────────── */
+
+/**
+ * A row, a chip, a header and a hero card are the same surface with a different amount of room, so the colours and the
+ * ink are worked out once, here, and handed to whichever of them is being drawn.
+ */
+
+/** Luminance of an "r g b" (or "r,g,b") triplet, 0..1. */
+function bandLuminance(triplet) {
+  var p = String(triplet || '').trim().split(/[\s,]+/).map(Number);
+  if (p.length < 3 || p.some(isNaN)) return null;
+  var lin = function (c) { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  return 0.2126 * lin(p[0]) + 0.7152 * lin(p[1]) + 0.0722 * lin(p[2]);
+}
+
+/**
+ * Which ink a colour, or a band of two, needs: dark on a light surface, white on a dark one.
+ *
+ * The band is judged as the one surface it is — the colours are averaged — because lettering spread across it sits on
+ * both ends of it and has to read against the whole run.
+ */
+BTG.inkTone = function () {
+  var tones = [].slice.call(arguments).map(bandLuminance).filter(function (v) { return v != null; });
+  if (!tones.length) return 'light';
+  var avg = tones.reduce(function (a, b) { return a + b; }, 0) / tones.length;
+  return avg > 0.45 ? 'dark' : 'light';
+};
+
+/** The colour an ink is drawn in, as the interface paints it. */
+BTG.inkColour = function (tone) {
+  return tone === 'dark' ? 'rgb(24 24 27)' : 'rgb(255 255 255)';
+};
+
+/** Build the band style for a team's pair of colours, or null when there is no team to paint with. */
+BTG.teamBand = function (rgb, rgb2) {
+  var norm = function (v) { return String(v || '').trim().replace(/\s*,\s*/g, ' '); };
+  var from = norm(rgb), to = norm(rgb2);
+  if (!/^\d+ \d+ \d+$/.test(from)) return null;
+  if (!/^\d+ \d+ \d+$/.test(to)) to = from;
+  var tone = BTG.inkTone(from, to);
+  var ink = BTG.inkColour(tone);
+  var css = function (v) { return 'rgb(' + v.replace(/ /g, ',') + ')'; };
+  return {
+    from: css(from), to: css(to), tone: tone, ink: ink,
+    style: 'background:linear-gradient(90deg, ' + css(from) + ', ' + css(to) + ');color:' + ink + ';--band-ink:' + ink
+  };
 };
 
 /* ── Flags ────────────────────────────────────────────────────────────────── */

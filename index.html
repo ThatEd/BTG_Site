@@ -1,13 +1,13 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BeTheGrid — Home</title>
+<title>BeTheGrid â€” Home</title>
 <link rel="icon" type="image/x-icon" href="logos/BTG.ico">
 <link rel="stylesheet" href="style.css">
 <style>
-/* ── Home / Dashboard landing (TFG dashboard-inspired, vanilla port) ─────── */
+/* â”€â”€ Home / Dashboard landing (TFG dashboard-inspired, vanilla port) â”€â”€â”€â”€â”€â”€â”€ */
 :root {
   --bg-base: #18181b;
   --bg-card: #101014;
@@ -77,12 +77,12 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
 .home-col__link:hover { color: var(--text-primary); }
 .home-col__list { display: flex; flex-direction: column; }
 
-/* Row — mirrors TFG dash-row / team-glow-row */
+/* Row â€” mirrors TFG dash-row / team-glow-row */
 .home-row {
   display: flex; align-items: center; gap: 12px; padding: 9px 14px;
   border-left: 3px solid transparent; transition: border-color 200ms, background 200ms;
 }
-.home-row:hover { background: rgba(255,255,255,0.04); border-left-color: rgb(var(--team-rgb, 99 102 241)) !important; }
+.home-row:hover { background: rgba(255,255,255,0.04); border-left-color: rgb(var(--team-rgb, var(--accent-rgb))) !important; box-shadow: inset 2px 0 8px rgb(var(--team-rgb, var(--accent-rgb)) / 0.12); }
 .home-row + .home-row { border-top: 1px solid rgba(255,255,255,0.03); }
 .home-row__pos {
   width: 24px; height: 24px; flex-shrink: 0; display: grid; place-items: center;
@@ -208,7 +208,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
 
   <div class="home-headline">
     <span class="home-headline__badge" id="home-season">Season</span>
-    <span class="home-headline__text" id="home-headline">Loading…</span>
+    <span class="home-headline__text" id="home-headline">Loadingâ€¦</span>
   </div>
 
   <div class="home-highlights" id="home-highlights"></div>
@@ -217,77 +217,77 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     <div class="home-col">
       <div class="home-col__head">
         <span class="home-col__title">Drivers' Championship</span>
-        <a class="home-col__link" href="standings.html">Full standings →</a>
+        <a class="home-col__link" href="standings.html">Full standings â†’</a>
       </div>
-      <div class="home-col__list" id="home-drivers"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loading…</div></div>
+      <div class="home-col__list" id="home-drivers"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loadingâ€¦</div></div>
     </div>
     <div class="home-col">
       <div class="home-col__head">
         <span class="home-col__title">Constructors' Championship</span>
-        <a class="home-col__link" href="standings.html">Full standings →</a>
+        <a class="home-col__link" href="standings.html">Full standings â†’</a>
       </div>
-      <div class="home-col__list" id="home-teams"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loading…</div></div>
+      <div class="home-col__list" id="home-teams"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loadingâ€¦</div></div>
     </div>
   </div>
 
   <div class="home-quickstats">
     <div class="home-qs">
-      <div class="home-qs__title">🏁 Last Race</div>
-      <div id="home-lastrace"><div class="home-qs__row">Loading…</div></div>
+      <div class="home-qs__title">ðŸ Last Race</div>
+      <div id="home-lastrace"><div class="home-qs__row">Loadingâ€¦</div></div>
     </div>
     <div class="home-qs">
-      <div class="home-qs__title">📅 Calendar</div>
+      <div class="home-qs__title">ðŸ“… Calendar</div>
       <div class="home-cal-dots" id="home-cal"></div>
       <div class="home-qs__row" id="home-cal-text"></div>
     </div>
     <div class="home-qs">
-      <div class="home-qs__title">🔧 Reliability</div>
-      <div id="home-reliability"><div class="home-qs__row">Loading…</div></div>
+      <div class="home-qs__title">ðŸ”§ Reliability</div>
+      <div id="home-reliability"><div class="home-qs__row">Loadingâ€¦</div></div>
     </div>
   </div>
 
   <!-- Fights: cumulative points charts with clickable legend -->
   <div class="home-fights" id="home-fights">
     <div class="home-chart">
-      <div class="home-chart__head"><span class="home-chart__title">🏭 Constructors Fight</span><span class="home-chart__legend" id="cf-legend"></span></div>
+      <div class="home-chart__head"><span class="home-chart__title">ðŸ­ Constructors Fight</span><span class="home-chart__legend" id="cf-legend"></span></div>
       <div class="home-chart__body" id="cf-body"><div class="home-chart__empty">No data</div></div>
     </div>
     <div class="home-chart">
-      <div class="home-chart__head"><span class="home-chart__title">👑 Drivers Fight</span><span class="home-chart__legend" id="df-legend"></span></div>
+      <div class="home-chart__head"><span class="home-chart__title">ðŸ‘‘ Drivers Fight</span><span class="home-chart__legend" id="df-legend"></span></div>
       <div class="home-chart__body" id="df-body"><div class="home-chart__empty">No data</div></div>
     </div>
   </div>
 
   <div class="home-grid">
     <div class="home-col">
-      <div class="home-col__head"><span class="home-col__title">⏳ Contract Clock</span></div>
-      <div class="home-col__list" id="home-contracts"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loading…</div></div>
+      <div class="home-col__head"><span class="home-col__title">â³ Contract Clock</span></div>
+      <div class="home-col__list" id="home-contracts"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loadingâ€¦</div></div>
     </div>
     <div class="home-col">
-      <div class="home-col__head"><span class="home-col__title">🔄 Next Season</span></div>
-      <div class="home-col__list" id="home-next"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loading…</div></div>
-    </div>
-  </div>
-
-  <div class="home-double">
-    <div class="home-col">
-      <div class="home-col__head"><span class="home-col__title">📈 Form Guide</span></div>
-      <div class="home-col__list" id="home-form"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loading…</div></div>
-    </div>
-    <div class="home-col">
-      <div class="home-col__head"><span class="home-col__title">🏎 Season Records</span></div>
-      <div class="home-col__list" id="home-records"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loading…</div></div>
+      <div class="home-col__head"><span class="home-col__title">ðŸ”„ Next Season</span></div>
+      <div class="home-col__list" id="home-next"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loadingâ€¦</div></div>
     </div>
   </div>
 
   <div class="home-double">
     <div class="home-col">
-      <div class="home-col__head"><span class="home-col__title">📰 Paddock News</span></div>
-      <div class="home-col__list" id="home-news"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loading…</div></div>
+      <div class="home-col__head"><span class="home-col__title">ðŸ“ˆ Form Guide</span></div>
+      <div class="home-col__list" id="home-form"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loadingâ€¦</div></div>
     </div>
     <div class="home-col">
-      <div class="home-col__head"><span class="home-col__title">👥 Teammate Watch</span></div>
-      <div class="home-col__list" id="home-teammates"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loading…</div></div>
+      <div class="home-col__head"><span class="home-col__title">ðŸŽ Season Records</span></div>
+      <div class="home-col__list" id="home-records"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loadingâ€¦</div></div>
+    </div>
+  </div>
+
+  <div class="home-double">
+    <div class="home-col">
+      <div class="home-col__head"><span class="home-col__title">ðŸ“° Paddock News</span></div>
+      <div class="home-col__list" id="home-news"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loadingâ€¦</div></div>
+    </div>
+    <div class="home-col">
+      <div class="home-col__head"><span class="home-col__title">ðŸ‘¥ Teammate Watch</span></div>
+      <div class="home-col__list" id="home-teammates"><div style="padding:20px;color:var(--text-muted);font-size:12px;">Loadingâ€¦</div></div>
     </div>
   </div>
 </div>
@@ -326,9 +326,9 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
   function esc(v) { return BTG.esc ? BTG.esc(v) : String(v == null ? '' : v); }
   function hexToRgb(hex) {
     hex = String(hex || '').replace('#','');
-    if (hex.length !== 6) return '99 102 241';
+    if (hex.length !== 6) return (BTG.readThemeRgb ? BTG.readThemeRgb() : '220 38 38');
     var r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
-    if ([r,g,b].some(isNaN)) return '99 102 241';
+    if ([r,g,b].some(isNaN)) return (BTG.readThemeRgb ? BTG.readThemeRgb() : '220 38 38');
     return r + ' ' + g + ' ' + b;
   }
   function teamRgb(name) {
@@ -369,8 +369,8 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
   function getTopDrivers() {
     return BTG.Data.buildDriverList(activeSeries, activeSeason, { includeAll: true })
       .slice().sort(function (a, b) {
-        var pa = (a.standings && a.standings.pos !== '—') ? Number(a.standings.pos) : 999;
-        var pb = (b.standings && b.standings.pos !== '—') ? Number(b.standings.pos) : 999;
+        var pa = (a.standings && a.standings.pos !== 'â€”') ? Number(a.standings.pos) : 999;
+        var pb = (b.standings && b.standings.pos !== 'â€”') ? Number(b.standings.pos) : 999;
         if (pa !== pb) return pa - pb;
         var ta = a.teamOrder != null ? a.teamOrder : 99, tb = b.teamOrder != null ? b.teamOrder : 99;
         if (ta !== tb) return ta - tb;
@@ -386,10 +386,10 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     if (lead && teamLead) {
       var gap = (lead.standings ? lead.standings.pts : 0) - (second && second.standings ? second.standings.pts : 0);
       if (gap > 0) el.textContent = lead.name + ' leads the ' + esc(activeSeries) + ' championship with a ' + gap + '-point gap as ' + teamLead.team + ' top the constructors\' battle.';
-      else if (gap === 0) el.textContent = 'Dead heat at the top — ' + lead.name + ' tied for the championship lead. ' + teamLead.team + ' hold the constructors\' edge.';
+      else if (gap === 0) el.textContent = 'Dead heat at the top â€” ' + lead.name + ' tied for the championship lead. ' + teamLead.team + ' hold the constructors\' edge.';
       else el.textContent = teamLead.team + ' top both championships as the ' + activeSeason + ' season unfolds.';
     } else {
-      el.textContent = 'Season ' + activeSeason + ' — standings available once races are run.';
+      el.textContent = 'Season ' + activeSeason + ' â€” standings available once races are run.';
     }
   }
 
@@ -399,14 +399,14 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     var lead = topDrivers[0];
     if (lead) {
       cards.push({
-        icon: '👑', iconCls: 'amber', title: 'Championship Leader',
+        icon: 'ðŸ‘‘', iconCls: 'amber', title: 'Championship Leader',
         value: lead.fullName || lead.name, sub: (lead.standings ? lead.standings.pts : 0) + ' pts',
         photo: lead, team: lead.team
       });
     }
     if (topTeams[0]) {
       cards.push({
-        icon: '🏭', iconCls: 'sky', title: 'Constructors Leader',
+        icon: 'ðŸ­', iconCls: 'sky', title: 'Constructors Leader',
         value: topTeams[0].team, sub: topTeams[0].points + ' pts',
         isTeam: true, teamName: topTeams[0].team
       });
@@ -414,12 +414,12 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     var topWin = topDrivers.slice().sort(function (a, b) { return (b.seasonStats ? b.seasonStats.wins : 0) - (a.seasonStats ? a.seasonStats.wins : 0); })[0];
     if (topWin && topWin.seasonStats && topWin.seasonStats.wins > 0) {
       cards.push({
-        icon: '🏆', iconCls: 'emerald', title: 'Most Race Wins',
+        icon: 'ðŸ†', iconCls: 'emerald', title: 'Most Race Wins',
         value: topWin.fullName || topWin.name, sub: topWin.seasonStats.wins + ' victories',
         photo: topWin, team: topWin.team
       });
     } else {
-      cards.push({ icon: '⭐', iconCls: 'emerald', title: 'Drivers', value: (topDrivers.length || 0) + ' entered', sub: esc(activeSeries) + ' championship' });
+      cards.push({ icon: 'â­', iconCls: 'emerald', title: 'Drivers', value: (topDrivers.length || 0) + ' entered', sub: esc(activeSeries) + ' championship' });
     }
     el.innerHTML = cards.map(function (c) {
       var media = '';
@@ -444,18 +444,18 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     drivers = topDrivers;
     if (!topDrivers.length) { el.innerHTML = '<div style="padding:20px;color:var(--text-muted);font-size:12px;">No data.</div>'; return; }
     el.innerHTML = topDrivers.slice(0, 12).map(function (d, i) {
-      var pos = (d.standings && d.standings.pos !== '—') ? Number(d.standings.pos) : i + 1;
+      var pos = (d.standings && d.standings.pos !== 'â€”') ? Number(d.standings.pos) : i + 1;
       var posMod = pos === 1 ? 'gold' : pos === 2 ? 'silver' : pos === 3 ? 'bronze' : 'normal';
       var rgb = teamRgb(d.team);
       var full = d.fullName || d.name;
       var num = d.carNumber != null ? d.carNumber : '';
       return '<div class="home-row" style="--team-rgb:' + rgb + '" data-name="' + esc(full) + '">'
-        + '<span class="home-row__pos home-row__pos--' + posMod + '">' + (pos > 99 ? '—' : pos) + '</span>'
+        + '<span class="home-row__pos home-row__pos--' + posMod + '">' + (pos > 99 ? 'â€”' : pos) + '</span>'
         + (d.nation ? BTG.flagImg(d.nation, 18, 12, 'home-row__flag') : '')
         + '<span class="home-row__photo">' + BTG.driverPhotoImg(full, 30, '') + '</span>'
         + (num ? '<span class="home-row__num">#' + num + '</span>' : '')
         + '<span class="home-row__name" style="color:' + teamColorCss(d.team) + '">' + esc(full) + '</span>'
-        + '<span class="home-row__pts">' + (d.standings ? d.standings.pts : '—') + ' pts</span>'
+        + '<span class="home-row__pts">' + (d.standings ? d.standings.pts : 'â€”') + ' pts</span>'
         + '</div>';
     }).join('');
     el.querySelectorAll('.home-row').forEach(function (r) {
@@ -495,9 +495,9 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     var winner = rows.filter(function (r) { return Number(r.finish_position) === 1; })[0];
     var pole = rows.filter(function (r) { return Number(r.grid_position) === 1; })[0];
     var fl = rows.filter(function (r) { return r.fastest_lap_seconds != null; }).sort(function (a, b) { return Number(a.fastest_lap_seconds) - Number(b.fastest_lap_seconds); })[0];
-    el.innerHTML = '<div class="home-qs__row"><span class="home-qs__label">Winner</span><span class="home-qs__val">' + esc(winner ? winner.driver_name : '—') + '</span></div>'
-      + '<div class="home-qs__row"><span class="home-qs__label">Pole</span><span class="home-qs__val">' + esc(pole ? pole.driver_name : '—') + '</span></div>'
-      + '<div class="home-qs__row"><span class="home-qs__label">Fastest</span><span class="home-qs__val">' + esc(fl ? fl.driver_name : '—') + '</span></div>';
+    el.innerHTML = '<div class="home-qs__row"><span class="home-qs__label">Winner</span><span class="home-qs__val">' + esc(winner ? winner.driver_name : 'â€”') + '</span></div>'
+      + '<div class="home-qs__row"><span class="home-qs__label">Pole</span><span class="home-qs__val">' + esc(pole ? pole.driver_name : 'â€”') + '</span></div>'
+      + '<div class="home-qs__row"><span class="home-qs__label">Fastest</span><span class="home-qs__val">' + esc(fl ? fl.driver_name : 'â€”') + '</span></div>';
   }
 
   function renderCalendar() {
@@ -520,7 +520,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
         + (code ? '<img src="Flags/' + code + '.svg" alt="" onerror="this.style.display=\'none\'">' : '')
         + '</span>';
     }).join('');
-    txt.innerHTML = '<span class="home-qs__label">Progress</span><span class="home-qs__val">' + done + '/' + races.length + ' done · ' + (races.length - done) + ' left</span>';
+    txt.innerHTML = '<span class="home-qs__label">Progress</span><span class="home-qs__val">' + done + '/' + races.length + ' done Â· ' + (races.length - done) + ' left</span>';
   }
 
   function renderReliability() {
@@ -539,7 +539,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     var list = Object.keys(byTeam).map(function (k) { return byTeam[k]; }).sort(function (a, b) { return a.dnf - b.dnf; });
     if (!list.length) { el.innerHTML = '<div class="home-qs__row">No data.</div>'; return; }
     el.innerHTML = list.slice(0, 5).map(function (t) {
-      return '<div class="home-qs__row"><span class="home-qs__label">' + esc(t.name || '—') + '</span><span class="home-qs__val">' + t.dnf + ' DNFs</span></div>';
+      return '<div class="home-qs__row"><span class="home-qs__label">' + esc(t.name || 'â€”') + '</span><span class="home-qs__val">' + t.dnf + ' DNFs</span></div>';
     }).join('');
   }
 
@@ -559,7 +559,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
             var p = Number(r.pos);
             var cls = r.dnf ? 'other' : p === 1 ? 'win' : p <= 3 ? 'podium' : p <= 10 ? 'pts' : 'other';
             return '<span class="home-dot home-dot--' + cls + '" title="' + esc(r.track || '') + '">' + (r.dnf ? 'DNF' : p) + '</span>';
-          }).join('') : '<span style="color:var(--text-muted);font-size:11px;">—</span>')
+          }).join('') : '<span style="color:var(--text-muted);font-size:11px;">â€”</span>')
         + '</span>'
         + '</div>';
     }).join('');
@@ -580,12 +580,12 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
       return '<div class="home-row" style="--team-rgb:' + rgb + '">'
         + '<span class="home-row__photo">' + BTG.driverPhotoImg(full, 30, '') + '</span>'
         + '<span class="home-row__name" style="color:' + teamColorCss(d.team) + '">' + esc(full) + '</span>'
-        + '<span class="home-rec">' + (ss.wins ? '🏆' + ss.wins : '') + (ss.poles ? ' ⏱' + ss.poles : '') + (ss.podiums ? ' 🥉' + ss.podiums : '') + '</span>'
+        + '<span class="home-rec">' + (ss.wins ? 'ðŸ†' + ss.wins : '') + (ss.poles ? ' â±' + ss.poles : '') + (ss.podiums ? ' ðŸ¥‰' + ss.podiums : '') + '</span>'
         + '</div>';
     }).join('');
   }
 
-  // ── Fights (cumulative points line charts, clickable legend) ─────────────
+  // â”€â”€ Fights (cumulative points line charts, clickable legend) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function teamHex(name) {
     var hex = BTG.DBCache && BTG.DBCache.teamColorHex ? BTG.DBCache.teamColorHex(name) : '';
     if (hex && /^#?[0-9a-f]{6}$/i.test(hex)) return hex;
@@ -748,7 +748,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     buildFightChart('df-body', 'df-legend', labels, drvSeries);
   }
 
-  // ── Contract clock + next season ─────────────────────────────────────────
+  // â”€â”€ Contract clock + next season â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function currentYear() {
     var app = (BTG.DBCache.data() || {}).app_state || [];
     var f1 = app.filter(function (a) { return String(a.series) === activeSeries; })[0] || app[0];
@@ -792,10 +792,10 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
             : '<span class="home-badge">Ends ' + til + '</span>')
         + '</div>';
     }).join('');
-    el.innerHTML += '<div class="home-col__foot">' + expiring.length + ' expiring this season · ' + continuing.length + ' continuing</div>';
+    el.innerHTML += '<div class="home-col__foot">' + expiring.length + ' expiring this season Â· ' + continuing.length + ' continuing</div>';
 
     // Next season: signed deals for the following year (from contract history
-    // rows where till_year >= year+1 — i.e. current multi-year or future deals).
+    // rows where till_year >= year+1 â€” i.e. current multi-year or future deals).
     var next = mine.filter(function (h) { return Number(h.till_year) >= year + 1; });
     nextEl.innerHTML = next.length
       ? next.slice(0, 14).map(function (h) {
@@ -805,7 +805,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
             + '<span class="home-row__photo">' + BTG.driverPhotoImg(nameOf(h), 30, '') + '</span>'
             + '<span class="home-row__name" style="color:' + teamColorCss(team) + '">' + esc(nameOf(h)) + '</span>'
             + '<span class="home-row__team">' + esc(team || '') + '</span>'
-            + '<span class="home-badge">' + year + '–' + (Number(h.till_year) || '?') + '</span>'
+            + '<span class="home-badge">' + year + 'â€“' + (Number(h.till_year) || '?') + '</span>'
             + '</div>';
         }).join('')
       : '<div style="padding:20px;color:var(--text-muted);font-size:12px;">No multi-year deals yet.</div>';
@@ -813,7 +813,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
 
   function str0(v) { return v == null ? '' : String(v); }
 
-  // ── Paddock News (generated from race data, like the TFG dashboard) ──────
+  // â”€â”€ Paddock News (generated from race data, like the TFG dashboard) â”€â”€â”€â”€â”€â”€
   function renderNews() {
     var el = document.getElementById('home-news');
     var races = cumRaces();
@@ -825,27 +825,27 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     var lastRows = results.filter(function (r) { return String(r.race_id) === lastId; });
     var track = last.name || last.circuit || 'Grand Prix';
     var winner = lastRows.filter(function (r) { return Number(r.finish_position) === 1; })[0];
-    if (winner) news.push({ icon: '🏁', text: winner.driver_name + ' wins the ' + track });
+    if (winner) news.push({ icon: 'ðŸ', text: winner.driver_name + ' wins the ' + track });
     // Big gainer
     var gainer = lastRows.map(function (r) {
       var g = (Number(r.grid_position) || 99) - (Number(r.finish_position) || 99);
       return { name: r.driver_name, gained: g };
     }).sort(function (a, b) { return b.gained - a.gained; })[0];
-    if (gainer && gainer.gained >= 5) news.push({ icon: '🔝', text: gainer.name + ' gained ' + gainer.gained + ' positions at ' + track });
+    if (gainer && gainer.gained >= 5) news.push({ icon: 'ðŸ”', text: gainer.name + ' gained ' + gainer.gained + ' positions at ' + track });
     // Pole
     var pole = lastRows.filter(function (r) { return Number(r.grid_position) === 1; })[0];
-    if (pole && winner && pole.driver_name !== winner.driver_name) news.push({ icon: '⏱', text: pole.driver_name + ' on pole for ' + track });
+    if (pole && winner && pole.driver_name !== winner.driver_name) news.push({ icon: 'â±', text: pole.driver_name + ' on pole for ' + track });
     // Sprint winner
     var sprints = (BTG.DBCache.data() || {}).race_sprints || [];
     var sWin = sprints.filter(function (s) { return String(s.race_id) === lastId && Number(s.finish_position) === 1; })[0];
-    if (sWin) news.push({ icon: '⚡', text: sWin.driver_name + ' won the ' + track + ' sprint' });
+    if (sWin) news.push({ icon: 'âš¡', text: sWin.driver_name + ' won the ' + track + ' sprint' });
     // Leader
     var lead = drivers.slice().sort(function (a, b) {
-      var pa = (a.standings && a.standings.pos !== '—') ? Number(a.standings.pos) : 999;
-      var pb = (b.standings && b.standings.pos !== '—') ? Number(b.standings.pos) : 999;
+      var pa = (a.standings && a.standings.pos !== 'â€”') ? Number(a.standings.pos) : 999;
+      var pb = (b.standings && b.standings.pos !== 'â€”') ? Number(b.standings.pos) : 999;
       return pa - pb;
     })[0];
-    if (lead) news.push({ icon: '👑', text: lead.name + ' leads the ' + esc(activeSeries) + ' championship' });
+    if (lead) news.push({ icon: 'ðŸ‘‘', text: lead.name + ' leads the ' + esc(activeSeries) + ' championship' });
 
     if (!news.length) { el.innerHTML = '<div class="home-news"><div class="home-news__row">No news yet.</div></div>'; return; }
     el.innerHTML = '<div class="home-news">' + news.slice(0, 8).map(function (n) {
@@ -853,7 +853,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     }).join('') + '</div>';
   }
 
-  // ── Teammate Watch (head-to-head per team) ───────────────────────────────
+  // â”€â”€ Teammate Watch (head-to-head per team) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function renderTeammates() {
     var el = document.getElementById('home-teammates');
     var races = cumRaces();
@@ -875,7 +875,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
       var names = Object.keys(t.drivers);
       // Car 1 on the left, car 2 on the right (Contract seat order), not
       // whatever order the results happened to arrive in. This is a single
-      // team's lineup, so scope the seats to that team — a driver may hold a
+      // team's lineup, so scope the seats to that team â€” a driver may hold a
       // second seat at another team/series that must not decide this order.
       if (names.length > 1 && BTG.DBCache && BTG.DBCache.sortByCar) {
         names = BTG.DBCache.sortByCar(names, activeSeason, { team: tid, series: activeSeries });
@@ -897,14 +897,14 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
         + '<span class="home-tw__team">' + esc(t.team) + '</span>'
         + '<div class="home-tw__h2h">'
         + '<span class="home-tw__d1">' + esc(t.d1) + '</span>'
-        + '<span class="home-tw__score">' + t.h2h + '–' + (t.total - t.h2h) + '</span>'
+        + '<span class="home-tw__score">' + t.h2h + 'â€“' + (t.total - t.h2h) + '</span>'
         + '<span class="home-tw__bar"><span style="width:' + t.pct + '%;background:rgb(' + t.rgb.split(' ').join(',') + ');"></span></span>'
         + '<span class="home-tw__d2">' + esc(t.d2) + '</span>'
         + '</div></div>';
     }).join('') + '</div>';
   }
 
-  // ── Series-based border glow ─────────────────────────────────────────────
+  // â”€â”€ Series-based border glow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function applyBorderGlow() {
     // Wrap highlight cards + main columns with the series accent glow.
     var accent = BTG.seriesAccent(activeSeries); // "r,g,b"
@@ -957,23 +957,23 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
       BTG.setTeamColors(d.teamColor, _t && _t.colorSecondary);
     }
     document.getElementById('modal-name').textContent = d.name;
-    document.getElementById('modal-team').textContent = (d.team || 'Privateer') + ' · ' + (d.series || activeSeries);
-    document.getElementById('modal-overall').textContent = (d.careerRecord && d.careerRecord.avgFinish !== '—') ? d.careerRecord.avgFinish : '—';
+    document.getElementById('modal-team').textContent = (d.team || 'Privateer') + ' Â· ' + (d.series || activeSeries);
+    document.getElementById('modal-overall').textContent = (d.careerRecord && d.careerRecord.avgFinish !== 'â€”') ? d.careerRecord.avgFinish : 'â€”';
     document.getElementById('modal-flag').innerHTML = BTG.driverPhotoImg(d.fullName || d.name, 48) + ' ' + BTG.flagImg(d.nation, 48, 36);
     var career = (BTG.DBCache && BTG.DBCache.driverCareer) ? BTG.DBCache.driverCareer(d.name) : [];
     document.getElementById('modal-lifetime').innerHTML = career.length
       ? career.map(function (c) {
           return '<div class="ml-series"><div class="ml-head"><span class="ml-series-logo">' + BTG.seriesLogoImg(c.series, 14) + '</span>'
-            + (c.teamKeys.length ? '<span class="ml-teams">' + c.teamKeys.map(function (t) { return esc(t); }).join(' · ') + '</span>' : '')
+            + (c.teamKeys.length ? '<span class="ml-teams">' + c.teamKeys.map(function (t) { return esc(t); }).join(' Â· ') + '</span>' : '')
             + (c.numbers && c.numbers.length ? '<span class="ml-nums">#' + c.numbers.join(' #') + '</span>' : '')
             + '</div><div class="ml-stats">'
-            + '<span>Seasons <b>' + (c.years || '—') + '</b></span>'
+            + '<span>Seasons <b>' + (c.years || 'â€”') + '</b></span>'
             + '<span>Starts <b>' + c.starts + '</b></span>'
             + '<span>Wins <b>' + c.wins + '</b></span>'
-            + '<span>Sprint <b>' + (c.sprintWins || '—') + '</b></span>'
+            + '<span>Sprint <b>' + (c.sprintWins || 'â€”') + '</b></span>'
             + '<span>Podiums <b>' + c.podiums + '</b></span>'
             + '<span>Points <b>' + c.points + '</b></span>'
-            + '<span>Best <b>' + (c.bestPos ? 'P' + c.bestPos : '—') + '</b></span>'
+            + '<span>Best <b>' + (c.bestPos ? 'P' + c.bestPos : 'â€”') + '</b></span>'
             + '</div></div>';
         }).join('')
       : '<div class="muted">No series yet.</div>';
@@ -982,8 +982,8 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
       ? contracts.map(function (h) {
           var roleLabel = (str0(h.entity_type) === 'tp' ? 'Team Principal' : str0(h.role));
           return '<div class="mc-row' + (h.is_current ? ' current' : '') + '">'
-            + '<div class="mc-team">' + esc(str0(h.team_key) || '—') + (h.is_current ? ' <span class="tag-pill">current</span>' : '') + '</div>'
-            + '<div class="mc-meta">' + esc(roleLabel) + ' · ' + (h.from_year || '—') + '–' + (h.till_year || '—') + '</div>'
+            + '<div class="mc-team">' + esc(str0(h.team_key) || 'â€”') + (h.is_current ? ' <span class="tag-pill">current</span>' : '') + '</div>'
+            + '<div class="mc-meta">' + esc(roleLabel) + ' Â· ' + (h.from_year || 'â€”') + 'â€“' + (h.till_year || 'â€”') + '</div>'
             + '</div>';
         }).join('')
       : '<div class="muted">No contract history.</div>';
@@ -991,7 +991,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     BTG.openModal('driver-modal');
   }
 
-  // ── Boot ────────────────────────────────────────────────────────────────
+  // â”€â”€ Boot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   BTG.DBCache.init().then(function (dbData) {
     if (dbData && dbData.races && dbData.races.length) {
       BTG.Data.getSeriesList = BTG.DBCache.getSeriesList;

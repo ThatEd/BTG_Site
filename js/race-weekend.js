@@ -510,6 +510,7 @@ window.BTG = window.BTG || {};
   function rowFromCacheSprint(s, teamNameOf) {
     var pos = Number(s.finish_position || 0);
     var grid = Number(s.grid_position || 0);
+    var dsq = rowIsDsq(s);
     var teamName = teamNameOf(s.team_id) || '';
     var teamId = teamIdFor(teamName || 'Privateer');
     return {
@@ -523,7 +524,8 @@ window.BTG = window.BTG || {};
       points: Number(s.points || 0) + Number(s.bonus_points || 0),
       finishPoints: Number(s.points || 0),
       bonusPoints: Number(s.bonus_points || 0),
-      dnf: !!s.dnf,
+      dnf: !dsq && !!s.dnf,
+      dsq: dsq,
       finishTime: 0,
       positionsGained: grid > 0 && pos > 0 && pos < 99 ? grid - pos : null
     };
@@ -1842,7 +1844,7 @@ window.BTG = window.BTG || {};
   }
 
   function renderPodium(podium, winnerTeamId) {
-    var html = '<div class="border-glow-card" style="--team-rgb:' + (winnerTeamId ? '99 102 241' : '99 102 241') + ';--border-radius:0px;--card-bg:#090a0f;--glow-padding:18px;">';
+    var html = '<div class="border-glow-card" style="--team-rgb:' + (winnerTeamId ? 'var(--accent-rgb)' : 'var(--accent-rgb)') + ';--border-radius:0px;--card-bg:#090a0f;--glow-padding:18px;">';
     html += '<span class="edge-light"></span>';
     html += '<div class="border-glow-inner"><section class="h-full rounded border border-white/[0.07] bg-white/[0.03] p-3">';
     html += '<div class="mb-3 text-[11px] font-black uppercase tracking-[0.14em] text-muted-text">Podium</div>';
@@ -1946,7 +1948,7 @@ window.BTG = window.BTG || {};
 
   function teamRegistryTriplet(teamId) {
     var t = Object.keys(teamRegistry).map(function(k) { return teamRegistry[k]; }).filter(function(x) { return x.id === teamId; })[0];
-    return t ? t.color.replace(/\s*,\s*/g, ' ') : '99 102 241';
+    return t ? t.color.replace(/\s*,\s*/g, ' ') : 'var(--accent-rgb)';
   }
 
   function seriesColor() {

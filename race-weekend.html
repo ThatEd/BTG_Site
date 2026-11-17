@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BeTheGrid — Race Weekend</title>
+<title>BeTheGrid â€” Race Weekend</title>
 <link rel="icon" type="image/x-icon" href="logos/BTG.ico">
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -27,9 +27,9 @@
   };
 </script>
 <style>
-/* ═══════════════════════════════════════════════════════════════════════════
-   BeTheGrid — Race Weekend (faithful port of TFGTools race-weekend UI)
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   BeTheGrid â€” Race Weekend (faithful port of TFGTools race-weekend UI)
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 :root {
   --bg-base: #18181b;
   --bg-card: #0e0e12;
@@ -44,14 +44,31 @@
   --text-disabled: #52525b;
   --accent: #dc2626;
   --accent-light: #f87171;
+  --accent-dark: #7f1d1d;
   --accent-bg: rgba(220,38,38,0.08);
   --accent-border: rgba(220,38,38,0.25);
+  --accent-rgb: 220 38 38;
+  --accent-light-rgb: 248 113 113;
+  --accent-dark-rgb: 127 29 29;
+  /* The interface-wide default for anything painted in a team's colour. A card that resolves no team takes the
+     theme's own accent, so switching theme changes the fallback everywhere instead of leaving one hard-coded
+     purple behind. Components that do know a team still set `--team-rgb` inline and win over this. */
+  --team-rgb: 220 38 38;
+  --theme-secondary: #f59e0b;
+  --theme-secondary-rgb: 245 158 11;
+  --base-rgb: 24 24 27;
+  --deep-rgb: 14 14 18;
+  --card-rgb: 14 14 18;
+  --card-hover-rgb: 19 19 24;
+  --raised-rgb: 19 19 24;
+  --surface-raised: #131318;
+  --header-rgb: 16 16 20;
   font-variant-numeric: tabular-nums;
 }
 
 /* Keep BTG nav; give page its own TFG-style background */
 body {
-  background: #18181b !important;
+  background: rgb(var(--base-rgb)) !important;
   color: #f4f4f5;
 }
 /* Viewport-pinned glows so they never cut off / repeat on long pages */
@@ -62,22 +79,22 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(circle at top left, rgba(220, 38, 38, 0.12), transparent 32%),
-    radial-gradient(circle at 85% 12%, rgba(239, 68, 68, 0.1), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent 20%);
+    radial-gradient(circle at top left, rgba(var(--accent-rgb) / 0.12), transparent 32%),
+    radial-gradient(circle at 85% 12%, rgba(var(--theme-secondary-rgb) / 0.10), transparent 28%),
+    linear-gradient(180deg, rgba(var(--theme-secondary-rgb) / 0.025), transparent 20%);
 }
 
-/* ── Unified panel shell (from TFG layout.css) ── */
-.content-panel { background: #161618; border: 1px solid rgba(255,255,255,0.07); border-radius: 6px; padding: 16px; }
+/* â”€â”€ Unified panel shell (from TFG layout.css) â”€â”€ */
+.content-panel { background: rgb(var(--card-rgb)); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 16px; }
 
-/* ── Race Weekend layout ── */
+/* â”€â”€ Race Weekend layout â”€â”€ */
 .rw-wrap { max-width: 1400px; margin: 0 auto; padding: 16px; }
 .rw-tabs { display: flex; gap: 2px; flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,0.1); }
 .rw-tab { border: none; background: transparent; color: #71717a; padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; transition: color .15s; }
 .rw-tab:hover { color: #d4d4d8; }
 .rw-tab--active { color: #f87171 !important; border-bottom-color: #dc2626; }
 
-/* ── Race Result grid (rw-result-grid from TFG BorderGlow.css) ── */
+/* â”€â”€ Race Result grid (rw-result-grid from TFG BorderGlow.css) â”€â”€ */
 .rw-result-grid > div {
   min-width: 0;
   overflow: hidden;
@@ -96,7 +113,7 @@ body::before {
 .rw-result-grid > .cell-driver { justify-content: flex-start; }
 .rw-result-grid > .cell-team { justify-content: flex-end; }
 
-/* ── Starting Grid Visual (sg-* from TFG layout.css) ── */
+/* â”€â”€ Starting Grid Visual (sg-* from TFG layout.css) â”€â”€ */
 .sg-track { position: relative; }
 .sg-track__surface { display: flex; gap: 16px; max-width: 700px; margin: 0 auto; }
 .sg-col { display: flex; flex-direction: column; gap: 6px; flex: 1; }
@@ -109,21 +126,21 @@ body::before {
 .sg-slot__team { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #a1a1aa; }
 .sg-slot__num { font-size: 16px; font-weight: 800; font-family: ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', 'Oxygen Mono', 'Ubuntu Monospace', 'Source Code Pro', 'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace; flex-shrink: 0; min-width: 28px; text-align: right; }
 
-/* ── Race Strip (selector) ── */
+/* â”€â”€ Race Strip (selector) â”€â”€ */
 .rw-strip { display: flex; flex-wrap: wrap; gap: 6px; }
 .rw-strip__btn { display: flex; align-items: center; gap: 5px; padding: 4px 10px; font-size: 10px; font-weight: 700; border: 1px solid rgba(255,255,255,0.10); background: transparent; color: #a1a1aa; cursor: pointer; border-radius: 4px; transition: all 120ms; }
 .rw-strip__btn:hover { border-color: rgba(255,255,255,0.25); color: #d4d4d8; }
 .rw-strip__btn--active { background: rgba(220,38,38,0.15); border-color: rgba(248,113,113,0.40); color: #fff; }
 .rw-strip__btn--future { border-color: rgba(255,255,255,0.06); color: #52525b; opacity: 0.6; }
 
-/* Driver photo thumbnails — use local BTG photos with ? placeholder */
+/* Driver photo thumbnails â€” use local BTG photos with ? placeholder */
 .rw-photo { width: 26px; height: 26px; border-radius: 50%; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); flex-shrink: 0; font-size: 12px; color: #71717a; }
 .rw-photo img { width: 100%; height: 100%; object-fit: cover; }
 
 /* Team logo images */
 .rw-team-logo { height: 14px; width: auto; object-fit: contain; }
 
-/* Series logos in the formula switcher — width-clamped, overflow hidden (crop) */
+/* Series logos in the formula switcher â€” width-clamped, overflow hidden (crop) */
 .rw-series-logo { width: 40px; height: auto; display: block; flex-shrink: 0; }
 .rw-switcher-btn { display: flex; align-items: center; padding: 6px 10px; cursor: pointer; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; transition: all 120ms; opacity: 0.55; overflow: hidden; }
 

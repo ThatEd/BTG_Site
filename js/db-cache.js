@@ -26,6 +26,7 @@
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
   function str(v) { return v == null ? '' : String(v); }
   function by(arr, key, val) { return (arr || []).filter(function (r) { return String(r[key]) === String(val); }); }
+  function isDsqResult(r) { return /dsq|disq|excluded/i.test(str(r && r.status) + ' ' + str(r && r.dnf_reason)); }
 
   /* ── Placeholder rows ─────────────────────────────────────────────────────
      The league DB keeps an unassigned/free-agent team row (team_id 999,
@@ -521,8 +522,8 @@
       st.starts++;
       var p = num(r.finish_position);
       if (p > 0) { st.finishSum += p; st.classified++; }
-      if (p === 1) st.wins++;
-      if (p >= 1 && p <= 3) st.podiums++;
+      if (!isDsqResult(r) && p === 1) st.wins++;
+      if (!isDsqResult(r) && p >= 1 && p <= 3) st.podiums++;
       if (num(r.dnf) === 1 || /dnf/i.test(str(r.status))) st.dnfs++;
       // NOTE: a race FINISH is not a championship POSITION. bestPos below is
       // driven by season_driver_standings so it means "best championship
@@ -531,7 +532,7 @@
     (D && D.race_sprints || []).filter(function (s) { return str(s.driver_name) === name; }).forEach(function (s) {
       var series = seasonSeries[raceToSeason[String(s.race_id)]];
       if (!series) return;
-      if (num(s.finish_position) === 1) acc(series).sprintWins++;
+      if (!isDsqResult(s) && num(s.finish_position) === 1) acc(series).sprintWins++;
     });
     (D && D.season_driver_standings || []).filter(function (s) { return str(s.driver_name) === name; }).forEach(function (s) {
       var series = seasonSeries[String(s.season_id)];
@@ -898,21 +899,23 @@
       var sd = standings.filter(function (s) { return str(s.driver_name) === name; })[0];
 
       var racesCount = mine.length;
-      var wins = mine.filter(function (r) { return num(r.finish_position) === 1; }).length;
-      var podiums = mine.filter(function (r) { var p = num(r.finish_position); return p >= 1 && p <= 3; }).length;
-      var sprintWins = sprints.filter(function (s) { return str(s.driver_name) === name && num(s.finish_position) === 1; }).length;
+      var wins = mine.filter(function (r) { return !isDsqResult(r) && num(r.finish_position) === 1; }).length;
+      var podiums = mine.filter(function (r) { var p = num(r.finish_position); return !isDsqResult(r) && p >= 1 && p <= 3; }).length;
+      var sprintWins = sprints.filter(function (s) { return str(s.driver_name) === name && !isDsqResult(s) && num(s.finish_position) === 1; }).length;
       var mySprints = sprints.filter(function (s) { return str(s.driver_name) === name; });
-      var sprintPodiums = mySprints.filter(function (s) { var p = num(s.finish_position); return p >= 1 && p <= 3; }).length;
+      var sprintPodiums = mySprints.filter(function (s) { var p = num(s.finish_position); return !isDsqResult(s) && p >= 1 && p <= 3; }).length;
       // Sprint bonus points count towards the same total as the race's.
-      var sprintPts = mySprints.reduce(function (a, s) { return a + num(s.points) + num(s.bonus_points); }, 0);
+      var sprintPts = mySprints.reduce(function (a, s) { return a + (isDsqResult(s) ? 0 : num(s.points) + num(s.bonus_points)); }, 0);
       var dnfs = mine.filter(function (r) { return num(r.dnf) === 1 || /dnf/i.test(str(r.status)); }).length;
-      var finishes = mine.filter(function (r) { return num(r.finish_position) > 0; }).map(function (r) { return num(r.finish_position); });
+      var finishes = mine.filter(function (r) { return !isDsqResult(r) && num(r.finish_position) > 0; }).map(function (r) { return num(r.finish_position); });
       var bestFinish = finishes.length ? Math.min.apply(null, finishes) : 99;
       var finishSum = finishes.reduce(function (a, b) { return a + b; }, 0);
       var gridPos = mine.map(function (r) { return r.grid_position != null ? num(r.grid_position) : null; }).filter(function (v) { return v != null; });
       var avgGrid = gridPos.length ? gridPos.reduce(function (a, b) { return a + b; }, 0) / gridPos.length : null;
       var poles = mine.filter(function (r) { return num(r.grid_position) === 1; }).length;
-      var sortedResults = mine.slice().sort(function (a, b) { return num(a.race_id) - num(b.race_id); });
+      var sortedResults = mine.slice().sort(function (a, b) {
+        return raceRound(a.race_id) - raceRound(b.race_id) || num(a.race_id) - num(b.race_id);
+      });
       // Current team = the team from the driver's MOST RECENT race of the
       // season, not whatever row happened to come last in the cache payload
       // (results arrive grouped by race, but never guaranteed sorted).

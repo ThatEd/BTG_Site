@@ -1,13 +1,13 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BeTheGrid — Teams</title>
+<title>BeTheGrid â€” Teams</title>
 <link rel="icon" type="image/x-icon" href="logos/BTG.ico">
 <link rel="stylesheet" href="style.css">
 <style>
-/* ── TFG base tokens (mirror drivers.html) ─────────────────────────────── */
+/* â”€â”€ TFG base tokens (mirror drivers.html) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 :root {
   --bg-base: #18181b;
   --bg-card: #0e0e12;
@@ -21,13 +21,35 @@
   --text-disabled: #52525b;
   --accent: #dc2626;
   --accent-light: #f87171;
+  --accent-dark: #7f1d1d;
   --accent-bg: rgba(220,38,38,0.08);
   --accent-border: rgba(220,38,38,0.25);
+  --accent-rgb: 220 38 38;
+  --accent-light-rgb: 248 113 113;
+  --accent-dark-rgb: 127 29 29;
+  /* The interface-wide default for anything painted in a team's colour. A card that resolves no team takes the
+     theme's own accent, so switching theme changes the fallback everywhere instead of leaving one hard-coded
+     purple behind. Components that do know a team still set `--team-rgb` inline and win over this. */
+  --team-rgb: 220 38 38;
+  --theme-secondary: #f59e0b;
+  --theme-secondary-rgb: 245 158 11;
+  --base-rgb: 24 24 27;
+  --deep-rgb: 14 14 18;
+  --card-rgb: 14 14 18;
+  --card-hover-rgb: 19 19 24;
+  --raised-rgb: 19 19 24;
+  --surface-raised: #131318;
+  --header-rgb: 16 16 20;
   --font-mono: ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono',
     'Roboto Mono', 'Oxygen Mono', 'Ubuntu Monospace', 'Source Code Pro',
     'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace;
-  --team-rgb: 99 102 241;
 }
+
+/* A team's mark and a car's number are both drawn in the team's own colour, so each carries a shadow that keeps its
+   edge readable wherever it is laid â€” on a dark page, or on a band of the colour it is drawn in. */
+.team-logo { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)); }
+.team-logo--auto-white { filter: brightness(0) invert(1) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)); }
+.team-logo--auto-black { filter: brightness(0) drop-shadow(0 1px 2px rgba(255, 255, 255, 0.28)); }
 
 @font-face {
   font-family: 'Formula1';
@@ -48,37 +70,46 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(circle at top left, rgba(220, 38, 38, 0.12), transparent 32%),
-    radial-gradient(circle at 85% 12%, rgba(239, 68, 68, 0.1), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent 20%);
+    radial-gradient(circle at top left, rgba(var(--accent-rgb) / 0.12), transparent 32%),
+    radial-gradient(circle at 85% 12%, rgba(var(--theme-secondary-rgb) / 0.10), transparent 28%),
+    linear-gradient(180deg, rgba(var(--theme-secondary-rgb) / 0.025), transparent 20%);
 }
 
-/* ── TFG Layout ─────────────────────────────────────────────────────────── */
+/* â”€â”€ TFG Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .dp-layout { display: grid; grid-template-columns: 260px 1fr; gap: 0; min-height: calc(100vh - 120px); max-width: 1400px; margin: 0 auto; transition: grid-template-columns 0.25s ease; }
 .dp-layout.sb-collapsed { grid-template-columns: 0 1fr; }
 .dp-layout.sb-collapsed .dp-picker { border-right: 0; }
-.dp-picker { background: rgba(0,0,0,0.25); border-right: 1px solid var(--border-subtle); padding: 10px 0; overflow-y: auto; max-height: calc(100vh - 120px); position: sticky; top: 56px; min-width: 0; }
+/* The list is a column of evenly spaced shapes: the same gap between a team's line and its drivers, and between one
+   team and the next. */
+.dp-picker { display: flex; flex-direction: column; gap: 4px; background: rgb(var(--deep-rgb)); border-right: 1px solid var(--border-subtle); padding: 10px 0; overflow-y: auto; max-height: calc(100vh - 120px); position: sticky; top: 56px; min-width: 0; }
 .dp-picker__title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-disabled); padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .dp-picker__toggle { border: 1px solid var(--border-subtle); background: transparent; color: var(--text-muted); font-size: 11px; padding: 2px 8px; border-radius: 4px; cursor: pointer; line-height: 1.4; flex: none; }
 .dp-picker__toggle:hover { color: var(--text-primary); border-color: var(--border-medium); }
-.dp-picker__chip { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 14px; border: none; border-left: 3px solid transparent; background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 12px; text-align: left; transition: all 100ms; }
-.dp-picker__chip:hover { background: rgba(255,255,255,0.04); color: var(--text-primary); }
-.dp-picker__chip--active { background: rgba(255,255,255,0.05) !important; color: var(--text-primary) !important; font-weight: 600; border-left-color: rgb(var(--team-rgb)); }
+.dp-picker__group { display: flex; flex-direction: column; gap: 4px; }
+/* A team's own line, shaped like the chips under it: rounded, inset, and carrying the accent border the rail rows
+   carry. It is filled with the team's colours and the flag at its end takes the ink that reads on them. */
+.dp-picker__team { display: flex; align-items: center; gap: 6px; width: calc(100% - 12px); margin: 0 6px; padding: 4px 12px; border: 1px solid rgb(var(--accent-rgb) / 0.5); border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+.dp-picker__team-flag { width: 19px; height: 13px; flex: 0 0 auto; margin-left: auto; object-fit: cover; border: 1px solid rgb(0 0 0 / 0.3); }
+/* The chip carries the team's colours and the number sits on the end of them without its own plate, so the height is
+   the same whichever driver is in it. Its shape is the rail row's: rounded, inset from the list, under the same border. */
+.dp-picker__chip { display: flex; align-items: center; gap: 8px; width: calc(100% - 12px); margin: 0 6px; min-height: 52px; padding: 8px 14px; border: 1px solid rgb(var(--accent-rgb) / 0.5); border-radius: 10px; background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 12px; text-align: left; transition: all 100ms; }
+.dp-picker__chip:hover { filter: brightness(1.08); }
+.dp-picker__chip--active { font-weight: 600; box-shadow: inset 0 0 0 2px var(--band-ink, var(--accent)); }
 .dp-picker__name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dp-sidebar-toggle { position: fixed; left: 8px; bottom: 12px; z-index: 65; border: 1px solid var(--border-subtle); background: #161618; color: var(--text-muted); font-size: 10px; font-family: var(--font-mono); padding: 5px 9px; border-radius: 4px; cursor: pointer; }
+.dp-sidebar-toggle { position: fixed; left: 8px; bottom: 12px; z-index: 65; border: 1px solid var(--border-subtle); background: rgb(var(--card-rgb)); color: var(--text-muted); font-size: 10px; font-family: var(--font-mono); padding: 5px 9px; border-radius: 4px; cursor: pointer; }
 .dp-sidebar-toggle:hover { color: var(--text-primary); }
 
-/* ── TFG Cards (glow via --team-rgb) ────────────────────────────────────── */
+/* â”€â”€ TFG Cards (glow via --team-rgb) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .dp-main { display: grid; grid-template-columns: 1fr 1.1fr 0.9fr; gap: 12px; padding: 12px; overflow-y: auto; }
 @media (max-width: 1100px) { .dp-main { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 760px) { .dp-main { grid-template-columns: 1fr; } }
 .dp-left, .dp-center, .dp-right { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 
 .dp-card {
-  border: 1px solid rgb(var(--team-rgb, 99 102 241) / 0.35);
+  border: 1px solid rgb(var(--team-rgb, var(--accent-rgb)) / 0.35);
   border-radius: 6px;
   background: #161618;
-  box-shadow: 0 0 8px rgb(var(--team-rgb, 99 102 241) / 0.08);
+  box-shadow: 0 0 8px rgb(var(--team-rgb, var(--accent-rgb)) / 0.08);
   position: relative;
   overflow: visible;
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -94,8 +125,8 @@ body::before {
   z-index: 0;
   opacity: 0.4;
   box-shadow:
-    0 0 8px 2px rgb(var(--team-rgb, 99 102 241) / 0.25),
-    0 0 18px 5px rgb(var(--team-rgb, 99 102 241) / 0.1);
+    0 0 8px 2px rgb(var(--team-rgb, var(--accent-rgb)) / 0.25),
+    0 0 18px 5px rgb(var(--team-rgb, var(--accent-rgb)) / 0.1);
   mask-image:
     conic-gradient(
       from var(--cursor-angle, 45deg) at center,
@@ -103,12 +134,12 @@ body::before {
     );
 }
 .dp-card:hover {
-  border-color: rgb(var(--team-rgb, 99 102 241) / 0.55);
-  box-shadow: 0 0 14px rgb(var(--team-rgb, 99 102 241) / 0.14);
+  border-color: rgb(var(--team-rgb, var(--accent-rgb)) / 0.55);
+  box-shadow: 0 0 14px rgb(var(--team-rgb, var(--accent-rgb)) / 0.14);
 }
 .dp-card__title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-muted); margin-bottom: 10px; }
 
-/* ── Controls bar ───────────────────────────────────────────────────────── */
+/* â”€â”€ Controls bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .dp-controls { display: flex; align-items: center; gap: 14px; padding: 10px 16px; background: var(--bg-card); border: 1px solid var(--border-subtle); flex-wrap: wrap; margin-bottom: 12px; }
 .dp-controls .label { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); }
 .dp-controls select { background: #3a3a3a; border: 1px solid #4d4d4d; color: #ffffff; font-family: var(--font-mono); font-size: 12px; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
@@ -123,11 +154,11 @@ body::before {
     inset 0 0 6px color-mix(in srgb, var(--series-color, var(--accent)) 20%, transparent);
 }
 
-/* ── Hero full logo (logos/full/{year}/{DB name}) — no placeholder ──────── */
+/* â”€â”€ Hero full logo (logos/full/{year}/{DB name}) â€” no placeholder â”€â”€â”€â”€â”€â”€â”€â”€ */
 .tp-banner { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
 .tp-banner img { width: 100%; height: 100%; max-height: 200px; object-fit: contain; }
 
-/* ── Tailwind-style utilities used by the ported markup ─────────────────── */
+/* â”€â”€ Tailwind-style utilities used by the ported markup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .flex{display:flex}.inline-flex{display:inline-flex}.grid{display:grid}
 .flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}
 .items-center{align-items:center}.justify-center{justify-content:center}
@@ -168,19 +199,19 @@ body::before {
 .flex-1{flex:1}.w-full{width:100%}
 .italic{font-style:italic}
 
-/* ── Season position ────────────────────────────────────────────────────── */
+/* â”€â”€ Season position â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .dp-pos { display: flex; align-items: baseline; gap: 12px; }
 .dp-pos__rank { font-size: 28px; font-weight: 900; color: var(--text-primary); font-family: 'Formula1', sans-serif; }
 .dp-pos__pts { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
 
-/* ── Team row — hover reveals colored left border (Save Viewer team-glow-row) ── */
+/* â”€â”€ Team row â€” hover reveals colored left border (Save Viewer team-glow-row) â”€â”€ */
 .team-glow-row { transition: border-color 200ms, box-shadow 200ms; border-left: 3px solid transparent; }
-.team-glow-row:hover { border-left-color: rgb(var(--team-rgb, 99 102 241)) !important; box-shadow: inset 2px 0 8px rgba(var(--team-rgb, 99, 102, 241), 0.12); }
+.team-glow-row:hover { border-left-color: rgb(var(--team-rgb, var(--accent-rgb))) !important; box-shadow: inset 2px 0 8px rgb(var(--team-rgb, var(--accent-rgb)) / 0.12); }
 
-/* ── Driver photo fallback (matches drivers.html) ───────────────────────── */
+/* â”€â”€ Driver photo fallback (matches drivers.html) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .dp-hero__img { width: 100%; height: 100%; object-fit: cover; }
 
-/* ── Empty / misc ───────────────────────────────────────────────────────── */
+/* â”€â”€ Empty / misc â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .dp-empty { padding: 40px 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
 .tfg-attrib { position: fixed; bottom: 12px; right: 16px; font-size: 9px; color: var(--text-disabled); z-index: 60; font-family: var(--font-mono); }
 .tfg-attrib a { color: var(--text-disabled); text-decoration: underline; }
@@ -206,13 +237,13 @@ body::before {
     <div class="dp-picker" id="sidebar">
       <div class="dp-picker__title" id="sb-head">
         <span>Teams</span>
-        <button class="dp-picker__toggle" id="sb-collapse" title="Hide sidebar" type="button">‹</button>
+        <button class="dp-picker__toggle" id="sb-collapse" title="Hide sidebar" type="button">â€¹</button>
       </div>
       <div id="sb-list"></div>
     </div>
     <div id="detail-panel" class="dp-empty">Select a team from the list.</div>
   </div>
-  <button class="dp-sidebar-toggle" id="sb-toggle" type="button">☰ Teams</button>
+  <button class="dp-sidebar-toggle" id="sb-toggle" type="button">â˜° Teams</button>
 </div>
 
 <div class="tfg-attrib">UI by <a href="https://www.patreon.com/c/TFGTools" target="_blank" rel="noopener">TFGTools</a></div>
@@ -230,7 +261,7 @@ body::before {
   var seriesList = [], seasons = [], teamList = [];
   var D = null;
   var raceToSeason = {};
-  var rgb = '99 102 241';
+  var rgb = 'var(--accent-rgb)';
 
   /* Full-logo hero fallback: walk logos/full/{year} candidates; on total
      failure collapse the whole hero card (no empty placeholder box). */
@@ -256,7 +287,7 @@ body::before {
   function str(v) { return v == null ? '' : String(v); }
   function esc(v) { return (window.BTG && BTG.esc) ? BTG.esc(str(v)) : String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  /* ── DB team helpers ─────────────────────────────────────────────────── */
+  /* â”€â”€ DB team helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   function dbTeam(id) {
     return (D && D.teams || []).filter(function (t) { return String(t.team_id) === String(id); })[0] || null;
   }
@@ -268,7 +299,7 @@ body::before {
     try { var n = BTG.Roster.teamName(k, true); if (n) return n; } catch (e) {}
     return k;
   }
-  /* Official full name for a team in a given season — straight from the DB.
+  /* Official full name for a team in a given season â€” straight from the DB.
      Prefers the "Team Identity" table (per-season Short/Full Name), then
      team_season_names, then the base team_name. Never hardcoded. */
   function teamFullName(id, year) {
@@ -303,21 +334,21 @@ body::before {
   }
   function raceSeasonId(raceId) { return raceToSeason[String(raceId)] || null; }
 
-  /* Series team-title label straight from the DB (series.team_championship) —
+  /* Series team-title label straight from the DB (series.team_championship) â€”
      never hardcoded, so adding a new series is just a DB row. */
   function seriesChampionshipLabel(seriesId) {
     var rows = (D && D.series || []).filter(function (s) { return String(s.series_id) === String(seriesId); });
     return (rows.length && rows[0].team_championship) ? str(rows[0].team_championship) : 'Championship';
   }
 
-  /* Whether a series shows a staff roster — straight from the DB
+  /* Whether a series shows a staff roster â€” straight from the DB
      (series.has_staff). F1 = true, F2 / F3 / GT / XGT = false. */
   function seriesHasStaff(seriesId) {
     var rows = (D && D.series || []).filter(function (s) { return String(s.series_id) === String(seriesId); });
     return !!(rows.length && rows[0].has_staff);
   }
 
-  /* True when every scheduled race in a season has at least one result row —
+  /* True when every scheduled race in a season has at least one result row â€”
      i.e. the season is over. Being P1 mid-season is a position, not a title. */
   function seasonComplete(seasonId) {
     var scheduled = (D && D.races || []).filter(function (r) { return String(r.season_id) === String(seasonId); });
@@ -329,12 +360,12 @@ body::before {
     return scheduled.every(function (r) { return done[String(r.race_id)]; });
   }
 
-  /* ── Full logo: logos/full/{year}/{DB team name} — year-aware fallback ─
+  /* â”€â”€ Full logo: logos/full/{year}/{DB team name} â€” year-aware fallback â”€
      For the selected season year Y we look in logos/full/Y/ first; if the
-     team has no file there we fall back to earlier years (Y-1 … 2024). The
+     team has no file there we fall back to earlier years (Y-1 â€¦ 2024). The
      filename uses the same DB team name as the team (variants for common
      spellings). If NO full-format file exists in ANY year the hero collapses
-     entirely (BTG.fullLogoStep) — no fallback to the regular team logo, no
+     entirely (BTG.fullLogoStep) â€” no fallback to the regular team logo, no
      placeholder; when the full logo isn't there it's just empty.
      `altNames` (optional) lets the caller also try the short DB name when
      the display name is the per-season full name (e.g. "Scuderia Ferrari"
@@ -392,7 +423,7 @@ body::before {
     );
   }
 
-  /* ── Boot ────────────────────────────────────────────────────────────── */
+  /* â”€â”€ Boot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   // The logo manifest now loads in common.js; wait for it so the full-logo
   // hero only requests files that exist.
   (BTG.loadLogoManifest ? BTG.loadLogoManifest() : Promise.resolve())
@@ -456,7 +487,7 @@ body::before {
     });
   }
 
-  /* ── Controls (series tabs + season) ─────────────────────────────────── */
+  /* â”€â”€ Controls (series tabs + season) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   function renderControls() {
     var bar = document.getElementById('series-bar');
     bar.innerHTML = '';
@@ -487,15 +518,16 @@ body::before {
     };
   }
 
-  /* ── Sidebar ─────────────────────────────────────────────────────────── */
+  /* â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   function renderSidebar() {
     var sb = document.getElementById('sb-list');
     if (!teamList.length) { sb.innerHTML = '<div class="dp-empty">No teams.</div>'; return; }
     var html = '';
-    var rgb = teamRgb(selectedTeamId) || '99 102 241';
     teamList.forEach(function (t) {
+      var tRgb = teamRgb(t.team_id);
+      var bandInk = tRgb ? 'rgb(' + tRgb.split(' ').join(',') + ')' : 'var(--accent)';
       html += '<button class="dp-picker__chip' + (String(t.team_id) === String(selectedTeamId) ? ' dp-picker__chip--active' : '') + '" '
-        + 'data-tid="' + t.team_id + '" style="border-left-color:' + (String(t.team_id) === String(selectedTeamId) ? 'rgb(' + rgb + ')' : 'transparent') + '">'
+        + 'data-tid="' + t.team_id + '" style="--band-ink:' + bandInk + '">'
         + (BTG.teamLogoImg ? BTG.teamLogoImg(t.key, activeSeries, 16) : '')
         + '<span class="dp-picker__name">' + esc(t.name) + '</span>'
         + '</button>';
@@ -512,7 +544,7 @@ body::before {
     renderDetail();
   }
 
-  /* ── Detail ──────────────────────────────────────────────────────────── */
+  /* â”€â”€ Detail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   function staffForTeam(tid, sid) {
     var rows = (D.team_staff || []).filter(function (s) { return String(s.team_id) === String(tid); });
     if (sid != null) {
@@ -537,7 +569,7 @@ body::before {
     });
   }
 
-  /* BorderGlow wrapper — matches the Save Viewer's <BorderGlow … isSelected> */
+  /* BorderGlow wrapper â€” matches the Save Viewer's <BorderGlow â€¦ isSelected> */
   function glow(inner) {
     return BTG.wrapCard(inner, {
       teamColor: rgb,
@@ -549,7 +581,7 @@ body::before {
     });
   }
 
-  /* StaffPhoto equivalent — BTG has no /StaffPhotos, use an initials avatar */
+  /* StaffPhoto equivalent â€” BTG has no /StaffPhotos, use an initials avatar */
   function staffAvatar(name, size) {
     var s = size || 40;
     return '<div class="flex items-center justify-center overflow-hidden rounded-full bg-black/20"'
@@ -557,7 +589,7 @@ body::before {
       + '<span style="font-size:' + Math.round(s * 0.4) + 'px;font-weight:700;color:#71717a;font-family:var(--font-mono);">' + esc(initials(name)) + '</span></div>';
   }
 
-  /* StatTile equivalent — exact Save Viewer StatTile markup */
+  /* StatTile equivalent â€” exact Save Viewer StatTile markup */
   function statTile(value, label, color) {
     var valCls = color || 'text-white';
     return '<div class="text-center bg-white/[0.01] border border-white/[0.04] rounded p-1.5">'
@@ -599,14 +631,14 @@ body::before {
     var sid = seasonIdFor(activeSeries, activeSeason);
     var t = dbTeam(tid);
     var name = teamFullName(tid, activeSeason);
-    rgb = teamRgb(tid) || '99 102 241';
+    rgb = teamRgb(tid) || 'var(--accent-rgb)';
     // Set the team colour on the panel so every .dp-card / .team-glow-row
     // child picks up the team's border glow (CSS uses rgb(var(--team-rgb)/a),
     // which needs SPACE-separated channels).
     panel.style.setProperty('--team-rgb', rgb);
     var teamColor = 'rgb(' + rgb + ')';
 
-    // Results + contracts — needed by the driver resolution below, so compute
+    // Results + contracts â€” needed by the driver resolution below, so compute
     // them first.
     var contracts = currentContracts(tid);
     var seasonResults = (D.race_results || []).filter(function (r) {
@@ -625,11 +657,11 @@ body::before {
     var staff = staffForTeam(tid, sid);
     var nonDriver = staff.filter(function (s) { return str(s.role_label) !== 'Driver'; });
 
-    // ── Drivers (authoritative identity) ──────────────────────────────────
+    // â”€â”€ Drivers (authoritative identity) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // The ONLY source of who is a FULL driver at this team is the CURRENT
     // Driving contract (`contract_history` role=Driving, is_current=true).
-    // A reserve/junior is always shown as a reserve/junior — never as a
-    // driver — and a driver who left mid-season has no current contract, so
+    // A reserve/junior is always shown as a reserve/junior â€” never as a
+    // driver â€” and a driver who left mid-season has no current contract, so
     // they don't show here either. The `drivers` table is a name/number/OVR
     // lookup only (never a membership source). Names are normalized (first +
     // last, middle names dropped) so "Theo Rafael Amaro" == "Theo Amaro".
@@ -655,15 +687,15 @@ body::before {
         if (str(nm).length > e.name.length) e.name = str(nm); // prefer fuller name variant
       }
     }
-    // 1) Current Driving contracts — the authoritative lineup.
+    // 1) Current Driving contracts â€” the authoritative lineup.
     contracts.forEach(function (h) {
       if (str(h.entity_type) !== 'driver' || str(h.role) !== 'Driving') return;
       var d = (D.drivers || []).filter(function (dd) { return normName(dd.full_name) === normName(str(h.entity_name)); })[0];
       addDriver(str(h.entity_name), d ? d.driver_number : null, d ? d.ovr : null, h.till_year);
     });
-    // 2) Drivers who actually RACED for this team this season — the ground
+    // 2) Drivers who actually RACED for this team this season â€” the ground
     //    truth of the lineup. This covers feeder-series drivers whose contract
-    //    (hire) is held by ANOTHER team — e.g. an F2 seat for an F1 junior or
+    //    (hire) is held by ANOTHER team â€” e.g. an F2 seat for an F1 junior or
     //    reserve (Fabian Stahl is a Haas junior but drives for F2 ART). Their
     //    current contract lives elsewhere, so the contract-based pool alone
     //    would wrongly hide them from their racing team's page.
@@ -723,7 +755,7 @@ body::before {
     });
 
     // Standings history + WCC + team history. A title only counts once the
-    // season is COMPLETE (every race run) — leading mid-season is just a
+    // season is COMPLETE (every race run) â€” leading mid-season is just a
     // position, not a championship.
     var standingsHist = (D.season_team_standings || [])
       .filter(function (r) { return String(r.team_id) === String(tid); })
@@ -771,7 +803,7 @@ body::before {
     // Latest standings position
     var curStanding = standingsHist.length ? standingsHist[standingsHist.length - 1] : null;
 
-    // ── Team History timeline (port of TeamTimeline) ──
+    // â”€â”€ Team History timeline (port of TeamTimeline) â”€â”€
     var years = Object.keys(teamSeasons).map(Number).sort(function (a, b) { return a - b; });
     if (!years.length) years = [activeSeason];
     var timeline = years.map(function (y) {
@@ -813,7 +845,7 @@ body::before {
             + 'display:flex;align-items:center;justify-content:center;gap:3px;'
             + 'opacity:' + (Number(y) === Number(activeSeason) ? 1 : 0.7) + ';">'
             + (showLogo ? (BTG.teamLogoImg ? BTG.teamLogoImg(teamKey(tid), activeSeries, 14) : esc(name)) : '')
-            + (isBrandChange ? '<div style="position:absolute;left:-6px;top:-8px;font-size:8px;color:#fbbf24;font-weight:700;text-shadow:0 0 3px rgba(0,0,0,0.8);z-index:2;">◆</div>' : '')
+            + (isBrandChange ? '<div style="position:absolute;left:-6px;top:-8px;font-size:8px;color:#fbbf24;font-weight:700;text-shadow:0 0 3px rgba(0,0,0,0.8);z-index:2;">â—†</div>' : '')
             + '</div>';
         }).join('')
       + '</div>'
@@ -855,14 +887,14 @@ body::before {
       /* ===== LEFT COLUMN ===== */
       + '<div class="dp-left">'
 
-      /* Full Team Logo Hero — logos/full/{year}/{DB name} (no placeholder) */
+      /* Full Team Logo Hero â€” logos/full/{year}/{DB name} (no placeholder) */
       + fullLogoHero(name, activeSeason, [teamName(tid)])
 
-      /* WCC Titles — label comes from the DB series.team_championship.
+      /* WCC Titles â€” label comes from the DB series.team_championship.
          Hidden entirely when the team has won none this season (the card
          only exists to show the titles a team actually holds). */
       + (wccTitles.length
-          ? card('🏆 ' + esc(seriesChampionshipLabel(activeSeries)),
+          ? card('ðŸ† ' + esc(seriesChampionshipLabel(activeSeries)),
               '<div class="flex flex-wrap gap-2">'
               + wccTitles.map(function (x) {
                   return '<span class="inline-flex items-center gap-1 rounded border border-amber-400/20 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-300">'
@@ -871,7 +903,7 @@ body::before {
               + '</div>')
           : '')
 
-      /* Drivers + Race Engineers — side by side */
+      /* Drivers + Race Engineers â€” side by side */
       + card('Drivers', (function () {
           if (!drivers.length) return empty('No driver data');
           var out = '<div class="grid grid-cols-2 gap-3">';
@@ -889,7 +921,7 @@ body::before {
               + '<div class="text-[10px] font-mono text-muted-text">' + (num2 != null ? '#' + num2 : '') + '</div>'
               + driverStatus(d.contract_end_season)
               + (re ? '<div class="mt-2 border-t border-white/5 pt-2 text-center">'
-                  + '<div class="text-[9px] text-muted-text uppercase tracking-wider">🔧 Race Engineer</div>'
+                  + '<div class="text-[9px] text-muted-text uppercase tracking-wider">ðŸ”§ Race Engineer</div>'
                   + '<div class="flex justify-center mt-1">'
                   + '<div class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-white/10">'
                   + staffAvatar(driverName(re), 32)
@@ -999,13 +1031,13 @@ body::before {
               + flag + esc(rname)
               + '</span></td>'
               + '<td class="py-1.5 px-2 text-right font-bold text-amber-400">' + x.points + '</td>'
-              + '<td class="py-1.5 px-2 text-right text-secondary-text">P' + (x.best < 99 ? x.best : '—') + '</td>'
+              + '<td class="py-1.5 px-2 text-right text-secondary-text">P' + (x.best < 99 ? x.best : 'â€”') + '</td>'
               + '</tr>';
           });
           return out + '</tbody></table></div>';
         })())
 
-      /* Staff Roster — only shown when the series has staff (DB has_staff).
+      /* Staff Roster â€” only shown when the series has staff (DB has_staff).
          F2/GT/XGT have no staff, so the card is hidden entirely. */
       + (seriesHasStaff(activeSeries)
           ? card('Staff', (function () {
@@ -1102,7 +1134,7 @@ body::before {
     BTG.initCardGlow(panel);
   }
 
-  /* ── Small helpers ───────────────────────────────────────────────────── */
+  /* â”€â”€ Small helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   function seasonStats(results) {
     var isDsq = function (x) {
       return /dsq|disq|excluded/i.test(str(x.status)) || /dsq|disq|excluded/i.test(str(x.dnf_reason));
@@ -1127,8 +1159,8 @@ body::before {
     return {
       points: points, wins: wins, podiums: podiums, poles: poles,
       dnfs: dnfs, dsqs: Object.keys(dsqWk).length, races: mains.length,
-      best: best != null ? 'P' + best : '—',
-      avgFinish: mains.length && finishes.length ? (sum / finishes.length).toFixed(1) : '—'
+      best: best != null ? 'P' + best : 'â€”',
+      avgFinish: mains.length && finishes.length ? (sum / finishes.length).toFixed(1) : 'â€”'
     };
   }
 
@@ -1138,7 +1170,7 @@ body::before {
     return (parts[0].charAt(0) + (parts.length > 1 ? parts[parts.length - 1].charAt(0) : '')).toUpperCase();
   }
 
-  /* ── Sidebar collapse ─────────────────────────────────────────────────── */
+  /* â”€â”€ Sidebar collapse â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   document.getElementById('sb-collapse').onclick = function () {
     document.getElementById('dp-layout').classList.toggle('sb-collapsed');
   };
