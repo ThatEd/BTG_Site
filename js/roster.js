@@ -347,8 +347,8 @@
     // 4. Unique series, ordered F1, F2, GT1, then the rest. Only series that
     //    actually have drivers are registered (teams alone don't create a tab).
     var seriesSet = {};
-    drivers.forEach(function (d) { if (d.series) seriesSet[d.series] = true; });
-    var preferred = ['F1', 'F2', 'GT1', 'GT2', 'GT3', 'GT4', 'XGT'];
+    drivers.forEach(function (d) { if (d.series && !/^(?:GT1|GT\s*Class\s*One)$/i.test(d.series)) seriesSet[d.series] = true; });
+    var preferred = ['F1', 'F2', 'GT2', 'GT3', 'GT4', 'XGT'];
     var series = preferred.filter(function (s) { return seriesSet[s]; })
       .concat(Object.keys(seriesSet).filter(function (s) { return preferred.indexOf(s) === -1; }));
 

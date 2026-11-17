@@ -41,6 +41,8 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://jocmjietuviegelluiev.
 const TABLES = [
   ['series', 'series'],
   ['Teams', 'teams'],
+  ['lineup_series_settings', 'lineup_series_settings'],
+  ['lineup_seasons_public', 'lineup_seasons'],
   ['team_season_names', 'team_season_names'],
   ['Team Identity', 'team_identity'],
   ['Drivers', 'drivers'],
@@ -64,6 +66,7 @@ const TABLES = [
   ['contract_history', 'contract_history'],
   // Car/seat map (Contracts.seat: 1-2 = race cars). Only the edge snapshot
   // serves this key — the anon read 404s and the fallback fills it in.
+  ['number_sheet_catalog', 'number_sheets'],
   ['driver_cars', 'driver_cars']
 ];
 
@@ -180,6 +183,17 @@ async function main() {
     }
   }
 
+  // Public branding is the authoritative snapshot for year/per-car number settings.
+  try {
+    const response=await fetch(SUPABASE_URL+'/functions/v1/api?data=branding',{signal:AbortSignal.timeout(15000)});
+    const branding=await response.json();
+    if(!response.ok||!branding.ok||!Array.isArray(branding.teams)||!Array.isArray(branding.settings))throw new Error('invalid branding response');
+    (data.teams||[]).forEach(t=>{const fresh=branding.teams.find(x=>String(x.team_id)===String(t.team_id));if(fresh)Object.assign(t,fresh);});
+    data.lineup_series_settings=branding.settings;
+    data.number_sheets=branding.number_sheets||[];
+    console.log('  Supabase branding cached: team styles, yearly/per-car customizations and number catalogue');
+  } catch(e) { console.warn('  branding refresh unavailable; retaining snapshot settings'); }
+
   // Never publish data loss. Any table that failed to read and that the edge
   // snapshot could not fill keeps its previous contents, so a transient DB or
   // network problem cannot silently wipe team colours/logos, contract history
@@ -200,6 +214,12 @@ async function main() {
   if (!Array.isArray(data.races) || data.races.length === 0) {
     throw new Error('No race data could be fetched from any source.');
   }
+
+  // Retired series must not reappear through a fresh database snapshot.
+  const visibleSeries=value=>! /^(?:GT1|GT\s*Class\s*One)$/i.test(String(value||'').trim());
+  ['series','teams','lineup_series_settings','lineup_seasons','app_state','race_seasons'].forEach(key=>{
+    if(Array.isArray(data[key]))data[key]=data[key].filter(row=>visibleSeries(row.series_id||row.series));
+  });
 
   // Atomic write: temp file then rename so readers never see a partial cache.
   fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });

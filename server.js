@@ -48,6 +48,15 @@ const server = http.createServer((req, res) => {
   }
   if (urlPath === '/' || urlPath === '') urlPath = '/index.html';
 
+  if (urlPath === '/api/number-sheets') {
+    try {
+      const sheets = require('./scripts/build-number-manifest').discover(path.join(ROOT, 'driver-numbers'));
+      res.writeHead(200, {'Content-Type':'application/json', 'Cache-Control':'no-store'});
+      res.end(JSON.stringify({sheets}));
+    } catch (e) { res.writeHead(500, {'Content-Type':'application/json'}); res.end(JSON.stringify({error:'number_discovery_failed'})); }
+    return;
+  }
+
   // API: list series folders under Data/ (auto-discovery)
   if (urlPath === '/api/series') {
     const dataDir = path.join(ROOT, 'Data');

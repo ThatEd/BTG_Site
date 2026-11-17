@@ -220,7 +220,22 @@
     return Math.max(0, Math.min(100, Math.round(raw)));
   }
 
-  function computeSeasonPerformance(d, ss, allDrivers) {
+  // Centre the overall season grade on B (13/20) for drivers who have raced.
+  // DSQs retain a ceiling based on their share of valid classifications.
+  function computeSeasonPerformance(d,ss,allDrivers){
+    var perf=rawSeasonPerformance(d,ss,allDrivers);
+    var field=(allDrivers||[]).filter(function(x){return x.series===d.series&&Number(x.seasonStats&&x.seasonStats.races)>0;});
+    if(!field.length||!Number(ss&&ss.races))return perf;
+    function ceiling(stats){var rows=stats.results||[],dsq=rows.filter(function(r){return /\b(?:dsq|dq|disq)\b|disqualif|excluded/i.test(String(r.status||''))||r.dsq===true||r.disqualified===true;}).length;return 20*Math.max(0,1-dsq/Math.max(Number(stats.races)||rows.length,dsq||1));}
+    var values=field.map(function(x){return {score:rawSeasonPerformance(x,x.seasonStats,allDrivers).overallScore,cap:ceiling(x.seasonStats)};});
+    var target=Math.min(13*values.length,values.reduce(function(sum,x){return sum+x.cap;},0));
+    var low=-20,high=20;
+    for(var i=0;i<40;i++){var offset=(low+high)/2,sum=values.reduce(function(total,x){return total+Math.max(0,Math.min(x.cap,x.score+offset));},0);if(sum<target)low=offset;else high=offset;}
+    perf.overallScore=Math.max(0,Math.min(ceiling(ss),perf.overallScore+(low+high)/2));
+    return perf;
+  }
+
+  function rawSeasonPerformance(d, ss, allDrivers) {
     ss = ss || {};
     var list = allDrivers || [];
     var team = d.team, car = d.car;
@@ -396,6 +411,15 @@
     var raceScore = bandScore(racecraft, 3), teamScore = bandScore(teammate, 0);
     var reliScore = bandScore(reliability, 4);
     var overallScore = Math.round((paceScore + qualiScore + raceScore + teamScore + reliScore) / 5);
+    // Invalid race classifications cannot earn a strong season grade through qualifying alone.
+    var dsqs=results.filter(function(r){return /\b(?:dsq|dq|disq)\b|disqualif|excluded/i.test(String(r.status||''))||r.dsq===true||r.disqualified===true;}).length;
+    if(dsqs){
+      var eligible=Math.max(0,1-dsqs/Math.max(Number(ss.races)||results.length,dsqs));
+      reliability=clamp100(reliability*eligible);reliScore=Math.round(reliScore*eligible);
+      raceScore=Math.round(raceScore*eligible);teamScore=Math.round(teamScore*eligible);
+      overallScore=Math.round((paceScore+qualiScore+raceScore+teamScore+reliScore)/5*eligible);
+    }
+
     return {
       label: isSameCar ? 'vs Same Car' : 'vs Teammate',
       pace: pace, qualifying: qualifying, racecraft: racecraft,
@@ -514,6 +538,7 @@
   }
 
   BTG.DriverProfile = {
+    seasonPerformance: computeSeasonPerformance,
     careerRating: careerRating,
     render: function (container, d, ctx, opts) {
       opts = opts || {};
@@ -522,7 +547,9 @@
       var season = (ctx && ctx.season) != null ? ctx.season : null;
       var acadName = d.academy && BTG.Roster && BTG.Roster.teamName
         ? (BTG.Roster.teamName(d.academy) || d.academy) : d.academy;
-      var color = dbTeamRgb(d.team) || '185,29,46';
+      var affiliation=BTG.DBCache&&BTG.DBCache.profileTeam?BTG.DBCache.profileTeam(d.fullName||d.name,season):undefined;
+      var profileTeam=affiliation===undefined?d.team:affiliation;
+      var color = dbTeamRgb(profileTeam) || '110,110,118';
       var rgbSpaced = color.replace(/\s*,\s*/g, ' ');
       container.style.setProperty('--team-rgb', rgbSpaced);
 
@@ -538,14 +565,14 @@
       var heroInner = '<div class="dp-card dp-hero">'
         + '<div class="dp-hero__number">' + BTG.esc(d.standings ? d.standings.pos : '') + '</div>'
         + '<div class="dp-hero__photo" style="border-color:rgb(' + color + ');box-shadow:0 0 24px rgb(' + color + ' / 0.2)">'
-        + BTG.driverPhotoImg(d.fullName || d.name, 76)
+        + BTG.driverPhotoImg(d.fullName || d.name, 76, '', season)
         + '</div>'
         + '<div class="dp-hero__info">'
         + '<div class="dp-hero__name"><span class="dp-hero__first">' + BTG.esc(nameParts.slice(0, -1).join(' ') || '') + '</span><span class="dp-hero__last">' + BTG.esc(nameParts.slice(-1)[0] || '') + '</span></div>'
-        + '<div class="dp-hero__meta">' + BTG.esc(d.nation || '') + (d.carNumber ? '<span class="dp-hero__sep">·</span>#' + BTG.esc(d.carNumber) : '') + '</div>'
+        + '<div class="dp-hero__meta">' + BTG.esc(d.nation || '') + (d.carNumber ? '<span class="dp-hero__sep">·</span>' + BTG.numberSlot(d.carNumber, profileTeam, 28, 'dp-hero__num', undefined, undefined, season) : '') + '</div>'
         + '<div class="dp-hero__team" style="color:rgb(' + color + ')">'
-        + BTG.entryLogoImg(d.team, d.car, d.series || series, 18)
-        + '<span>' + BTG.esc(BTG.entryLabel(d.team, d.car)) + '</span>'
+        + BTG.entryLogoImg(profileTeam, profileTeam?d.car:null, d.series || series, 18)
+        + '<span>' + BTG.esc(profileTeam?BTG.entryLabel(profileTeam,d.car):'Free agent') + '</span>'
         + '</div>'
         + (d.academy ? '<div class="dp-hero__academy"' + (d.academyColor ? ' style="color:' + BTG.esc(d.academyColor) + '"' : '') + '>'
           + BTG.teamLogoImg(d.academy, d.series || series, 12)

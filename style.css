@@ -1,11 +1,11 @@
-﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   BeTheGrid â€” Shared Stylesheet
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════════════════════════════════════
+   BeTheGrid — Shared Stylesheet
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-/* â”€â”€ Fonts â”€â”€ */
+/* ── Fonts ── */
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap');
 
-/* â”€â”€ Design Tokens â”€â”€ */
+/* ── Design Tokens ── */
 :root {
   --ink: #0c0b0c;
   --ink-deep: #121011;
@@ -53,7 +53,7 @@
   --art-body-face: 'Source Serif 4', Georgia, 'Times New Roman', serif;
   --art-kicker-face: 'Barlow Condensed', 'Rajdhani', system-ui, sans-serif;
 
-  /* Team-color tokens â€” default to ember, overridden per-page via JS */
+  /* Team-color tokens — default to ember, overridden per-page via JS */
   --team-accent: var(--ember);
   --team-accent-hot: var(--ember-hot);
   --team-accent-on: var(--ember-on);
@@ -65,7 +65,7 @@
   --focus-ring: 0 0 0 2px var(--ink), 0 0 0 4px var(--team-accent-hot);
 }
 
-/* â”€â”€ Reset â”€â”€ */
+/* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { height: 100%; }
 body {
@@ -78,7 +78,7 @@ body {
   overflow-x: hidden;
 }
 /* Two-tone team gradient pinned to the viewport so it always fills the
-   screen â€” never cuts off, never repeats â€” on pages taller than the
+   screen — never cuts off, never repeats — on pages taller than the
    viewport. Color 1 (--team-glow) washes from the top, Color 2
    (--team-glow2) rises from the bottom. Sits behind all content. */
 body::before {
@@ -101,7 +101,7 @@ a:hover { color: var(--copy); }
 .team-logo--auto-white { filter: brightness(0) invert(1) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)); }
 .team-logo--auto-black { filter: brightness(0) drop-shadow(0 1px 2px rgba(255, 255, 255, 0.28)); }
 
-/* â”€â”€ Typography â”€â”€ */
+/* ── Typography ── */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--head-face);
   font-weight: 700;
@@ -110,7 +110,7 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--copy);
 }
 
-/* â”€â”€ Top Nav â”€â”€ */
+/* ── Top Nav ── */
 .btg-nav {
   background: var(--card);
   border-bottom: 3px solid var(--team-accent);
@@ -174,18 +174,18 @@ h1, h2, h3, h4, h5, h6 {
 .nav-tab:hover { color: var(--copy); }
 .nav-tab.active { color: var(--copy); border-bottom-color: var(--team-accent); }
 
-/* â”€â”€ Social links + donate (top bar) â”€â”€ */
+/* ── Social links + donate (top bar) ── */
 .nav-right{margin-left:auto; display:flex; align-items:center; flex-shrink:0;}
 .nav-social{display:flex; align-items:center; height:19.5px; margin-right:8px; flex-shrink:0; line-height:0; text-decoration:none; opacity:.92; transition:opacity .15s;}
 .nav-social:hover{opacity:1;}
 .nav-social-img{display:block; height:19.5px; width:auto; object-fit:contain;}
 
-/* â”€â”€ Donate (top bar) â”€â”€ */
+/* ── Donate (top bar) ── */
 .nav-donate{display:flex; align-items:center; gap:3px; height:15px; padding:0 8px; border-radius:5px; background:color-mix(in oklab, var(--team-accent) 14%, transparent); border:1px solid var(--team-edge); color:var(--copy-soft); font-family:var(--head-face); font-size:6px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; cursor:pointer; white-space:nowrap; flex-shrink:0; transition:.15s ease;}
 .nav-donate:hover{background:color-mix(in oklab, var(--team-accent) 22%, transparent); border-color:var(--team-accent); color:var(--copy);}
 .nav-donate .nav-donate-heart{color:var(--team-accent-hot); font-size:8px; line-height:1;}
 
-/* â”€â”€ Modal (donate) â”€â”€ */
+/* ── Modal (donate) ── */
 .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000; display:none; align-items:center; justify-content:center; padding:20px;}
 .modal-overlay.open{display:flex;}
 .modal{background:var(--card); border:1px solid var(--edge); border-top:3px solid var(--team-accent); border-radius:12px; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,.4);}
@@ -201,7 +201,7 @@ h1, h2, h3, h4, h5, h6 {
 .donate-btn-icon{font-size:16px; line-height:1;}
 .donate-note{margin-top:14px; text-align:center; font-size:12px; color:var(--copy-faint);}
 
-/* â”€â”€ Series Bar â”€â”€ */
+/* ── Series Bar ── */
 .series-bar {
   background: var(--card);
   border-bottom: 1px solid var(--edge);
@@ -230,7 +230,7 @@ h1, h2, h3, h4, h5, h6 {
 .series-tab:hover { color: var(--copy); }
 .series-tab.active { color: var(--team-accent-hot); border-bottom-color: var(--team-accent); }
 
-/* Series tabs are clickable logos â€” width-clamped, overflow hidden (crop overdraw) */
+/* Series tabs are clickable logos — width-clamped, overflow hidden (crop overdraw) */
 .series-tab {
   display: flex;
   align-items: center;
@@ -246,7 +246,7 @@ h1, h2, h3, h4, h5, h6 {
   flex-shrink: 0;
 }
 
-/* â”€â”€ Dropdowns: gray background + white text â”€â”€ */
+/* ── Dropdowns: gray background + white text ── */
 select {
   background: #3a3a3a;
   border: 1px solid #4d4d4d;
@@ -260,7 +260,7 @@ select {
 select:focus { outline: none; border-color: var(--team-accent-hot); }
 select option { background: #3a3a3a; color: #ffffff; }
 
-/* â”€â”€ Page Container â”€â”€ */
+/* ── Page Container ── */
 .page-section {
   max-width: 1200px;
   margin: 0 auto;
@@ -277,7 +277,7 @@ select option { background: #3a3a3a; color: #ffffff; }
   border-bottom: 1px solid var(--edge);
 }
 
-/* â”€â”€ Tables â”€â”€ */
+/* ── Tables ── */
 .btg-table {
   width: 100%;
   border-collapse: collapse;
@@ -312,7 +312,7 @@ select option { background: #3a3a3a; color: #ffffff; }
 .btg-table .flag-cell { text-align: center; }
 .btg-table .flag-cell img { width: 24px; height: 18px; border: 1px solid var(--edge); vertical-align: middle; }
 
-/* â”€â”€ Driver Cards Grid â”€â”€ */
+/* ── Driver Cards Grid ── */
 .driver-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -383,7 +383,7 @@ select option { background: #3a3a3a; color: #ffffff; }
   letter-spacing: .05em;
 }
 
-/* â”€â”€ News â”€â”€ */
+/* ── News ── */
 .news-hero {
   background: var(--card);
   border: 1px solid var(--edge);
@@ -445,7 +445,7 @@ select option { background: #3a3a3a; color: #ffffff; }
 .ni-title { font-size: 14px; font-weight: 600; line-height: 1.4; }
 .ni-meta { font-family: var(--data-face); font-size: 10px; color: var(--copy-faint); margin-top: 4px; }
 
-/* â”€â”€ News: hero / list are clickable cards â”€â”€ */
+/* ── News: hero / list are clickable cards ── */
 .news-hero { cursor: pointer; transition: border-color .15s, background .15s; }
 .news-hero:hover { border-left-color: var(--team-accent); background: var(--card-raised); }
 .news-hero-img {
@@ -456,7 +456,7 @@ select option { background: #3a3a3a; color: #ffffff; }
   margin: -24px -24px 16px;
 }
 
-/* â”€â”€ News: article reader â”€â”€ */
+/* ── News: article reader ── */
 .news-toolbar { display: flex; align-items: center; margin-bottom: 18px; }
 .news-back {
   font-family: var(--data-face);
@@ -471,7 +471,7 @@ select option { background: #3a3a3a; color: #ffffff; }
 
 .article { max-width: 780px; margin: 0 auto 80px; }
 
-/* Kicker â€” commanding colored | line */
+/* Kicker — commanding colored | line */
 .article-kicker {
   display: flex; align-items: center; gap: 12px;
   font-family: var(--art-kicker-face);
@@ -488,7 +488,7 @@ select option { background: #3a3a3a; color: #ffffff; }
   flex: none;
 }
 
-/* Title â€” h1 with a strong colored | line */
+/* Title — h1 with a strong colored | line */
 .article-title {
   display: flex; align-items: flex-start; gap: 16px;
   font-family: var(--head-face);
@@ -552,7 +552,7 @@ select option { background: #3a3a3a; color: #ffffff; }
   padding: 2px 5px; border-radius: 2px;
 }
 
-/* 3 header types â€” commanding colored | lines */
+/* 3 header types — commanding colored | lines */
 .article-body h1 {
   position: relative; padding-left: 16px;
   font-size: 24px; margin: 30px 0 14px; color: var(--art-text, var(--copy));
@@ -602,7 +602,7 @@ select option { background: #3a3a3a; color: #ffffff; }
   padding: 4px 10px;
 }
 
-/* â”€â”€ News: F1CC-style front page (BTG theme) â”€â”€ */
+/* ── News: F1CC-style front page (BTG theme) ── */
 .news-shell { max-width: 1200px; margin: 0 auto; padding: 16px 16px 80px; }
 .news-shell .series-bar { margin-bottom: 16px; }
 
@@ -801,7 +801,7 @@ select option { background: #3a3a3a; color: #ffffff; }
 }
 .nf-side-list li:hover { color: var(--copy); border-left-color: var(--team-accent); background: var(--card-raised); }
 
-/* â”€â”€ Dashboard â”€â”€ */
+/* ── Dashboard ── */
 .dash-login {
   display: flex;
   flex-direction: column;
@@ -900,7 +900,7 @@ select option { background: #3a3a3a; color: #ffffff; }
   margin-bottom: 12px;
 }
 
-/* â”€â”€ Fields & Buttons (shared) â”€â”€ */
+/* ── Fields & Buttons (shared) ── */
 .f-label {
   display: block;
   font-family: var(--data-face);
@@ -960,7 +960,7 @@ select option { background: #3a3a3a; color: #ffffff; }
 .btn-compact { padding: 7px 15px; font-size: 12px; }
 .btn:disabled { opacity: .4; cursor: not-allowed; filter: none; }
 
-/* â”€â”€ Modal â”€â”€ */
+/* ── Modal ── */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -1071,7 +1071,7 @@ select option { background: #3a3a3a; color: #ffffff; }
 }
 .history-row:last-child { border-bottom: none; }
 
-/* â”€â”€ Offers / Inbox â”€â”€ */
+/* ── Offers / Inbox ── */
 .offer-item {
   background: var(--card);
   border: 1px solid var(--edge);
@@ -1113,7 +1113,7 @@ select option { background: #3a3a3a; color: #ffffff; }
 .offer-status.declined { color: var(--copy-faint); }
 .offer-status.pending { color: var(--brass); }
 
-/* â”€â”€ TP Team Blocks â”€â”€ */
+/* ── TP Team Blocks ── */
 .tp-team-block {
   background: var(--card);
   border: 1px solid var(--edge);
@@ -1130,7 +1130,7 @@ select option { background: #3a3a3a; color: #ffffff; }
   margin-bottom: 12px;
 }
 
-/* â”€â”€ BorderGlow (from TFGTools) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── BorderGlow (from TFGTools) ───────────────────────────────────────────── */
 .border-glow-card {
   --border-radius: 12px;
   --glow-padding: 30px;
@@ -1162,7 +1162,7 @@ select option { background: #3a3a3a; color: #ffffff; }
   border: none !important;
   background: transparent;
 }
-/* Outer glow ring â€” always visible, follows cursor direction */
+/* Outer glow ring — always visible, follows cursor direction */
 .border-glow-card > .edge-light {
   content: "";
   position: absolute;
@@ -1203,7 +1203,7 @@ select option { background: #3a3a3a; color: #ffffff; }
     0 0 20px rgb(var(--team-rgb, var(--accent-rgb)) / 0.2);
 }
 
-/* â”€â”€ Utility â”€â”€ */
+/* ── Utility ── */
 .hidden { display: none !important; }
 .muted { color: var(--copy-faint); font-size: 13px; }
 .section-label {
@@ -1255,7 +1255,7 @@ select option { background: #3a3a3a; color: #ffffff; }
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--team-accent) 40%, transparent);
 }
 
-/* Driver modal â€” lifetime per series + contract history */
+/* Driver modal — lifetime per series + contract history */
 .modal-scroll { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; }
 .ml-series { border: 1px solid var(--edge); border-radius: 8px; background: var(--card-high); padding: 8px 10px; }
 .ml-head { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 6px; }
@@ -1273,7 +1273,7 @@ select option { background: #3a3a3a; color: #ffffff; }
 .mc-meta { font-size: 11px; color: var(--copy-faint); }
 .mc-sal { margin-left: auto; font-family: var(--data-face); font-size: 12px; color: var(--copy-soft); white-space: nowrap; }
 
-/* â•â•â• Parts Design Console (F1 Part Orders) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══ Parts Design Console (F1 Part Orders) ═══════════════════════════════ */
 
 #parts-design-console .pd-shell,
 .pd-topbar, .pd-maintabs, .pd-design-view, .pd-development-view {
@@ -1462,7 +1462,7 @@ select option { background: #3a3a3a; color: #ffffff; }
 .pdo-stats b { color: var(--copy-soft); font-weight: 600; }
 .pdo-progress-track { height: 5px; border-radius: 3px; background: var(--edge); margin-top: 10px; overflow: hidden; }
 .pdo-progress-fill { height: 100%; background: linear-gradient(90deg, var(--team-accent), var(--team-accent-hot)); border-radius: 3px; }
-/* Manufacture view â€” design cards */
+/* Manufacture view — design cards */
 .pd-mfg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; margin-top: 12px; }
 .pd-mfg-card { background: var(--card-raised); border: 1px solid var(--edge); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
 .pd-mfg-card-head { display: flex; align-items: center; gap: 12px; }
@@ -1485,7 +1485,7 @@ select option { background: #3a3a3a; color: #ffffff; }
 .pd-stock-chip.on { color: var(--moss); border-color: rgba(79,157,110,.4); }
 .pd-build-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .pd-build-row select { flex: 1; min-width: 220px; max-width: 380px; background: var(--ink); color: var(--copy); border: 1px solid var(--edge); border-radius: 6px; padding: 9px 10px; font-family: var(--body-face); font-size: 13px; }
-/* Manufacture view â€” click system (part list â†’ design cards â†’ manufacture panel) */
+/* Manufacture view — click system (part list → design cards → manufacture panel) */
 .pd-mfg-layout { display: grid; grid-template-columns: 230px 1fr; gap: 16px; align-items: start; }
 .pd-mfg-nav { display: flex; flex-direction: column; gap: 6px; position: sticky; top: 12px; }
 .pd-mfg-nav-head { font-family: var(--data-face); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--copy-faint); padding: 2px 6px 6px; }
@@ -1549,7 +1549,7 @@ select option { background: #3a3a3a; color: #ffffff; }
 .cp-range-delta.neg { color: var(--team-accent-hot); }
 .cp-range-delta.mixed { color: var(--brass); }
 
-/* Development timeline (today â†’ design â†’ manufacture â†’ target race) */
+/* Development timeline (today → design → manufacture → target race) */
 .pd-timeline { margin-top: 14px; border-top: 1px solid var(--edge); padding-top: 12px; }
 .pd-tl-head { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; flex-wrap: wrap; }
 .pd-tl-title { font-family: var(--data-face); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--copy-faint); }
@@ -1588,7 +1588,7 @@ select option { background: #3a3a3a; color: #ffffff; }
 .tx-amt.pos { color: var(--moss); }
 .tx-amt.neg { color: var(--team-accent-hot); }
 
-/* Parts allocation â€” two cars with clickable parts */
+/* Parts allocation — two cars with clickable parts */
 .pa-cars { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 12px; }
 .pa-car { background: var(--card-raised); border: 1px solid var(--edge); border-radius: 12px; overflow: hidden; }
 .pa-car-head { padding: 12px 14px; border-bottom: 1px solid var(--edge); font-family: var(--head-face); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-size: 14px; color: var(--copy); }
@@ -1612,19 +1612,19 @@ select option { background: #3a3a3a; color: #ffffff; }
 .pa-stepper .val { min-width: 34px; text-align: center; font-family: var(--head-face); font-size: 15px; font-weight: 700; color: var(--copy); }
 .pa-modal-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
 
-/* Parts allocation â€” design fit options (a car runs ONE part per component) */
+/* Parts allocation — design fit options (a car runs ONE part per component) */
 .pa-design-list { display: flex; flex-direction: column; gap: 8px; }
 .pa-design-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left; background: var(--card); border: 1px solid var(--edge); border-radius: 8px; padding: 10px 12px; cursor: pointer; color: var(--copy); font-family: var(--body-face); transition: border-color .12s, background .12s; }
 .pa-design-option:hover { border-color: var(--edge-strong); }
 .pa-design-option.active { border-color: var(--team-accent); background: var(--card-raised); box-shadow: 0 0 0 1px var(--team-accent); }
-/* A spec with no copies built yet cannot be fitted â€” show it as unavailable
+/* A spec with no copies built yet cannot be fitted — show it as unavailable
    instead of letting the TP fit a part that does not exist. */
 .pa-design-option--empty { opacity: .55; }
 .pa-design-option--empty .pa-design-qty { color: var(--copy-faint); }
 .pa-design-name { font-family: var(--head-face); font-size: 13px; font-weight: 700; }
 .pa-design-src { font-family: var(--data-face); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--copy-faint); }
 
-/* Parts allocation â€” spec quantities */
+/* Parts allocation — spec quantities */
 .pa-design-right { display: inline-flex; align-items: center; gap: 8px; }
 .pa-design-qty { font-family: var(--data-face); font-size: 12px; font-weight: 700; color: var(--brass); white-space: nowrap; }
 .pa-design-option { flex-direction: column; align-items: stretch; gap: 8px; }
@@ -1634,4 +1634,18 @@ select option { background: #3a3a3a; color: #ffffff; }
 .pa-stat { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 3px 8px; font-size: 11px; }
 .pa-stat-label { color: var(--copy-faint); }
 .pa-stat-value { font-family: var(--data-face); font-variant-numeric: tabular-nums; }
+.contract-buyout-field input[type="range"] { padding: 0; min-height: 32px; accent-color: var(--team-accent); }
+.contract-buyout-field .muted { font-size: 12px; }
+.contract-exit-summary { display: grid; gap: 10px; padding: 16px 0; }
+.contract-exit-summary > div { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.contract-table-scroll { max-width: 100%; overflow-x: auto; }
 .pa-part-count { font-family: var(--data-face); font-size: 12px; font-weight: 700; color: var(--brass); white-space: nowrap; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Driver numbers — ported from TFGTools (styles/driverNumbers.css)
+   A car's number, drawn from its team's number sheet: the plate is the picture,
+   so nothing here paints it. The picture is laid out at the size the strip asks
+   for, not at the size of the bitmap it was drawn above.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.drv-num { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; line-height: 0; }
+.drv-num img { display: block; flex: 0 0 auto; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)); }

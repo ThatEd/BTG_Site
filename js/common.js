@@ -4,6 +4,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 window.BTG = window.BTG || {};
+BTG.seriesIsVisible = function(series){return !/^(?:GT1|GT\s*Class\s*One)$/i.test(String(series||'').trim());};
 
 /* ── Nav ────────────────────────────────────────────────────────────────────
    Auto-rendered into <nav id="btg-nav"> on every page. The top bar lives
@@ -18,6 +19,7 @@ BTG.renderNav = function(activePage) {
   var tabs = [
     { id: 'standings', label: 'Standings', href: 'standings.html' },
     { id: 'drivers',   label: 'Drivers',   href: 'drivers.html' },
+    { id: 'lineups',   label: 'Driver Lineups', href: 'lineups.html' },
     { id: 'teams',     label: 'Teams',     href: 'teams.html' },
     { id: 'race-weekend', label: 'Race Weekend', href: 'race-weekend.html' },
     { id: 'calendar', label: 'Calendar', href: 'calendar.html' },
@@ -236,6 +238,62 @@ BTG.teamBand = function (rgb, rgb2) {
   };
 };
 
+/**
+ * The team's colours as space-separated channels, which is the form every `rgb(var(--team-rgb) / a)` rule needs.
+ *
+ * One place works this out for every page: the DB cache is the source when it has the colour, the page's own registry
+ * stands in when it does not, and the accent is the last resort. A page that already has a `teamRgb` of its own keeps
+ * using it — this is for the pages that do not, and for the secondary colour no page had.
+ */
+BTG.teamRgbFor = function (name) {
+  if (!name) return null;
+  var hex = '';
+  if (BTG.DBCache && BTG.DBCache.teamColorHex) {
+    try { hex = BTG.DBCache.teamColorHex(name) || ''; } catch (e) { hex = ''; }
+  }
+  if (!hex) {
+    var t = BTG.teamByName ? BTG.teamByName(name) : null;
+    if (t && t.color) return String(t.color).replace(/\s*,\s*/g, ' ');
+  }
+  var m = String(hex).replace('#', '');
+  if (m.length === 3) m = m[0] + m[0] + m[1] + m[1] + m[2] + m[2];
+  var n = parseInt(m, 16);
+  if (isNaN(n)) return null;
+  return ((n >> 16) & 255) + ' ' + ((n >> 8) & 255) + ' ' + (n & 255);
+};
+
+/** The team's second colour, for the far end of its band. Falls back to the primary when the save has none. */
+BTG.teamRgbSecondaryFor = function (name) {
+  if (!name) return null;
+  var hex = '';
+  if (BTG.DBCache && BTG.DBCache.teamColorSecondaryHex) {
+    try { hex = BTG.DBCache.teamColorSecondaryHex(name) || ''; } catch (e) { hex = ''; }
+  }
+  // A known DB team without a second colour uses its primary, not a registry colour.
+  if (!hex && BTG.DBCache && BTG.DBCache.teamColorHex && BTG.DBCache.teamColorHex(name)) {
+    return BTG.teamRgbFor(name);
+  }
+  if (!hex) {
+    var t = BTG.teamByName ? BTG.teamByName(name) : null;
+    if (t && t.colorSecondary) return String(t.colorSecondary).replace(/\s*,\s*/g, ' ');
+  }
+  var m = String(hex).replace('#', '');
+  if (m.length === 3) m = m[0] + m[0] + m[1] + m[1] + m[2] + m[2];
+  var n = parseInt(m, 16);
+  if (isNaN(n)) return BTG.teamRgbFor(name);
+  return ((n >> 16) & 255) + ' ' + ((n >> 8) & 255) + ' ' + (n & 255);
+};
+
+/** The band for a team by name, or null when there is nothing to paint with. */
+BTG.teamBandFor = function (name) {
+  return BTG.teamBand(BTG.teamRgbFor(name), BTG.teamRgbSecondaryFor(name));
+};
+
+/** Driver cards run from the DB secondary colour on the left to primary on the right. */
+BTG.teamBandForReversed = function (name) {
+  return BTG.teamBand(BTG.teamRgbSecondaryFor(name), BTG.teamRgbFor(name));
+};
+
 /* ── Flags ────────────────────────────────────────────────────────────────── */
 
 /** IOC 3-letter code → local SVG flag <img> HTML (Flags/{a2}.svg).
@@ -256,7 +314,7 @@ BTG.flagImg = function(ioc, w, h, cls) {
     KSA:'sa',QAT:'qa',BHR:'bh',SGP:'sg',INA:'id',ISR:'il',
     // ISO 3166-1 alpha-3 variants (some exports use these instead of IOC)
     DEU:'de',NLD:'nl',PRT:'pt',CHE:'ch',DNK:'dk',GRC:'gr',IRL:'ie',
-    ZAF:'za',MYS:'my',ARE:'ae',SAU:'sa',IDN:'id',
+    ZAF:'za',MYS:'my',ARE:'ae',SAU:'sa',IDN:'id',PHI:'ph',
     // UK nations
     NIR:'gb-nir',ENG:'gb-eng',SCT:'gb-sct',WLS:'gb-wls'
   };

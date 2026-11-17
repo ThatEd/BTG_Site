@@ -28,7 +28,7 @@
   <div class="tags-drawer-body" id="tags-drawer-body"></div>
 </aside>
 
-<script src="js/common.js"></script>
+<script src="js/common.js?v=20261117-profile-team-16"></script>
 <script>
 (function() {
   var articles = [], activeSeries = 'all', activeTag = 'all', seriesList = ['all'], tagsList = [];
@@ -63,7 +63,7 @@
       .catch(function() { return null; })
       .then(function(c) {
         var s = c && c.series ? Object.keys(c.series) : [];
-        if (s.length) return s.sort();
+        if (s.length) return s.filter(BTG.seriesIsVisible).sort();
         // Fallback: series-like tags from the articles themselves.
         var seen = {};
         articles.forEach(function(a) {
@@ -71,7 +71,7 @@
             if (t && /^(F1|F2|F3|GT|GT3|GT4|GT Class One|XGT|LMP|WEC|NASCAR|Indy)/i.test(t)) seen[t] = true;
           });
         });
-        return Object.keys(seen).sort();
+        return Object.keys(seen).filter(BTG.seriesIsVisible).sort();
       });
   }
 

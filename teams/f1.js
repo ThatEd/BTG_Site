@@ -12,7 +12,7 @@ BTG.F1_TEAMS = [
   { id: 3,  name: 'Red Bull',       color: '30,91,198',    colorSecondary: '247,195,0',    logo: 'logos/F1.png' },
   { id: 4,  name: 'Mercedes',       color: '0,210,190',    colorSecondary: '61,61,61',     logo: 'logos/F1.png' },
   { id: 5,  name: 'Alpine',         color: '0,144,255',    colorSecondary: '255,135,188',  logo: 'logos/F1.png' },
-  { id: 6,  name: 'Williams',       color: '0,90,255',     colorSecondary: '4,30,66',      logo: 'logos/F1.png' },
+  { id: 6,  name: 'Williams',       color: '7,54,115',     colorSecondary: '4,30,66',      logo: 'logos/F1.png' },
   { id: 7,  name: 'Haas',           color: '230,0,43',     colorSecondary: '61,61,61',     logo: 'logos/F1.png' },
   { id: 8,  name: 'Racing Bulls',   color: '22,52,203',    colorSecondary: '38,71,216',    logo: 'logos/F1.png' },
   { id: 9,  name: 'Audi',           color: '192,0,0',      colorSecondary: '127,133,137',  logo: 'logos/F1.png' },
@@ -606,20 +606,29 @@ BTG.driverPhotoCandidates = function(fullName, base) {
  * @param {string} [className]
  * @returns {string} HTML
  */
-BTG.driverPhotoImg = function(fullName, size, className) {
+BTG.driverPhotoUrls = function(fullName, year) {
+  var bases = BTG.driverPhotoCandidates(fullName);
+  var urls = [];
+  year = Number(year || BTG.currentSeason);
+  if (Number.isInteger(year) && year >= 1900 && year <= 2200) {
+    BTG.driverPhotoCandidates(fullName, 'logos/drivers/' + year + '/').forEach(function(b) {
+      urls.push(b+'.webp',b+'.png');
+    });
+  }
+  bases.forEach(function(b){urls.push(b.replace('logos/drivers/','logos/drivers/thumbs/')+'.webp');});
+  bases.forEach(function(b){urls.push(b+'.webp',b+'.png');});
+  return urls;
+};
+BTG.driverPhotoImg = function(fullName, size, className, year) {
   var bases = BTG.driverPhotoCandidates(fullName);
   var sizePx = size || 76;
   var cls = className || 'dp-hero__img';
   if (!bases.length) {
     return '<span class="dp-hero__placeholder">?</span>';
   }
-  var urls = [];
+  var urls = BTG.driverPhotoUrls(fullName, year);
   // Fast path: 256px webp thumbs (logos/drivers/thumbs/) first — the source
   // PNGs are ~1254px / ~1.5MB and are only ever shown small.
-  bases.forEach(function (b) {
-    urls.push(b.replace('logos/drivers/', 'logos/drivers/thumbs/') + '.webp');
-  });
-  bases.forEach(function (b) { urls.push(b + '.webp'); urls.push(b + '.png'); });
   var chain = urls.map(function (u) { return u.replace(/"/g, '&quot;'); }).join('|');
   return '<img class="' + cls + '" src="' + urls[0] + '" width="' + sizePx + '" height="' + sizePx + '" alt="' + BTG.esc(fullName || '') + '" '
     + 'onload="this.style.opacity=1;" style="opacity:0;" '

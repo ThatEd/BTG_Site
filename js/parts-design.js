@@ -244,17 +244,17 @@
   }
   // Manufacturing reserve for a part = its real build time (1 copy).
   function manufacturingDays(part) { return part ? buildDaysFor(part.part_id) : 0; }
-  function designDaysFor(part, race) {
+  function designDaysFor(part, race, startDate) {
     if (!race) return MIN_DESIGN_DAYS;
-    var total = daysBetween(todayStr(), race.race_date);
+    var total = daysBetween(startDate || todayStr(), race.race_date);
     return Math.max(MIN_DESIGN_DAYS, total - manufacturingDays(part));
   }
-  function designWeeksFor(part, race) {
+  function designWeeksFor(part, race, startDate) {
     // Longest whole-week design that still leaves time to manufacture before the
     // target race (min 3 weeks). Floored, never rounded: the weeks go into
     // `weeks * 7 + manufacturing <= days`, so rounding up would need up to 3.5
     // days that aren't there and would push almost every race out of reach.
-    return Math.max(MIN_DESIGN_DAYS / 7, Math.floor(designDaysFor(part, race) / 7));
+    return Math.max(MIN_DESIGN_DAYS / 7, Math.floor(designDaysFor(part, race, startDate) / 7));
   }
   /** Can this part be designed AND manufactured before the race? Only the
    *  shortest possible design (MIN_DESIGN_DAYS) has to fit — a race must never
@@ -391,6 +391,7 @@
     var m = d.model;
     if (!m) return d.car || null;
     var prog = progOverride || progFor(part.part_id);
+    var focus = progOverride ? (prog.focus || {}) : focusState;
     var dev = devEffortFor(prog, m);
     var out = {};
     Object.keys(d.car || {}).forEach(function (rowKey) {
@@ -398,7 +399,7 @@
       if (!base || base.lo == null || base.hi == null) { out[rowKey] = null; return; }
       var shift = 0;
       Object.keys(m.focus || {}).forEach(function (sid) {
-        var f = focusState && focusState[sid] != null ? clamp(num(focusState[sid]), 0, 1) : 0.5;
+        var f = focus && focus[sid] != null ? clamp(num(focus[sid]), 0, 1) : 0.5;
         var coeff = (m.focus[sid] || {})[rowKey];
         if (coeff) shift += coeff * (f - 0.5);
       });
@@ -414,10 +415,11 @@
     var m = d && d.model, sv = m && m.stats && m.stats[statId];
     if (!sv) return null;
     var prog = progOverride || progFor(part.part_id);
+    var focus = progOverride ? (prog.focus || {}) : focusState;
     var dev = devEffortFor(prog, m);
     var focusShift = 0;
     Object.keys(sv.focusShift || {}).forEach(function (sid) {
-      var f = focusState && focusState[sid] != null ? clamp(num(focusState[sid]), 0, 1) : 0.5;
+      var f = focus && focus[sid] != null ? clamp(num(focus[sid]), 0, 1) : 0.5;
       focusShift += (sv.focusShift[sid] || 0) * (f - 0.5);
     });
     var devCont = (sv.devShift || 0) * dev;
@@ -1105,7 +1107,7 @@
           + (ico ? '<span class="pd-mfg-ico"><img src="' + ico + '" alt=""></span>' : '')
           + '<span class="pd-design-info"><span class="pd-mfg-name">' + mName + '</span>'
           + (d.note ? '<span class="pd-mfg-note">' + str(d.note) + '</span>' : '')
-          + '<span class="pd-mfg-sub">' + (d.source === 'developed' ? 'Developed spec — stock' : 'Installed on both cars') + '</span></span>'
+          + '<span class="pd-mfg-sub">' + (d.source === 'developed' ? 'Developed specification' : 'Base specification') + '</span></span>'
           + '<span class="pd-design-meta"><span class="pd-design-stock">' + (num(d.quantity) || 0) + '</span><span class="pd-design-cond">0%</span></span>'
           + '</button>';
       });
@@ -1127,8 +1129,6 @@
       var approachCost = Math.max(0, Math.round(baseCost * costMul * mfgQty) - buildCost);
       var doneDate = todayStr() ? addDays(todayStr(), totalDays) : '—';
       var doneLong = todayStr() ? fmtDateLong(doneDate) : '—';
-      var firstDate = todayStr() ? addDays(todayStr(), days) : '—';
-      var firstLong = todayStr() ? fmtDateLong(firstDate) : '—';
 
       var man = document.createElement('div'); man.className = 'pd-programme pd-manufacture';
       var mHtml = '<div class="pdp-head"><h3>Manufacture ' + str(part.name) + '</h3></div><div class="pdp-body">'
@@ -1138,7 +1138,7 @@
         + '<span class="pd-approach">' + APPROACHES.map(function (a, i) { return '<button type="button" data-approach="' + i + '"' + (i === mfgApproach ? ' class="active"' : '') + '>' + a + '</button>'; }).join('') + '</span></div>'
         + '<div class="pd-summary">'
         + '<div class="pd-sum-row"><span>Completion date</span><b>' + totalDays + ' days (' + doneLong + ')</b></div>'
-        + '<div class="pd-sum-row"><span>1st car part</span><b>' + days + ' days (' + firstLong + ')</b></div>'
+        + '<div class="pd-sum-row"><span>Availability</span><b>All copies at completion</b></div>'
         + '<div class="pd-sum-row"><span>Manufacture cost</span><b>$' + Number(buildCost).toLocaleString() + '</b></div>'
         + '<div class="pd-sum-row"><span>Approach cost</span><b>$' + Number(approachCost).toLocaleString() + '</b></div>'
         + '</div>'
@@ -1305,7 +1305,7 @@
       var laterRaces = (S.calendar || []).filter(function (c) {
         var afterCur = curRace ? String(c.race_date) > String(curRace.race_date) : num(c.round) > num(prog.target_race);
         if (!afterCur || !partProg) return false;
-        return designFits(partProg, c) && designWeeksFor(partProg, c) > num(prog.target_weeks);
+        return daysBetween(todayStr(), c.race_date) > 0 && designWeeksFor(partProg, c, prog.start_date) > num(prog.target_weeks);
       });
       html += '<div class="pdp-row"><div class="pdp-row-label">Target race</div><select id="dev-race-' + programId + '">'
         + '<option value="">' + (curRace ? str(curRace.name) + ' (' + String(curRace.race_date).slice(0, 10).slice(5) + ')' : '—') + '</option>';
@@ -1486,6 +1486,10 @@
     target_too_soon: 'That race is too close — the design and the build would not be finished in time.',
     target_not_later: 'The new target race has to be later than the current one.',
     over_resources: 'Not enough CFD / WTH left for that allocation.',
+    invalid_resources: 'CFD and WTH allocations must be non-negative whole numbers.',
+    race_not_found: 'That target race is unavailable. Refresh and choose a race from the calendar.',
+    invalid_quantity: 'Choose a whole build quantity within the displayed limits.',
+    invalid_approach: 'Choose in-house or outsourced manufacturing.',
     over_budget: 'The team budget cannot cover that.',
     design_not_found: 'That design is not ready to be manufactured.',
     in_development: 'That part is still in development — it cannot be manufactured yet.',
@@ -1641,7 +1645,7 @@
     });
   }
   async function doScrap(programId, btn) {
-    var ok = await confirmModal('Scrap this development programme?<br><br>Its weeks of work are lost and <b>the design cost is not refunded</b> — only cancelling a build order refunds money. Scrapped programmes stay listed so they can be continued later.', 'Scrap programme');
+    var ok = await confirmModal('Scrap this development programme?<br><br><b>The design cost is not refunded.</b> The programme and its design remain listed so you can continue them later.', 'Scrap programme');
     if (!ok) return;
     return guard(btn, async function () {
       var data = await api('partsUpdate', { programId: programId, op: 'scrap' });

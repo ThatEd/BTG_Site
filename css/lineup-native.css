@@ -1,0 +1,1575 @@
+@scope (.native-lineup-root) {
+
+:root{--bg:#f4f4f5;--pn:#fff;--tx:#17181c;--mu:#6b6f78;--ln:#d9dbe0;--ac:#e10600;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15161a;--pn:#1f2127;--tx:#eceef2;--mu:#9a9fab;--ln:#33363f}}
+:root[data-theme="dark"]{--bg:#15161a;--pn:#1f2127;--tx:#eceef2;--mu:#9a9fab;--ln:#33363f}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:500 15px/1.4 Barlow,system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:16px}
+.ctl{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:end;background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.lb{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--mu)}
+.lb output{color:var(--tx);font-weight:600}
+input[type=range]{accent-color:var(--ac);width:140px}
+.seg{display:inline-flex;border:1px solid var(--ln);border-radius:8px;overflow:hidden}
+.seg label{position:relative}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{display:block;padding:6px 12px;cursor:pointer;color:var(--tx);font-size:14px}
+.seg input:checked+span{background:var(--ac);color:#fff}
+.seg input:focus-visible+span{outline:2px solid var(--ac);outline-offset:-2px}
+.chk{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;font-size:14px;color:var(--tx)}
+.chk label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.chk input{accent-color:var(--ac)}
+.hint{margin:0 0 12px;font-size:13px;color:var(--mu);max-width:90ch}
+
+/* ===== board ===== */
+.board{container-type:inline-size;position:relative;padding:3cqw 3.4cqw;border-radius:10px;overflow:hidden;color:var(--bt);--bt:#14151a;--bm:#7d808a;--bandbg:rgba(255,255,255,.72)}
+.board.light{background:repeating-linear-gradient(135deg,#f4f4f4 0 .6cqw,#ececec .6cqw 1.2cqw)}
+.board.grey{background:radial-gradient(ellipse at 50% 20%,#e9e9e9,#a3a3a6 80%);--bt:#2a2b2f;--bm:#6a6c73}
+.board.dark{background:repeating-linear-gradient(135deg,#17181d 0 .6cqw,#1c1e24 .6cqw 1.2cqw);--bt:#fff;--bm:#9a9ea8;--bandbg:rgba(255,255,255,.1)}
+.grid{display:grid;gap:2.3cqw 2.2cqw}
+.cell{min-width:0}
+
+/* title block */
+.tb{align-self:center;justify-self:center;display:flex;flex-direction:column;align-items:center;gap:1.4cqw;text-align:center}
+.tb.inline{flex-direction:row;gap:2.4cqw;margin-bottom:2.4cqw;justify-content:center}
+.ttl{font:italic 900 4.2cqw/.98 "Titillium Web",Arial,sans-serif;text-transform:uppercase;white-space:pre-line;outline:none}
+.inline .ttl{font-size:3.4cqw;white-space:normal}
+.sub{font:italic 700 1.6cqw "Titillium Web",Arial,sans-serif;text-transform:uppercase;letter-spacing:.08em;outline:none;min-width:2cqw}
+.sl{width:9cqw;aspect-ratio:1.25;display:flex;align-items:center;justify-content:center;border:.2cqw dashed var(--bm);border-radius:1cqw;
+background:none;color:var(--bm);cursor:pointer;padding:0;font:600 1.3cqw Barlow,sans-serif;flex:none}
+.sl img{width:100%;height:100%;object-fit:contain}
+
+/* team card */
+.team{container-type:inline-size;min-width:0}
+.g{display:grid;font-size:calc(var(--k)*1cqw);align-items:end;position:relative}
+.band{grid-row:1;grid-column:1/-1;align-self:end;height:64%;position:relative;z-index:0}.band::after{content:"";position:absolute;inset:0;background:var(--bandbg);border-top:.17em solid var(--c);clip-path:polygon(3% 0,100% 0,97% 100%,0 100%)}
+.band::before{content:"";position:absolute;left:0;right:0;top:-.6em;border-top:.09em solid var(--c);opacity:.55}
+.strip{grid-row:2;z-index:2;align-self:stretch;position:relative}.strip::before{content:"";position:absolute;inset:0;background:var(--c);clip-path:polygon(5% 0,100% 0,95% 100%,0 100%)}
+.f3 .strip::before{background:linear-gradient(180deg,var(--c) 0,var(--c) 55%,var(--c2) 100%)}
+.strip{overflow:visible}.cp{position:absolute;right:3%;bottom:-.55em;width:.95em;height:.95em;padding:0;border:.1em solid var(--tc);border-radius:50%;
+background:var(--c);cursor:pointer;z-index:4;opacity:.9;overflow:hidden}
+.cp::-webkit-color-swatch-wrapper{padding:0}.cp::-webkit-color-swatch{border:0;border-radius:50%}.cp::-moz-color-swatch{border:0}
+.ph{grid-row:1;z-index:1;aspect-ratio:var(--par,1/1.12);width:calc(var(--pw,1)*100%);justify-self:center;margin:0 0 -.95em;position:relative;cursor:pointer;overflow:hidden;color:var(--bm);min-width:0;
+background:linear-gradient(180deg,rgba(125,128,138,.38),rgba(125,128,138,.14));border-radius:.4em .4em 0 0}
+.ph svg{position:absolute;left:10%;bottom:0;width:80%;height:86%}
+.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+.num{position:absolute;left:.35em;top:.2em;z-index:2;font:italic 700 .9em "Titillium Web",sans-serif;color:var(--bt);opacity:.85;outline:none;min-width:.6em;cursor:text}
+.f3 .num::before{content:"\2019"}
+.nm{grid-row:2;z-index:3;position:relative;display:flex;align-items:center;justify-content:center;gap:.4em;padding:.7em .25em;color:var(--tc);min-width:0;
+font:italic 700 1em/1 "Titillium Web",Arial,sans-serif;text-transform:uppercase}
+.nm .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;outline:none;min-width:0}
+.nm .t:focus{background:rgba(255,255,255,.2)}
+.fl{flex:none;width:1.3em;height:.9em;border-radius:.14em;overflow:hidden;cursor:pointer;position:relative;
+background:repeating-linear-gradient(0deg,rgba(255,255,255,.6) 0 .2em,rgba(255,255,255,.28) .2em .4em);box-shadow:0 0 0 .06em rgba(0,0,0,.25)}
+.fl img{width:100%;height:100%;object-fit:cover;display:block}
+.rk{grid-row:3;z-index:3;justify-self:center;margin-top:.45em;border:0;padding:.28em 1.5em;cursor:pointer;color:#fff;font:italic 700 .62em/1 "Titillium Web",sans-serif;
+text-transform:uppercase;letter-spacing:.06em;background:linear-gradient(90deg,#c43fb2,#9b2d95);clip-path:polygon(8% 0,100% 0,92% 100%,0 100%)}
+.rk:not(.on){background:none;color:var(--bm);opacity:.55;outline:none;box-shadow:inset 0 0 0 1px var(--bm)}
+.lg{z-index:1;grid-row:1;display:flex;align-items:center;justify-content:center;border:0;background:none;padding:0;cursor:pointer;color:var(--bm);min-width:0;align-self:center}
+.lg.inb{align-self:end;height:64%}
+.lg .box{width:72%;aspect-ratio:1;border:.14em dashed currentColor;border-radius:.6em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2em;font:600 .75em Barlow,sans-serif}
+.lg .box svg{width:44%}
+.lg img{max-width:84%;max-height:100%;object-fit:contain}
+.ph:hover,.lg:hover,.sl:hover{outline:2px solid var(--c,var(--ac));outline-offset:-2px}
+.ph:focus-visible,.lg:focus-visible,.fl:focus-visible,.sl:focus-visible,.rk:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+
+
+/* ===== layout helpers ===== */
+.cell{display:flex}
+.cell,.cell.l,.cell.r,.cell.c{justify-content:center}
+.f1{--pw:.5;--par:1/1.4}.f3{--pw:.62;--par:1/1.3}.indy{--pw:1;--par:1/.72}
+.board.orbit{padding:2.4cqw 6cqw;aspect-ratio:16/9;container-type:size}
+.grid.orbit{gap:1.2cqw 2.2cqw;height:100%}
+.orbit .team{width:calc(var(--w,1)*var(--s,1)*var(--tw,30)*1cqw)}
+.orbit .cell.c .team{width:min(calc(var(--w,1)*var(--s,1)*var(--tw,30)*1cqw),100%)}
+.orbit .cell{align-self:center}
+.orbit .team{transform:translateX(calc(var(--lx,0)*1%))}
+.team{width:calc(var(--w,1)*100%);flex:none}
+.orbit .cell{transform:translateX(calc(var(--o,0)*1cqw))}
+.hero{width:26cqw;aspect-ratio:2.6;display:flex;align-items:center;justify-content:center;border:.2cqw dashed var(--bm);border-radius:1cqw;color:var(--bm);cursor:pointer;font:600 1.3cqw Barlow,sans-serif;overflow:hidden;margin-top:1cqw}
+.hero img{width:100%;height:100%;object-fit:contain}
+.pv .hero{pointer-events:none}
+.lg.below{grid-row:4;grid-column:1/-1;justify-self:center;align-self:start;margin-top:.9em}
+.lg.below .box{width:8em;aspect-ratio:3.4;flex-direction:row;gap:.4em;border-radius:.3em}
+.lg.below .box svg{width:1.2em}
+.lg.below img{max-height:2.2em;max-width:9em}
+/* ===== IndyCar style: name cards sampled from the reference (rgba 236,236,236 at .88, black text) ===== */
+.board.indy.dark{background:radial-gradient(ellipse at 52% 40%,#1c2026 0%,#090b0f 85%)}
+.indy .strip,.indy .band,.indy .cp{display:none}
+.indy .g{column-gap:.4em}
+.indy .ph{margin:0 0 -.95em;border-radius:0;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))}
+.indy .nm{flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:.2em;padding:.6em .6em .5em;min-height:2.53em;
+background:rgba(240,240,240,.93);color:#000;font:800 1em/1 "Barlow Semi Condensed","Barlow Condensed","Arial Narrow",sans-serif;font-style:normal;text-transform:uppercase;
+clip-path:polygon(0 0,61.5% 0,73.5% 21%,100% 21%,100% 100%,0 100%)}
+.indy .nm .f{font-weight:400;font-size:.73em;letter-spacing:.04em;line-height:1;outline:none;white-space:nowrap;min-width:1em}
+.indy .nm .t:focus,.indy .nm .f:focus{background:rgba(0,0,0,.12)}
+.indy .ttl{white-space:pre;font:400 6.4cqw/1 "Archivo Black","Arial Black",sans-serif;text-align:left;letter-spacing:-.01em}
+.indy .ttl::first-line{font:300 4.6cqw/1.2 Barlow,sans-serif;letter-spacing:.14em}
+.indy .tb{align-items:flex-start}
+.indy .sub{font:500 1.15cqw Barlow,sans-serif;letter-spacing:.3em;text-align:left}
+
+
+/* ===== IndyCar FOX-style broadcast board: clean vector linework, no car ===== */
+.board.fox{background:radial-gradient(ellipse at 13% 20%,#092334 0%,transparent 48%),radial-gradient(ellipse at 90% 73%,#511113 0%,transparent 46%),linear-gradient(128deg,#070d15 0%,#101016 48%,#160b11 100%);--bt:#fff;--bm:#9ba6b2;aspect-ratio:4/5;padding:0;container-type:inline-size;border-radius:0;isolation:isolate}
+.board.fox::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:repeating-linear-gradient(90deg,transparent 0 8px,rgba(255,255,255,.018) 8px 9px),repeating-linear-gradient(0deg,transparent 0 8px,rgba(255,255,255,.018) 8px 9px);opacity:.5}
+.fox-lines{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+.fox-stage{position:absolute;inset:0;display:flex;flex-direction:column;padding:3.3cqw 3.6cqw 3.6cqw;gap:1.5cqw}
+.fox-header{height:16.3cqw;flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:2cqw}
+.fox-heading{display:flex;flex-direction:column;max-width:79%;min-width:0}
+.fox-heading .ttl{font:italic 900 9.5cqw/.98 'Titillium Web',Impact,sans-serif;letter-spacing:-.035em;white-space:nowrap;color:#f8fcff;text-shadow:.15cqw .15cqw 0 #00aee1,-.13cqw -.10cqw 0 #0a1e2d,0 .3cqw .6cqw #000}
+.fox-heading .sub{font:italic 900 3.12cqw/1.15 'Titillium Web',Impact,sans-serif;color:#f5f7fb;letter-spacing:-.015em;text-align:left;margin-top:.2cqw;text-shadow:0 .12cqw .3cqw #000}
+.fox-badge{width:16.3cqw;min-height:12.1cqw;flex:none;border:.34cqw solid #e7f6ff;outline:.2cqw solid #009cce;background:linear-gradient(#fafafa 0 35%,#111824 35% 75%,#fafafa 75%);border-radius:42% 42% 18% 18%;text-align:center;color:#101827;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:.9cqw .3cqw;box-shadow:0 .4cqw 1cqw #000}
+.fox-badge strong{font:900 3.1cqw/.95 'Barlow Condensed',Impact,sans-serif;color:#fff;text-shadow:0 1px 3px #111}
+.fox-badge span{font:800 1.6cqw/1 'Barlow Condensed',sans-serif;letter-spacing:.15em;color:#fff}
+.fox-badge .slogo{max-width:91%;max-height:10cqw;object-fit:contain}
+.fox-rows{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:repeat(var(--fox-rows),minmax(0,1fr));column-gap:2.1cqw;row-gap:1.4cqw}
+.fox-team{min-width:0;min-height:0;height:100%;display:flex;align-items:center;gap:.9cqw;position:relative;container-type:inline-size}
+.fox-team.left{flex-direction:row}.fox-team.right{flex-direction:row}
+.fox-teamlogo{flex:0 0 27%;height:73%;min-width:0;display:flex;align-items:center;justify-content:center;text-align:center;background:transparent;color:#fff;border:0;padding:.4cqw;cursor:pointer;overflow:hidden}
+.fox-teamlogo img{width:100%;height:100%;object-fit:contain}
+.fox-teamlogo .box{font:italic 900 2.2cqw/1.02 'Titillium Web',sans-serif;text-transform:uppercase;letter-spacing:-.04em;color:#fff;overflow-wrap:anywhere}
+.fox-teamlogo .box svg{display:block;width:3cqw;height:3cqw;margin:0 auto .5cqw;stroke:#b7c8d5}
+.fox-cardrow{flex:1;display:flex;gap:.72cqw;justify-content:center;height:100%;min-width:0;align-items:center}
+.fox-card{height:100%;min-width:0;flex:1;position:relative;display:flex;flex-direction:column;clip-path:polygon(0 0,79% 0,100% 11%,100% 95%,94% 100%,0 100%);filter:drop-shadow(.25cqw .28cqw .14cqw rgba(0,0,0,.6))}
+.fox-card-top{position:relative;min-height:0;flex:1;width:100%;aspect-ratio:auto;margin:0;justify-self:stretch;border-radius:0;overflow:hidden;clip-path:none;background:linear-gradient(125deg,color-mix(in srgb,var(--c) 50%,#111621),#0a1018 58%);border:.19cqw solid var(--c);border-bottom:0;cursor:pointer}
+.fox-card-top::after{content:"";position:absolute;inset:auto 0 0;height:28%;background:linear-gradient(transparent,rgba(0,0,0,.65));pointer-events:none}
+.fox-card-top img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;z-index:1}
+.fox-card-top svg{position:absolute;top:1%;left:0;width:75%;height:100%;color:#c9d5de;opacity:.7;z-index:1}
+.fox-number{position:absolute;top:13%;left:auto;right:4%;z-index:3;color:#fff;font:italic 900 clamp(15px,8cqw,64px)/1 'Titillium Web',Impact,sans-serif;text-shadow:.12cqw .18cqw .2cqw #000;white-space:nowrap;max-width:70%;overflow:hidden;outline:0}
+.fox-nameplate{height:31%;min-height:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:.12cqw .35cqw;background:linear-gradient(145deg,#222b32,#0a0d11);border:.18cqw solid #e2e7ea;border-top:.22cqw solid var(--c);color:#fff;overflow:hidden}
+.fox-nameplate .f,.fox-nameplate .t{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:clip;outline:none;text-transform:uppercase;letter-spacing:-.025em;font:800 clamp(8px,2.95cqw,22px)/.96 'Barlow Condensed',Impact,sans-serif}
+.fox-nameplate .t{font-weight:800}
+.fox-nameplate .f:focus,.fox-nameplate .t:focus{background:rgba(255,255,255,.15)}
+.fox-team .cp{position:absolute;top:0;left:26%;width:1.4cqw;height:1.4cqw;opacity:.85}
+.fox.pv .fox-team .cp{display:none}
+.fox-teamlogo:hover,.fox-card-top:hover{outline:2px solid #fff;outline-offset:1px}
+@media(max-width:700px){.fox-cardrow{gap:.4cqw}.fox-team{gap:.3cqw}.fox-teamlogo{flex-basis:25%}.fox-teamlogo .box{font-size:2cqw}}
+
+
+/* ===== IndyCar 2026: blue timing-grid infographic and clipped ice-blue nameplates ===== */
+.board.indy26{aspect-ratio:8/5;background:radial-gradient(ellipse at 54% 95%,#47b6d0 0%,#1781a5 48%,#114d77 93%);border-radius:0;overflow:hidden;padding:0;container-type:inline-size;--bt:#edf5f7;--bm:#b7dce8;isolation:isolate}
+.indy26-back{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+.indy26-stage{position:absolute;inset:3.5cqw 2.5cqw 2cqw;display:grid;grid-template-columns:34.8% 30.4% 34.8%;grid-template-rows:repeat(var(--i26-rows),minmax(0,1fr));row-gap:.8cqw;align-items:stretch}
+.indy26-team{min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.35cqw;container-type:inline-size}
+.indy26-drivers{display:flex;width:100%;height:72%;min-height:0;gap:.6cqw;justify-content:center;align-items:end}
+.indy26-card{height:100%;flex:1;min-width:0;display:flex;flex-direction:column;justify-content:end;position:relative}
+.indy26-photo{position:relative;width:100%;height:73%;min-height:0;background:none;border:0;border-radius:0;overflow:visible;margin:0;cursor:pointer;display:flex;justify-content:center;align-items:end;z-index:1}
+.indy26-photo img{position:absolute;bottom:-1cqw;left:0;width:100%;height:130%;object-fit:contain;object-position:bottom;z-index:1}
+.indy26-photo svg{width:73%;height:95%;color:#b7dae5;opacity:.52}
+.indy26-label{width:100%;height:27%;min-height:2.25cqw;position:relative;z-index:3;display:flex;align-items:center;gap:.2cqw;padding:.15cqw .3cqw .15cqw .16cqw;background:#ccdee4;color:#111b24;clip-path:polygon(0 0,93% 0,100% 16%,100% 82%,94% 100%,12% 100%,0 78%)}
+.indy26-number{flex:none;width:2.55cqw;height:2.55cqw;border-radius:50%;background:var(--c);color:#fff;display:flex;justify-content:center;align-items:center;font:italic 900 1.8cqw/.95 'Titillium Web',Impact,sans-serif;border:.12cqw solid #eef6f8;text-shadow:0 .07cqw .1cqw #000;outline:0}
+.indy26-words{min-width:0;flex:1;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;line-height:.92}
+.indy26-label .f,.indy26-label .t{font:900 clamp(6px,1.23cqw,18px)/.95 'Archivo Black','Barlow Condensed',Impact,sans-serif;letter-spacing:-.06em;text-transform:uppercase;white-space:nowrap;overflow:hidden;max-width:100%;outline:0}
+.indy26-logo{height:19%;width:60%;border:0;background:none;color:#e9f3f7;display:flex;justify-content:center;align-items:center;cursor:pointer;min-height:0;overflow:hidden}
+.indy26-logo img{width:100%;height:100%;object-fit:contain}
+.indy26-logo .box{font:italic 800 1.5cqw/1.02 'Titillium Web',sans-serif;text-transform:uppercase;max-width:100%;text-align:center;display:flex;gap:.4cqw;align-items:center}
+.indy26-logo .box svg{width:1.5cqw;height:1.5cqw;flex:none}
+.indy26-team .cp{position:absolute;top:0;left:0;opacity:.85;width:1.2cqw;height:1.2cqw}
+.indy26-center{grid-column:2;grid-row:1/-1;align-self:center;justify-self:stretch;display:flex;align-items:center;flex-direction:column;justify-content:center;min-width:0;gap:.55cqw;text-align:center}
+.indy26-year{border:.09cqw solid rgba(236,249,255,.75);border-radius:3cqw;padding:.1cqw 2.5cqw;font:600 2.2cqw/1.2 'Barlow',sans-serif;letter-spacing:.38em;color:#e5f6fb;outline:none}
+.indy26-center .ttl{font:900 7.5cqw/.9 'Archivo Black',Impact,sans-serif;letter-spacing:-.07em;white-space:pre-line;color:#edf4f7;text-align:center;overflow:visible}
+.indy26-center .sub{font:500 .82cqw/1 'Barlow',sans-serif;letter-spacing:.3em;color:#dcecf1;text-align:center;white-space:nowrap}
+.indy26-decoration{width:100%;height:11cqw;display:flex;justify-content:center;align-items:center;pointer-events:none}
+.indy26-decoration svg{width:100%;height:100%}
+.indy26-series{position:absolute;top:.6cqw;left:1cqw;width:6cqw;height:7cqw;padding:.3cqw;background:#092332;color:#f7fcff;z-index:3;display:flex;align-items:center;justify-content:center;flex-direction:column;clip-path:polygon(0 0,100% 0,100% 87%,50% 100%,0 87%);cursor:pointer}
+.indy26-series img{width:100%;height:100%;object-fit:contain}
+.indy26-series strong{font:900 1.3cqw/1 'Barlow Condensed',sans-serif}
+.indy26-series span{font:900 .72cqw/1 'Barlow Condensed',sans-serif}
+.indy26.pv .indy26-team .cp{display:none}
+.indy26-photo:hover,.indy26-logo:hover{outline:.14cqw solid #fff}
+
+/* preview hides editing affordances */
+.pv .cp,.pv .rk:not(.on){display:none}
+.pv .fl:not(:has(img)){display:none}
+.pv .ph:hover,.pv .lg:hover,.pv .sl:hover{outline:0}
+.pv .ph,.pv .lg .box,.pv .sl{pointer-events:none}
+/* ===== Shared precision fixes ===== */
+.rk{font-size:.43em;padding:.14em .72em;margin-top:.18em;letter-spacing:.04em;line-height:1.1;min-height:1em}
+.indy .rk{font-size:.42em;margin-top:.3em}
+.fox .rk,.indy26 .rk{z-index:7;margin:0;position:absolute;right:.18cqw;bottom:.18cqw;display:inline-flex;align-items:center;justify-content:center;font:800 .88cqw/1 'Barlow Condensed',sans-serif;letter-spacing:.05em;padding:.2cqw .4cqw;color:white;background:#c43bb5;clip-path:none;border-radius:.1cqw;cursor:pointer}
+.fox .rk:not(.on),.indy26 .rk:not(.on){display:none}
+.fox:not(.pv) .rk:not(.on),.indy26:not(.pv) .rk:not(.on){display:flex;opacity:.4;background:#77818d}
+
+/* Corrected BROADCAST silhouette. A card's dimensions never depend on driver count.
+   Both the exterior outline and inner photo follow the same chamfer.
+   The number lives below the corner's cut region, never in it. */
+.fox-rows{column-gap:1.6cqw;row-gap:1.25cqw}
+.fox-team{gap:.35cqw;overflow:visible;container-type:normal}
+.fox-teamlogo{flex:0 0 11.7cqw;width:11.7cqw;height:80%;padding:.15cqw .6cqw .15cqw 0}
+.fox-teamlogo .box{font-size:1.85cqw}
+.fox-cardrow{flex:1;min-width:0;gap:.50cqw;justify-content:center;align-items:center;overflow:visible}
+.fox-card{box-sizing:border-box;flex:0 0 var(--fox-card-width,10.2cqw);width:var(--fox-card-width,10.2cqw);height:var(--fox-card-height,14.1cqw);min-width:0;min-height:0;position:relative;overflow:visible;clip-path:none;filter:none;isolation:isolate;background:transparent}
+.fox-card::before{content:"";position:absolute;inset:0;clip-path:polygon(0 0,78% 0,100% 11%,100% 96%,95% 100%,0 100%);background:var(--c);z-index:0;box-shadow:none}
+.fox-card-top{position:relative;flex:1;min-height:0;margin:.18cqw .18cqw 0;width:calc(100% - .36cqw);border:0;background:linear-gradient(125deg,color-mix(in srgb,var(--c) 38%,#101720),#090c11 70%);clip-path:polygon(0 0,77% 0,100% 11%,100% 100%,0 100%);overflow:hidden;z-index:1}
+.fox-card-top img{object-fit:contain;object-position:center bottom}
+.fox-card-top::after{height:17%}
+.fox-number{top:20%;right:.26cqw;left:auto;max-width:95%;overflow:visible;font:italic 900 clamp(14px,4.9cqw,65px)/.86 'Titillium Web',Impact,sans-serif;letter-spacing:-.09em;text-shadow:.05cqw .13cqw .13cqw rgba(0,0,0,.9);z-index:4}
+.fox-nameplate{position:relative;z-index:3;flex:0 0 29%;width:calc(100% - .36cqw);margin:0 .18cqw .18cqw;padding:.18cqw .42cqw .28cqw;display:flex;flex-direction:column;justify-content:center;overflow:visible;border:0;border-top:.15cqw solid #fff;background:linear-gradient(125deg,#242c33,#06080c 86%);clip-path:polygon(0 0,100% 0,100% 95%,94% 100%,0 100%)}
+.fox-nameplate .f,.fox-nameplate .t{font-size:clamp(8px,2.03cqw,24px);font-family:'Barlow Condensed','Arial Narrow',Impact,sans-serif;letter-spacing:-.025em;line-height:.96;white-space:nowrap;overflow:visible;transform-origin:left center;max-width:100%}
+.fox-card .rk{bottom:.28cqw;right:.34cqw;font-size:.82cqw}
+.fox-team .cp{left:10.6cqw;top:0}
+.fox-header{height:15cqw}
+.fox-badge.empty{background:transparent;border:.12cqw dashed rgba(255,255,255,.35);outline:0;border-radius:.3cqw;box-shadow:none;min-height:7cqw;height:7cqw;color:rgba(255,255,255,.52);font:700 1.35cqw 'Barlow',sans-serif;text-align:center}
+.fox-badge.empty:not(:has(img)){opacity:.8}
+.fox.pv .fox-badge.empty:not(:has(img)){opacity:0}
+/* Avoid a circular NTT brand imitation; user-supplied logos are the only logos shown. */
+
+/* ===== Refined IndyCar 2026: matching paper-blue nameplates / number coins ===== */
+.board.indy26{aspect-ratio:8/5;background:radial-gradient(ellipse at 50% 110%,#42b7d3 0%,#1d7da9 47%,#154d77 100%);--bt:#f6f8fb;--bm:#aacdda}
+.indy26-back{opacity:.56}
+.indy26-stage{inset:3.1cqw 2.7cqw 1.6cqw;grid-template-columns:minmax(0,36.5fr) minmax(0,27fr) minmax(0,36.5fr);row-gap:.9cqw}
+.indy26-team{gap:.3cqw;position:relative;overflow:visible}
+.indy26-drivers{height:76%;gap:.45cqw;justify-content:center;align-items:end;overflow:visible}
+.indy26-card{flex:0 0 var(--indy26-card-width,9.7cqw);width:var(--indy26-card-width,9.7cqw);height:100%;overflow:visible;display:flex;flex-direction:column;justify-content:end}
+.indy26-photo{height:73%;flex:none;position:relative;width:100%;margin:0;z-index:1;overflow:hidden;background:transparent;border:0;cursor:pointer}
+.indy26-photo svg{width:65%;height:88%;color:#b1d4e0;opacity:.38}
+.indy26-photo img{position:absolute;inset:auto 0 0;width:100%;height:100%;object-fit:contain;object-position:bottom}
+.indy26-label{height:29%;min-height:0;flex:none;background:#d4e2e7;color:#121b23;clip-path:polygon(0 0,94% 0,100% 17%,100% 90%,94% 100%,11% 100%,0 80%);padding:.1cqw .18cqw .13cqw .35cqw;gap:.38cqw;overflow:visible}
+.indy26-number{width:2.25cqw;height:2.25cqw;flex:0 0 2.25cqw;display:flex;align-items:center;justify-content:center;margin-left:-.16cqw;border:.13cqw solid #e5f2f6;border-radius:50%;font:italic 900 1.55cqw/1 'Titillium Web',Impact,sans-serif;color:#fff;background:var(--c);text-shadow:.06cqw .07cqw .08cqw #000;position:relative;left:auto;right:auto;top:auto;overflow:visible}
+.indy26-label .f,.indy26-label .t{font:900 clamp(7px,1.04cqw,18px)/.99 'Archivo Black','Barlow Condensed',sans-serif;letter-spacing:-.04em;white-space:nowrap;overflow:visible;max-width:100%}
+.indy26-label .f{font-weight:800}
+.indy26-words{flex:1;min-width:0;overflow:hidden}
+.indy26-logo{width:75%;height:20%;min-height:0;overflow:hidden}
+.indy26-logo .box{font-size:1.16cqw;font-style:normal;letter-spacing:0;line-height:1.05}
+.indy26-center{gap:.5cqw;align-self:center;overflow:visible}
+.indy26-year{border:.1cqw solid #b8deee;border-radius:4cqw;padding:.13cqw 3cqw;font:600 2.1cqw/1.1 'Barlow',sans-serif;letter-spacing:.32em}
+.indy26-center .ttl{font:900 6.8cqw/.99 'Archivo Black',Impact,sans-serif;letter-spacing:-.07em;white-space:pre-line;overflow:visible}
+.indy26-center .sub{font:500 .74cqw 'Barlow',sans-serif;letter-spacing:.23em}
+.indy26-decoration{height:15cqw;margin-top:.8cqw}
+.indy26-series.empty{background:rgba(9,35,53,.30);border:.13cqw dashed rgba(230,250,255,.55);clip-path:none;border-radius:.25cqw;color:#c9e9f5;font:600 .95cqw 'Barlow',sans-serif}
+.indy26.pv .indy26-series.empty{opacity:0}
+.indy26-card .rk{right:.08cqw;bottom:.15cqw}
+.indy26-team .cp{left:0;top:10%;z-index:8}
+
+/* ===== Formula E S10: two-head cutouts, pill team-name ribbons ===== */
+.board.fe10{aspect-ratio:748/468;padding:0;border-radius:0;container-type:inline-size;background:#eff0f3;color:#182028;overflow:hidden;--bm:#8f98a2;isolation:isolate}
+.fe10-stage{position:absolute;inset:3.4cqw 2.2cqw 1.4cqw;display:grid;grid-template-columns:39% 22% 39%;grid-template-rows:repeat(6,minmax(0,1fr));row-gap:.25cqw}
+.fe10-team{position:relative;width:100%;height:100%;container-type:inline-size;min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:end}
+.fe10-photo-row{height:72%;display:flex;align-items:end;justify-content:center;gap:.35cqw}
+.fe10-photo{height:100%;flex:1;max-width:21cqw;display:flex;justify-content:center;align-items:end;position:relative;overflow:hidden;cursor:pointer;background:transparent;border:0}
+.fe10-photo svg{color:#7f8e9a;opacity:.43;height:92%;width:70%}
+.fe10-photo img{width:100%;height:100%;object-fit:contain;object-position:center bottom;position:absolute;inset:0}
+.fe10-logo{position:absolute;top:4%;left:40%;width:20%;height:43%;display:flex;justify-content:center;align-items:center;background:transparent;border:0;color:#596976;cursor:pointer;z-index:3}
+.fe10-logo img{max-width:100%;max-height:100%;object-fit:contain}
+.fe10-logo .box{display:flex;flex-direction:column;align-items:center;font:800 1.05cqw/1 'Barlow Condensed',sans-serif;max-width:100%;max-height:100%;text-align:center}
+.fe10-logo svg{width:2cqw;height:2cqw}
+.fe10-bar{position:relative;z-index:4;height:25%;min-height:0;display:flex;align-items:stretch;border-radius:100px;overflow:visible;background:var(--c);color:var(--tc);box-shadow:0 .05cqw .2cqw #0001}
+.fe10-barname{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;font:700 clamp(7px,1.4cqw,23px)/1 'Barlow Condensed',Arial,sans-serif;text-transform:uppercase;letter-spacing:.01em;outline:none}
+.fe10-driver-slot{position:relative;flex:1;min-width:0;display:flex;align-items:center;justify-content:center}
+.fe10-team .cp{top:0;left:0;z-index:10;width:1.1cqw;height:1.1cqw}
+.fe10-title{grid-column:2;grid-row:3/span 2;align-self:center;justify-self:center;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.25cqw;color:#0f969d;z-index:6;min-width:0}
+.fe10-title .ttl{font:italic 900 4.3cqw/.92 'Titillium Web',system-ui,sans-serif;letter-spacing:-.09em;white-space:pre;transform:skew(-9deg);text-transform:none}
+.fe10-title .sub{font:700 1.45cqw 'Barlow',sans-serif;letter-spacing:.03em;color:#1b2834;text-transform:uppercase}
+.fe10-title small{font:500 .9cqw 'Barlow',sans-serif;color:#657079}
+.fe10-bar .rk{position:absolute;bottom:-1.2cqw;right:.2cqw;font-size:.76cqw;background:#c633a9;color:white}
+.fe10.pv .fe10-bar .rk:not(.on){display:none}
+
+/* ===== Formula E 2021/22: editorial vertical team-ribbons ===== */
+.board.fe22{aspect-ratio:1134/2048;container-type:inline-size;background:#fff;border-radius:0;padding:0;color:#272931;overflow:hidden}
+.board.fe22::before{content:"";position:absolute;left:0;right:0;top:0;height:1.55cqw;background:#15bee6}
+.fe22-header{position:absolute;left:3.6%;right:3.6%;top:2.7%;text-align:center;display:flex;flex-direction:column;gap:.45cqw;z-index:1}
+.fe22-header .sub{font:900 2.0cqw 'Barlow Condensed',sans-serif;color:#0bb7df;text-transform:uppercase;letter-spacing:0}
+.fe22-header .ttl{font:900 7.9cqw/.94 'Archivo Black','Barlow Condensed',Impact,sans-serif;letter-spacing:-.05em;white-space:pre-line;color:#292c35}
+.fe22-rows{position:absolute;inset:18.5% 4.6% 12.7%;display:grid;grid-template-rows:repeat(var(--fe22rows),minmax(0,1fr));row-gap:.95cqw}
+.fe22-team{height:100%;min-height:0;position:relative;display:flex;align-items:stretch;overflow:visible;--wedge:35%;color:#262935}
+.fe22-team::before{content:"";position:absolute;inset:0;z-index:0;background:linear-gradient(90deg,transparent 33%,rgba(80,80,80,.05) 70%,transparent);clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}
+.fe22-dots{position:absolute;top:0;bottom:0;left:26%;right:0;opacity:.6;background-image:radial-gradient(#929aa2 10%,transparent 14%);background-size:.56cqw .56cqw;mask-image:linear-gradient(90deg,transparent,#000 40%,transparent 92%);pointer-events:none}
+.fe22-slab{position:absolute;left:0;top:0;bottom:0;width:42%;background:var(--c);clip-path:polygon(0 0,77% 0,100% 100%,0 100%);z-index:1;overflow:hidden}
+.fe22-slab::after{content:"";position:absolute;right:4%;top:0;bottom:0;width:1px;background:#fff6}
+.fe22-logo{position:absolute;left:2%;top:5%;height:90%;width:30%;z-index:4;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;background:none;border:0}
+.fe22-logo img{width:90%;height:85%;object-fit:contain}
+.fe22-logo .box{font:800 2.2cqw/1.02 'Barlow Condensed',sans-serif;text-transform:uppercase;text-align:center;max-width:80%;overflow-wrap:anywhere}
+.fe22-end{position:absolute;z-index:1;bottom:0;right:0;width:13%;height:35%;background:var(--c);clip-path:polygon(30% 0,100% 0,100% 100%,0 100%)}
+.fe22-bottom{position:absolute;left:35%;right:0;bottom:0;height:.45cqw;background:var(--trim,var(--c));z-index:2}
+.fe22-drivers{position:absolute;left:34%;right:11%;bottom:0;height:100%;z-index:3;display:flex;align-items:stretch;justify-content:space-around;min-width:0;gap:.6cqw}
+.fe22-driver{height:100%;flex:1;min-width:0;position:relative;display:flex;align-items:end;justify-content:center}
+.fe22-photo{position:absolute;left:22%;right:0;top:-5%;bottom:0;overflow:hidden;display:flex;align-items:end;justify-content:center;cursor:pointer;background:transparent;border:0}
+.fe22-photo svg{height:91%;width:75%;opacity:.4;color:#687787}
+.fe22-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:bottom}
+.fe22-name{position:absolute;z-index:4;left:0;bottom:10%;max-width:65%;display:flex;flex-direction:column;align-items:flex-end;text-align:right;line-height:1}
+.fe22-name .f{font:500 clamp(8px,1.62cqw,26px)/1 'Barlow',sans-serif;color:#444a50;white-space:nowrap}
+.fe22-name .t{font:800 clamp(9px,2.0cqw,30px)/1 'Barlow Condensed',sans-serif;color:#262b34;white-space:nowrap;text-transform:uppercase}
+.fe22-team .cp{right:auto;left:0;top:0;z-index:12;width:1.8cqw;height:1.8cqw}
+.fe22-team .rk{position:absolute;z-index:5;right:0;bottom:0;font:700 .8cqw 'Barlow Condensed',sans-serif;padding:.12cqw .3cqw;background:#09bde0;color:white;clip-path:none}
+.fe22.pv .fe22-team .rk:not(.on){display:none}
+
+/* ===== Formula E Season 12: four-column portrait pairs and logo-panel ===== */
+.board.fe12{aspect-ratio:16/9;container-type:inline-size;border-radius:0;overflow:hidden;padding:0;isolation:isolate;background:linear-gradient(125deg,rgba(4,19,30,.3),rgba(6,15,18,.26)),radial-gradient(ellipse at 22% 46%,#c6c0b2 0%,transparent 46%),radial-gradient(ellipse at 83% 55%,#435b43 0%,transparent 50%),linear-gradient(160deg,#182f46 0%,#9b9c8e 57%,#293e3d 100%);color:white}
+.fe12-back{position:absolute;inset:-5%;z-index:-1;width:110%;height:110%;filter:blur(17px);pointer-events:none;opacity:.82}
+.fe12-header{position:absolute;top:6%;left:3.6%;z-index:4;display:flex;flex-direction:column}
+.fe12-header .title-year{font:900 5.6cqw/.87 'Archivo Black',Impact,sans-serif;letter-spacing:-.05em;color:#09e8f4;outline:none}
+.fe12-header .ttl{font:900 4.35cqw/.97 'Archivo Black',Impact,sans-serif;letter-spacing:-.055em;text-transform:uppercase;color:#fff;white-space:nowrap}
+.fe12-series{position:absolute;right:4%;top:6%;z-index:5;max-width:17%;height:10%;display:flex;justify-content:center;align-items:center;cursor:pointer;color:white;text-align:center}
+.fe12-series img{width:100%;height:100%;object-fit:contain}
+.fe12-series.empty{border:.1cqw dashed #ffffff88;padding:.3cqw;color:#ffffffaa;font:700 1.1cqw 'Barlow',sans-serif}
+.fe12.pv .fe12-series.empty{display:none}
+.fe12-grid{position:absolute;inset:26% 4.5% 4%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:2.5cqw 3.2cqw}
+.fe12-team{position:relative;min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;--trim:var(--c)}
+.fe12-pictures{height:74%;width:100%;display:flex;align-items:end;position:relative;justify-content:space-between}
+.fe12-backbar{position:absolute;left:0;right:0;bottom:0;height:61%;background:var(--c);z-index:0;border-radius:.18cqw .18cqw 0 0}
+.fe12-portrait{height:100%;width:42%;position:relative;z-index:2;display:flex;justify-content:center;align-items:end;cursor:pointer;overflow:hidden}
+.fe12-portrait img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:bottom}
+.fe12-portrait svg{height:80%;width:85%;color:#e4e7ee;opacity:.45}
+.fe12-logo{z-index:3;position:absolute;bottom:14%;left:36%;width:28%;height:42%;display:flex;align-items:center;justify-content:center;background:transparent;border:0;color:white;cursor:pointer;text-align:center}
+.fe12-logo img{max-width:100%;max-height:100%;object-fit:contain}
+.fe12-logo .box{max-width:100%;font:800 .96cqw/1 'Barlow Condensed',sans-serif;text-transform:uppercase;overflow-wrap:anywhere}
+.fe12-logo .box svg{width:1.7cqw;height:1.7cqw;display:block;margin:auto}
+.fe12-nameplate{height:29%;min-height:0;position:relative;z-index:4;display:flex;align-items:center;justify-content:space-between;padding:.35cqw .7cqw;background:#fff;color:#111;border-top:.22cqw solid var(--trim);border-radius:0 0 .75cqw .75cqw}
+.fe12-name{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;line-height:.93}
+.fe12-name:last-child{text-align:right;align-items:flex-end}
+.fe12-name .f{font:500 clamp(8px,1.42cqw,23px)/.96 'Barlow',sans-serif;white-space:nowrap}
+.fe12-name .t{font:800 clamp(8px,1.53cqw,26px)/.96 'Barlow',sans-serif;color:var(--c);white-space:nowrap;text-transform:uppercase}
+.fe12-team .cp{left:0;top:0;z-index:8;width:1.1cqw;height:1.1cqw}
+.fe12-team .rk{position:absolute;bottom:.18cqw;left:50%;transform:translateX(-50%);z-index:10;min-width:0;padding:.12cqw .3cqw;background:#ce2da5;font:700 .65cqw 'Barlow Condensed',sans-serif;clip-path:none;border-radius:.12cqw}
+.fe12.pv .rk:not(.on){display:none}
+
+/* extra controls for per-team editing */
+.ctl select,.ctl input[type=text]{background:var(--pn);border:1px solid var(--ln);color:var(--tx);border-radius:5px;padding:7px 8px;font:500 13px Barlow,sans-serif;min-width:100px}
+.ctl .localedit{border-left:1px solid var(--ln);padding-left:14px}
+.ctl .actions{display:flex;gap:7px;align-items:center}
+.ctl .actions button{border:1px solid var(--ln);border-radius:6px;background:var(--pn);color:var(--tx);padding:7px 10px;font:700 12px Barlow,sans-serif;cursor:pointer}
+.ctl .actions button:hover{border-color:var(--ac)}
+@media(max-width:650px){.ctl .localedit{border-left:0;padding-left:0}}
+
+.fe10-team[data-drivers="3"] .fe10-logo,.fe10-team[data-drivers="4"] .fe10-logo{top:-8%;left:43%;width:14%;height:28%;border-radius:.18cqw;background:#edf1f3d9}
+.fe12-team[data-drivers="3"] .fe12-logo,.fe12-team[data-drivers="4"] .fe12-logo{top:-2%;bottom:auto;left:42%;width:16%;height:26%;border-radius:.2cqw;background:var(--c)}
+/* Final geometry overrides after browser visual inspection */
+.indy26-team,.fe10-team{container-type:normal}
+.indy26-logo .box{width:auto;max-width:100%;min-width:20%;aspect-ratio:auto;flex-direction:row;gap:.3cqw;border:.10cqw dashed rgba(255,255,255,.55);border-radius:.18cqw;padding:.13cqw .25cqw;font:800 1.12cqw/1.05 'Barlow Condensed',sans-serif}
+.indy26-logo .box svg{width:1.15cqw;height:1.15cqw}
+.indy26-photo.ph{background:transparent;border-radius:0;width:100%;aspect-ratio:auto;margin:0}
+.indy26-card{height:100%}
+.indy26-words{display:flex;justify-content:center}
+.indy26-photo svg{width:62%;height:88%;opacity:.50}
+.indy26-number{font-size:1.65cqw}
+.indy26-center .ttl{font-size:6.25cqw}
+.indy26-team .cp{top:5%}
+.fe10-photo.ph{background:transparent!important;border-radius:0;margin:0;min-width:0;aspect-ratio:auto;max-width:none;width:auto}
+.fe10-logo .box{width:auto;aspect-ratio:auto;max-width:100%;border:.09cqw dashed #798caa;padding:.08cqw .2cqw;gap:.06cqw;border-radius:.12cqw;font:700 .9cqw/1 'Barlow Condensed',sans-serif}
+.fe10-logo .box svg{width:1.1cqw;height:1.1cqw}
+.fe10-barname{font-weight:800}
+.fe10-logo{top:7%;height:32%}
+.fe10-team[data-drivers="3"] .fe10-logo,.fe10-team[data-drivers="4"] .fe10-logo{top:-3%;z-index:9}
+.fe22-photo.ph{width:auto!important;aspect-ratio:auto!important;margin:0;min-width:0;background:transparent!important;border-radius:0}
+.fe22-photo svg{height:80%;width:65%;opacity:.19}
+.fe22-logo .box{width:75%;aspect-ratio:auto;border:.12cqw dashed rgba(255,255,255,.55);border-radius:.12cqw;font:800 1.8cqw/1.05 'Barlow Condensed',sans-serif;padding:.35cqw}
+.fe22-logo .box svg{display:block;margin:0 auto .2cqw;width:3cqw;height:3cqw}
+.fe22-name{bottom:14%}
+.fe22-name .f{font-size:1.37cqw}
+.fe22-name .t{font-size:1.7cqw}
+.fe12-portrait.ph{width:42%;height:100%;aspect-ratio:auto!important;margin:0;background:transparent!important;border-radius:0}
+.fe12-logo{color:var(--tc)}
+.fe12-logo .box{width:auto;aspect-ratio:auto;border:0;font:800 .86cqw/1 'Barlow Condensed',sans-serif;padding:.1cqw}
+.fe12-logo .box svg{width:1.5cqw;height:1.5cqw}
+.fe12-team .fe12-name .t{color:var(--trim,var(--c))}
+.fe12-team .fe12-backbar{background:var(--c)}
+.fox-card::before{clip-path:polygon(0 0,79% 0,100% 14%,100% 100%,0 100%)}
+.fox-card-top{clip-path:polygon(0 0,78% 0,100% 14%,100% 100%,0 100%)}
+.fox-nameplate{clip-path:none;width:calc(100% - .36cqw);border-bottom:.16cqw solid var(--c)}
+.fox-nameplate .f,.fox-nameplate .t{white-space:nowrap;overflow:hidden;text-overflow:clip;max-width:100%;letter-spacing:-.05em}
+.fox-number{font-size:clamp(14px,4.1cqw,59px);top:24%;right:.35cqw;letter-spacing:-.07em;max-width:92%}
+.fox-card .rk{bottom:.1cqw;font-size:.7cqw;padding:.05cqw .2cqw}
+
+
+.indy26-team,.fe12-team{height:100%}
+.fe22-photo.ph{width:76%!important;left:24%;right:auto}
+.fe22-rows{row-gap:2.7cqw}
+.indy26-drivers{max-height:10.9cqw}
+.indy26-logo{max-height:2.3cqw}
+.fe12-team{max-height:14cqw;align-self:end}
+.fe10-team{max-height:11cqw;align-self:end}
+.fe22-photo svg{width:78%;height:84%}
+.fe12-portrait.ph svg{height:95%}
+
+.ctl .lb:first-child{max-width:100%}
+.ctl .lb:first-child .seg{max-width:100%;flex-wrap:wrap}
+@media(max-width:740px){.wrap{padding:8px}.ctl{gap:10px;padding:10px}.seg span{padding:5px 9px;font-size:12px}}
+
+/* v5 - layout invariants: switching rookie tags never creates new rows, new tracks, or height. */
+:is(.board.f1,.board.f3,.board.indy) .nm {overflow:visible;}
+:is(.board.f1,.board.f3,.board.indy) .nm .rk{
+  position:absolute;grid-row:auto;grid-column:auto;z-index:8;
+  left:50%;top:calc(100% + .17em);bottom:auto;right:auto;
+  transform:translateX(-50%);margin:0;padding:.12em .55em;
+  font:italic 700 .34em/1.12 'Titillium Web',sans-serif;
+  letter-spacing:.03em;white-space:nowrap;min-height:0;
+  clip-path:polygon(8% 0,100% 0,92% 100%,0 100%);
+}
+.indy .nm .rk{font:800 .34em/1.1 'Barlow Condensed',sans-serif;font-style:normal;}
+.f3 .nm .rk{font-size:.38em;top:calc(100% + .10em);}
+:is(.board.f1,.board.f3,.board.indy).pv .nm .rk:not(.on){display:none;}
+:is(.board.f1,.board.f3,.board.indy) .g {overflow:visible;}
+/* 2023 Formula E season 10: F1-style two-sided horseshoe, not an aligned grid. */
+.board.fe10{background:#f0f1f4;}
+.fe10-stage{inset:2.2cqw 0 1.1cqw;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));row-gap:.08cqw;overflow:visible;}
+.fe10-orbit-cell{min-width:0;min-height:0;display:flex;align-items:end;overflow:visible;}
+.fe10-orbit-cell.left{justify-content:flex-start;}
+.fe10-orbit-cell.right{justify-content:flex-end;}
+.fe10-orbit-cell.center{justify-content:center;}
+.fe10-orbit-cell .fe10-team{flex:0 0 63%;width:63%;height:100%;max-height:none;align-self:stretch;}
+.fe10-orbit-cell.left .fe10-team{transform:translateX(var(--orbit-inset));}
+.fe10-orbit-cell.right .fe10-team{transform:translateX(calc(-1 * var(--orbit-inset)));}
+.fe10-orbit-cell.center .fe10-team{flex-basis:31.5%;width:31.5%;}
+.fe10-photo-row{height:70%;}
+.fe10-bar{height:26%;border-radius:100cqw;}
+.fe10-title{position:absolute;left:50%;top:49%;transform:translate(-50%,-50%);grid-column:auto;grid-row:auto;z-index:5;white-space:nowrap;pointer-events:none;}
+.fe10-title [contenteditable]{pointer-events:auto;}
+.fe10-title .ttl{font:italic 900 4.1cqw/.94 'Titillium Web',sans-serif;letter-spacing:-.085em;}
+.fe10-title .sub{font:700 1.38cqw/1.1 'Barlow',sans-serif;letter-spacing:.025em;}
+.fe10-title small{font-size:.8cqw;}
+/* S12 - slightly shorter, broader portrait pairs with true broadcast-height names. */
+.board.fe12{background:
+  radial-gradient(ellipse at 11% 74%,rgba(119,166,188,.48),transparent 38%),
+  radial-gradient(ellipse at 80% 63%,rgba(134,158,109,.59),transparent 40%),
+  linear-gradient(180deg,#475967 0%,#8299a3 37%,#708479 62%,#3c4748 100%);}
+.fe12-back{opacity:1;filter:blur(22px);}
+.fe12-header{top:7.2%;left:3.55%;}
+.fe12-header .title-year{font:900 5.7cqw/.87 'Archivo Black',Impact,sans-serif;color:#08eaf1;}
+.fe12-header .ttl{font:900 4.9cqw/.98 'Archivo Black',Impact,sans-serif;letter-spacing:-.06em;}
+.fe12-grid{inset:25.7% 4.5% 4.8%;row-gap:2.0cqw;column-gap:3.0cqw;}
+.fe12-team{max-height:12.8cqw;align-self:end;}
+.fe12-pictures{height:75%;}
+.fe12-backbar{height:59%;border-radius:0;}
+.fe12-portrait{overflow:visible;}
+.fe12-portrait.ph{overflow:visible;}
+.fe12-portrait img{object-fit:contain;object-position:bottom;}
+.fe12-logo{bottom:14%;height:45%;}
+.fe12-nameplate{height:29%;border-radius:0 0 .65cqw .65cqw;background:#fafafa;border-top:.23cqw solid var(--trim);padding:.22cqw .55cqw;}
+.fe12-name .f{font-family:'Barlow',sans-serif;font-weight:500;}
+.fe12-name .t{font-family:'Barlow',sans-serif;font-weight:800;}
+.fe12-nameplate .fe12-name:first-child{padding-right:.25cqw;}
+.fe12-nameplate .fe12-name:last-child{padding-left:.25cqw;}
+
+
+/* 16:9 Season 12 poster geometry calibrated to the 2026 reference:
+   10-driver-pair default uses 4 / 4 / 2, 19.6%-width tiles and 18%-height cutout cards. */
+.fe12-grid{inset:24% 4.5% 10.5%;column-gap:4.2cqw;row-gap:1.05cqw;}
+.fe12-team{max-height:10.1cqw;align-self:end;}
+.fe12-series{top:7.4%;}
+.fe12-bg-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none;}
+.fe12-header,.fe12-series,.fe12-grid{z-index:2;}
+.fe12-bg-action{position:absolute;z-index:12;right:1cqw;bottom:.7cqw;border:1px solid #fff8;border-radius:.3cqw;background:rgba(7,19,31,.7);color:white;cursor:pointer;padding:.32cqw .5cqw;font:700 1cqw 'Barlow',sans-serif;}
+.fe12.pv .fe12-bg-action{display:none;}
+.fe12-bg-action:hover,.fe12-bg-action:focus-visible{background:#104158;outline:1px solid #fff;}
+/* Keep F3 rookie tags legible while still out of flow. */
+.f3 .nm .rk{font-size:.67em;top:calc(100% + .22em);padding:.2em .85em;}
+.f1 .nm .rk,.indy .nm .rk{font-size:.49em;top:calc(100% + .1em);padding:.12em .65em;}
+
+/* ===== Additional reference-specific templates: Super Formula / MotoGP ===== */
+/* Formula E S12: the colored TEAM square is BETWEEN the two driver cutouts.
+   It does not extend beyond the portraits or under the whole portrait row. */
+.fe12-team .fe12-backbar{left:24%!important;right:24%!important;top:auto;bottom:0;height:77%!important;border-radius:0!important;}
+.fe12-team[data-drivers="3"] .fe12-backbar,.fe12-team[data-drivers="4"] .fe12-backbar{left:17%!important;right:17%!important}
+.fe12-team .fe12-logo{z-index:4}
+.fe12-team .fe12-portrait{z-index:3}
+
+
+/* Super Formula common: individual drivers, not two-person team tiles */
+.board.sf24,.board.sf26{padding:0;border-radius:0;isolation:isolate;overflow:hidden;color:#f5fff9;container-type:inline-size;}
+.board.sf24{aspect-ratio:1024 / 683;background:radial-gradient(ellipse at 56% 55%,#008b68,#065c4a 67%,#0b403c 100%);}
+.board.sf24::before,.board.sf26::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.15;background-image:linear-gradient(30deg,transparent 49%,#abefda 50%,transparent 51%),linear-gradient(150deg,transparent 49%,#abefda 50%,transparent 51%);background-size:6cqw 6cqw;}
+.board.sf26{aspect-ratio:1100 / 1400;background:linear-gradient(115deg,rgba(5,38,34,.12),rgba(0,198,138,.17) 60%,rgba(2,60,51,.15)),radial-gradient(ellipse at 53% 45%,#00ae82 0%,#007e64 62%,#055944 100%);}
+.sf-top{position:absolute;left:0;right:0;top:0;height:19%;display:flex;flex-direction:column;z-index:2;}
+.sf24 .sf-top{height:34%;}
+.sf-banner{height:46%;background:linear-gradient(#02090ecc,#070c14ec),repeating-linear-gradient(90deg,#142932,#0a1a23 16%);display:flex;justify-content:center;align-items:center;gap:2.3cqw;color:#fff;padding:1cqw 4cqw;}
+.sf-logo-mark{font:900 2.2cqw/.95 'Archivo Black',Impact,sans-serif;text-transform:uppercase;max-width:37%;white-space:pre-line;text-align:left;line-height:1}
+.sf-logo-mark:before{content:"▰";display:inline-block;color:#fff;font-size:3.6cqw;vertical-align:middle;margin-right:.6cqw;}
+.sf-divider{height:5cqw;width:.15cqw;background:#e7fff9;opacity:.8;}
+.sf-banner .ttl{font:900 3.5cqw/.96 'Archivo Black',Impact,sans-serif;letter-spacing:-.05em;white-space:pre-line;text-align:left;}
+.sf24 .sf-banner{height:58%;background:linear-gradient(#0c1015dc,#050b10f4);}
+.sf24 .sf-banner .ttl{font:800 2.8cqw/.98 'Archivo Black',Impact,sans-serif;}
+.sf24 .sf-banner .sub{font:500 1.15cqw Barlow,sans-serif;letter-spacing:.03em;text-transform:none;}
+.sf24-opening{height:42%;padding:1.5cqw 6cqw 0;display:flex;flex-direction:column;align-items:center;gap:.3cqw;text-shadow:0 1px 2px #031b1b;}
+.sf24-opening .ttl{font:900 3.7cqw/.98 'Archivo Black',Impact,sans-serif;letter-spacing:.015em;white-space:nowrap;}
+.sf24-opening .sub{font:600 1.6cqw 'Barlow',sans-serif;color:#f7ffff;white-space:nowrap;}
+.sf-rounds{margin-top:.4cqw;font:700 .88cqw/1.3 'Barlow',sans-serif;display:flex;gap:1.5cqw;justify-content:center;color:#cff8f1;white-space:nowrap}
+.sf26 .sf-banner{height:100%;background:linear-gradient(115deg,#062a24,#053b30)}
+.sf26 .sf-banner .ttl{font:900 4.6cqw/.99 'Archivo Black',Impact,sans-serif;}
+.sf26 .sf-banner .sub{font:500 1cqw 'Barlow',sans-serif;opacity:.75;letter-spacing:0;}
+.sf26-caption{position:absolute;top:12.2%;height:5.1%;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:1cqw;background:linear-gradient(90deg,transparent,#00906a60,transparent);}
+.sf26-caption .ttl{font:900 4.1cqw/.98 'Archivo Black',Impact,sans-serif;color:#001c1a;white-space:nowrap}
+.sf26-caption .sub{font:500 1cqw Barlow,sans-serif;color:#032f2d;}
+.sf-roster{position:absolute;display:grid;z-index:3;min-width:0;min-height:0;grid-auto-flow:row;}
+.sf24 .sf-roster{inset:36% 2% 2.2%;grid-template-columns:repeat(3,minmax(0,1fr));gap:.48cqw .85cqw;}
+.sf26 .sf-roster{inset:18% 2.2% 6.6%;grid-template-columns:repeat(2,minmax(0,1fr));gap:.60cqw 2.1cqw;}
+.sf-slot{min-width:0;min-height:0;display:flex;justify-content:center;align-items:end;position:relative;}
+.sf-card{position:relative;height:79%;width:100%;display:flex;align-items:center;min-width:0;background:linear-gradient(102deg,#00332e,#007b5d 80%,#009673);border-radius:.65cqw;box-shadow:0 .16cqw .27cqw #001b1450;color:white;}
+.sf24 .sf-card{height:78%;border-radius:.65cqw;}
+.sf-card::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(90deg,transparent 48%,#b0ffed0e 80%,#0affbf16);pointer-events:none}
+.sf-num{flex:0 0 16%;height:100%;background:#083f35;border-radius:.5cqw 0 0 .5cqw;color:#b6e4ca;font:900 3.9cqw/1 'Archivo Black',Impact,sans-serif;display:flex;align-items:center;justify-content:center;outline:none;white-space:nowrap;letter-spacing:-.1em;overflow:visible}
+.sf24 .sf-num{position:absolute;left:-.72cqw;top:0;flex:none;width:3.6cqw;height:3.6cqw;border:.13cqw solid #0b1717;box-shadow:0 .1cqw .2cqw #0018;background:#fff;color:#111;border-radius:50%;font:900 2.6cqw/1 'Barlow Condensed',sans-serif;z-index:3;}
+.sf-face{flex:0 0 18%;width:18%;height:155%;align-self:end;position:relative;cursor:pointer;overflow:visible;display:flex;align-items:end;justify-content:center;z-index:2;color:#c8d7db;}
+.sf-face img{position:absolute;inset:auto 0 0;height:100%;width:100%;object-fit:contain;object-position:bottom}
+.sf-face svg{height:83%;width:90%;opacity:.55}
+.sf24 .sf-face{flex-basis:19%;height:162%;margin-left:2.9cqw}
+.sf-data{z-index:2;min-width:0;flex:1;display:flex;flex-direction:column;gap:.10cqw;justify-content:center;margin-left:.42cqw;overflow:hidden}
+.sf-data .t{font:800 1.6cqw/1 'Barlow',sans-serif;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;outline:0}
+.sf-data .f{font:500 1cqw/1.1 'Barlow',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#eafaf6;outline:0}
+.sf24 .sf-data .t{font-size:1.42cqw}.sf24 .sf-data .f{font-size:1cqw}
+.sf-flag{position:absolute;left:26%;top:6%;width:2cqw;height:1.35cqw;cursor:pointer;z-index:4;display:flex;align-items:center;justify-content:center;color:#ef4552;font-size:1.2cqw}
+.sf-flag img{width:100%;height:100%;object-fit:contain}
+.sf24 .sf-flag{top:-4%;left:28%;}
+.sf-emblem{z-index:3;flex:0 0 18%;height:78%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#d9f0ed;min-width:0;margin-right:.27cqw}
+.sf-emblem img{max-width:95%;max-height:100%;object-fit:contain}
+.sf-emblem .box{font:800 .75cqw/1 'Barlow Condensed',sans-serif;text-align:center;display:flex;flex-direction:column;align-items:center;overflow-wrap:anywhere}
+.sf-emblem .box svg{height:1.1cqw;width:1.1cqw}
+.sf-card .cp{top:0;right:.1cqw;left:auto;width:.8cqw;height:.8cqw}
+.sf-slot .rk{position:absolute;bottom:-.65cqw;right:1.2cqw;z-index:7;font:700 .72cqw/1 Barlow,sans-serif;padding:.14cqw .4cqw;border:0;border-radius:.12cqw;clip-path:none;background:#bd32a5}
+.sf-footer{position:absolute;bottom:0;left:0;right:0;height:4.5%;display:flex;align-items:center;justify-content:space-evenly;gap:1cqw;overflow:hidden;background:#f9fbfa;color:#202429;font:800 1.1cqw 'Barlow Condensed',sans-serif;letter-spacing:.05em;z-index:4}
+.sf24 .sf-footer{display:none;}
+
+/* MotoGP common geometry */
+.board.mg24,.board.mg25,.board.mg26{container-type:inline-size;position:relative;padding:0;border-radius:0;aspect-ratio:16/9;overflow:hidden;color:#161719;isolation:isolate;background:repeating-linear-gradient(133deg,#fafafa 0 6%,#f2f2f2 6% 11%,#fbfbfb 11% 17%);}
+.board.mg24{background:repeating-linear-gradient(136deg,#ededed 0 4.5%,#f8f8f8 4.5% 9%,#f1f1f1 9% 15%)}
+.board.mg25{background:repeating-linear-gradient(135deg,#fff 0 5%,#f4f4f4 5% 11%,#fafafa 11% 18%)}
+.board.mg26{background:repeating-linear-gradient(135deg,#fff 0 6%,#f3f3f3 6% 12%,#fff 12% 17%)}
+.mg-stage{position:absolute;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(var(--mg-rows,4),minmax(0,1fr));gap:1.2cqw 1.6cqw;inset:3.0% 3.5% 3.2%;align-items:stretch;}
+.mg24 .mg-stage{inset:4.0% 5.7% 3.4%;column-gap:3.2cqw;row-gap:.8cqw;}
+.mg25 .mg-stage{inset:5.0% 10% 5.5%;column-gap:2.6cqw;row-gap:1.5cqw;}
+.mg26 .mg-stage{inset:5.2% 3.7% 5.3%;column-gap:.8cqw;row-gap:1.2cqw;}
+.mg-title{min-width:0;min-height:0;text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:.4cqw;overflow:visible;}
+.mg-title .mg-series{font:900 1.8cqw/.95 'Barlow Condensed',sans-serif;letter-spacing:-.08em;}
+.mg-title .mg-year{font:900 6.8cqw/.91 'Archivo Black',Impact,sans-serif;letter-spacing:-.05em;outline:none;color:#080808;}
+.mg-title .ttl{font:900 2.65cqw/1 'Titillium Web',Arial,sans-serif;text-transform:uppercase;font-style:normal;letter-spacing:-.035em;white-space:nowrap;color:#090909;}
+.mg-title .sub{font:600 1.1cqw 'Barlow Condensed',sans-serif;letter-spacing:0;text-transform:uppercase;color:#171717;}
+.mg24 .mg-title .mg-year{font-size:7.1cqw}
+.mg25 .mg-title .mg-year{font-size:7.5cqw}
+.mg26 .mg-title .mg-year{font-size:6.5cqw;font-style:italic;letter-spacing:-.10em}
+.mg26 .mg-title .ttl{font-size:3.4cqw;letter-spacing:.05em;font-weight:600}
+.mg-team{position:relative;min-width:0;min-height:0;width:100%;height:100%;--badge:#111;}
+.mg-facezone{height:78%;width:100%;position:relative;display:flex;align-items:end;justify-content:space-evenly;gap:0;z-index:1;}
+.mg-face{height:98%;flex:1;min-width:0;position:relative;display:flex;align-items:end;justify-content:center;cursor:pointer;z-index:2;overflow:hidden;color:#9a9fa8;}
+.mg-face svg{height:86%;width:68%;opacity:.52}
+.mg-face img{position:absolute;bottom:0;left:0;width:100%;height:100%;object-fit:contain;object-position:bottom}
+.mg-logo{z-index:4;position:absolute;left:40%;width:20%;height:37%;top:21%;display:flex;justify-content:center;align-items:center;border:0;background:transparent;color:#20242c;cursor:pointer;text-align:center;}
+.mg-logo .box{display:flex;align-items:center;justify-content:center;flex-direction:column;max-width:100%;font:900 1.02cqw/.93 'Barlow Condensed',sans-serif;overflow-wrap:anywhere}
+.mg-logo .box svg{width:2cqw;height:2cqw}
+.mg-logo img{max-width:100%;max-height:100%;object-fit:contain}
+.mg-team[data-drivers="3"] .mg-logo,.mg-team[data-drivers="4"] .mg-logo{top:-7%;left:42%;width:16%;height:23%;background:#fffc;border-radius:.25cqw;z-index:5}
+.mg-strip{position:relative;z-index:3;height:22%;width:100%;display:flex;align-items:center;justify-content:center;color:var(--tc);}
+.mg-labels{display:flex;align-items:stretch;width:100%;height:100%;min-width:0;position:relative;}
+.mg-drivername{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;font:700 clamp(8px,1.3cqw,20px)/1 'Barlow Condensed',sans-serif;text-transform:uppercase;white-space:nowrap;overflow:hidden;padding:0 .1cqw;outline:0;}
+.mg-team .cp{top:0;right:0;z-index:9;width:.83cqw;height:.83cqw}
+.mg-team .rk{position:absolute;bottom:-.75cqw;right:.4cqw;z-index:8;font:700 .68cqw/1 'Barlow Condensed',sans-serif;border:0;clip-path:none;background:#ba36a7;border-radius:.15cqw;padding:.1cqw .3cqw}
+/* 2026: sharp angled parallel race straps and a black central team block */
+.mg26 .mg-facezone{height:78%;}
+.mg26 .mg-strip{height:22%;clip-path:polygon(8% 0,100% 0,92% 100%,0 100%);background:var(--c)}
+.mg26 .mg-labels{background:linear-gradient(110deg,var(--c) 0 37%,#080808 37% 62%,var(--c) 62% 100%);padding:0 6%}
+.mg26 .mg-drivername{font-size:1.22cqw;font-weight:600;color:var(--tc)}
+.mg26 .mg-team:not([data-drivers="2"]) .mg-labels{background:var(--c)}
+.mg26 .mg-logo{top:20%;}
+/* 2024: team logo centered above ribbon; BIG exterior car-number tiles */
+.mg24 .mg-facezone{height:72%;}
+.mg24 .mg-strip{height:25%;width:83%;margin:auto;background:var(--c);}
+.mg24 .mg-labels{padding:0 .25cqw}
+.mg24 .mg-drivername{font-size:1.18cqw}
+.mg24 .mg-logo{height:43%;top:15%;left:40%;width:20%}
+.mg-outnum{position:absolute;z-index:5;bottom:0;width:11%;height:100%;background:#fff;display:flex;align-items:center;justify-content:center;color:var(--c);font:italic 900 2.0cqw/.9 'Titillium Web',Impact,sans-serif;outline:none;text-shadow:0 1px #1117}
+.mg-outnum.left{left:0}.mg-outnum.right{right:0}
+.mg24 .mg-face{overflow:visible;}
+.mg24 .mg-face img{height:109%;}
+/* 2025: rectangular colored plates, left-side brand, full-height cutouts, dark team segment */
+.mg25 .mg-team{background:transparent;}
+.mg25 .mg-facezone{height:83%;background:linear-gradient(140deg,color-mix(in srgb,var(--c) 88%,white),var(--c));overflow:visible}
+.mg25 .mg-facezone::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(55deg,transparent 0 2.8cqw,#0000000a 2.8cqw 2.88cqw);pointer-events:none}
+.mg25 .mg-face{z-index:2;overflow:visible;}
+.mg25 .mg-face img{height:112%;}
+.mg25 .mg-logo{top:29%;left:3%;width:27%;height:45%;color:var(--tc);z-index:6}
+.mg25 .mg-logo .box{font-size:1cqw}
+.mg25 .mg-facezone{padding-left:27%;}
+.mg25 .mg-strip{height:17%;background:var(--c);}
+.mg25 .mg-labels{padding-left:0;}
+.mg25 .mg-team[data-drivers="2"] .mg-labels::before{content:attr(data-team);background:#090b0e;color:white;flex:0 0 30%;font:700 .9cqw/1 'Barlow Condensed',sans-serif;display:flex;justify-content:center;align-items:center;white-space:nowrap;overflow:hidden}
+.mg25 .mg-drivername{font-size:1.10cqw;color:var(--tc);font-weight:800}
+.mg25 .mg-team[data-drivers="3"] .mg-facezone,.mg25 .mg-team[data-drivers="4"] .mg-facezone{padding-left:16%}
+.mg25 .mg-team[data-drivers="3"] .mg-logo,.mg25 .mg-team[data-drivers="4"] .mg-logo{top:3%;left:2%;width:16%;height:24%;background:#111a;color:#fff}
+.mg25 .mg-team:not([data-drivers="2"]) .mg-labels::before{display:none}
+.mg25 .mg-team .cp{top:.1cqw;left:.1cqw;right:auto}
+/* Preview mode hides color inputs and inactive rookie controls, never alters geometry. */
+:is(.mg24,.mg25,.mg26,.sf24,.sf26).pv .cp{display:none}
+:is(.mg24,.mg25,.mg26,.sf24,.sf26).pv .rk:not(.on){display:none}
+/* final observed corrections */
+.mg24 .mg-outnum.left{left:-14%;}
+.mg24 .mg-outnum.right{right:-14%;}
+.mg24 .mg-outnum{color:var(--numcolor,var(--c));}
+.mg26 .mg-labels{background:var(--c);padding:0 4.5%;overflow:hidden;}
+.mg26 .mg-labels::before{content:attr(data-team);position:absolute;inset:0 auto 0 37%;width:26%;background:#08090a;color:#fff;z-index:4;display:flex;align-items:center;justify-content:center;font:600 .82cqw/1 'Barlow Condensed',sans-serif;white-space:nowrap;overflow:hidden;}
+.mg26 .mg-drivername{flex:1 1 0;max-width:none;}
+.mg26 .mg-drivername:first-child{margin-right:26%;}
+.mg25 .mg-drivername,.mg26 .mg-drivername{white-space:nowrap;min-width:0;letter-spacing:-.018em;}
+.sf-num{position:relative;z-index:5;font-size:calc(3.9cqw * var(--density,1));}
+.sf24 .sf-num{position:absolute;left:calc(-.72cqw * var(--density,1));width:calc(3.6cqw * var(--density,1));height:calc(3.6cqw * var(--density,1));font-size:calc(2.6cqw * var(--density,1));}
+.sf-data .t{font-size:calc(1.6cqw * var(--density,1));}
+.sf-data .f{font-size:calc(1cqw * var(--density,1));}
+.sf24 .sf-data .t{font-size:calc(1.42cqw * var(--density,1));}
+.sf24 .sf-data .f{font-size:calc(1cqw * var(--density,1));}
+.sf24 .sf-face{margin-left:calc(2.9cqw * var(--density,1));}
+.sf-emblem .box{font-size:calc(.75cqw * var(--density,1));}
+.style-bg-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.60;pointer-events:none;z-index:0;}
+:is(.sf24,.sf26) .style-bg-image{opacity:.42;mix-blend-mode:luminosity;}
+.style-bg-action{position:absolute;bottom:.6cqw;right:.6cqw;z-index:10;border:.08cqw solid #ffffffa0;border-radius:.2cqw;padding:.3cqw .5cqw;background:#162c32bd;color:#fff;cursor:pointer;font:700 .9cqw 'Barlow',sans-serif;}
+:is(.sf24,.sf26,.mg24,.mg25,.mg26).pv .style-bg-action{display:none;}
+/* The exterior 2024 MotoGP race numbers are separate squares on BOTH ends. */
+.mg24 .mg-outnum{top:auto;bottom:0;}
+.mg24 .mg-outnum.left{left:-14%;right:auto;}
+.mg24 .mg-outnum.right{left:auto;right:-14%;}
+
+.sf26 .sf-top{height:12.2%;}
+.sf26 .sf26-caption{z-index:4;}
+.sf-emblem .box,.mg-logo .box{width:auto;aspect-ratio:auto;border:0;border-radius:0;padding:0;max-width:100%;}
+.mg-drivername .f,.mg-drivername .t{font:inherit;white-space:nowrap;outline:none;}
+
+
+/* ================================================
+   v7: shared controls, uniform team logo rules
+   ================================================ */
+.board .opt-logo-band{position:absolute;z-index:1;pointer-events:none;left:2%;right:2%;top:48%;height:16%;
+ border-top:clamp(1px,.12cqw,2px) solid var(--c,#13cdd4);
+ background:linear-gradient(180deg,color-mix(in srgb,var(--c,#1b9bb0) 30%,transparent),transparent);
+ opacity:.88}
+.board.fe12 .opt-logo-band{left:24%;right:24%;top:35%;height:5%;border-top:.2cqw solid #fff9;z-index:2}
+.board.fe10 .opt-logo-band{top:32%;height:5%}
+.board.fe22 .opt-logo-band{left:30%;top:65%;right:12%;height:4%}
+.board.sf24 .opt-logo-band,.board.sf26 .opt-logo-band{top:0;bottom:auto;height:13%;border-top:0;border-bottom:.13cqw solid #d8f5e3}
+.board.mg24 .opt-logo-band,.board.mg25 .opt-logo-band,.board.mg26 .opt-logo-band{top:73%;height:6%;border-top-color:var(--c)}
+.board.fox .opt-logo-band,.board.indy26 .opt-logo-band{top:60%;height:7%;border-top:.1cqw solid var(--c,#ddd)}
+.board.f1 .band,.board.f3 .band,.board.indy .band{pointer-events:none}
+.board.indy.has-band .band{display:block}
+.board.no-numbers .sf-num{visibility:hidden}
+.board.no-series [data-k="slogo"]{display:none!important}
+.board:not(.no-series) .opt-series{position:absolute;right:1.6%;top:1%;z-index:60;border:1px dashed #ffffffa8;background:#182630af;
+ padding:.2cqw .4cqw;color:#fff;font:800 1.0cqw Barlow,sans-serif;min-height:2.5cqw;min-width:7cqw;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.board .opt-series img{max-width:100%;max-height:5cqw;object-fit:contain}
+/* Shared overlays never participate in grid layout. */
+.board [data-k="img"]{position:relative}
+.board .opt-number{position:absolute!important;z-index:14!important;left:.15cqw!important;right:auto!important;top:.15cqw!important;bottom:auto!important;
+ display:flex;align-items:center;justify-content:center;min-width:1.4cqw;height:1.5cqw;padding:.05cqw .15cqw;
+ border-radius:.25cqw;background:rgba(12,15,22,.79);color:#fff!important;border:1px solid #fff6;
+ font:italic 900 1.05cqw/1 'Titillium Web',sans-serif!important;text-shadow:none;opacity:1!important;letter-spacing:0;}
+.board .opt-flag{position:absolute;right:.13cqw;top:.16cqw;z-index:15;display:flex;align-items:center;justify-content:center;
+ width:1.75cqw;height:1.12cqw;min-width:14px;min-height:10px;color:white;font:800 1.16cqw/1 system-ui;
+ background:rgba(13,22,29,.58);border:1px solid #fff8;border-radius:.12cqw;cursor:pointer;overflow:hidden;}
+.board .opt-flag img{width:100%;height:100%;object-fit:cover;position:static;}
+.board .rk.opt-rookie{position:absolute!important;z-index:30!important;top:auto!important;left:auto!important;right:2%!important;bottom:2%!important;
+ width:auto!important;min-width:0!important;height:auto!important;min-height:0!important;margin:0!important;transform:none!important;
+ padding:.10cqw .3cqw!important;font:900 .63cqw/1.05 'Barlow Condensed',sans-serif!important;letter-spacing:.03em;
+ border:1px solid #fff8!important;border-radius:.12cqw;clip-path:none!important;color:#fff;background:#ae208c;white-space:nowrap;cursor:pointer}
+.board .rk.opt-rookie:not(.on){opacity:.65;color:#f5e5f8;background:#582250}
+.board.pv .rk:not(.on){display:none!important}
+/* Individual tag styling for each template (not generic pink pills). */
+.f1 .rk{background:#212f38!important;color:#fff;border-radius:0!important}
+.f3 .rk{background:#b62f95!important;color:white}
+.indy .rk{background:#dfebf2!important;color:#131f29!important;clip-path:none!important}
+.fox .rk{background:#e1282d!important;color:white!important;border-radius:0!important}
+.indy26 .rk{background:#225e7b!important;color:white!important;border-radius:1cqw!important}
+.fe10 .rk{background:#0f8f98!important;color:#fff!important;border-radius:1cqw!important;clip-path:none!important}
+.fe22 .rk{background:#0bb8de!important;color:white!important;clip-path:none!important}
+.fe12 .rk{background:#0de2e7!important;color:#043d47!important;border-radius:.2cqw!important;clip-path:none!important}
+.sf24 .rk{background:#d8f4e6!important;color:#035338!important;border-radius:1cqw!important;clip-path:none!important}
+.sf26 .rk{background:#0a4135!important;color:#a9e9cf!important;border-radius:.15cqw!important;clip-path:none!important}
+.mg24 .rk{background:#fff!important;color:#a20d1e!important;border:1px solid #ac1429!important;border-radius:0!important;clip-path:none!important}
+.mg25 .rk{background:#090a0e!important;color:#fff!important;border-radius:0!important;clip-path:none!important}
+.mg26 .rk{background:#0b0b0b!important;color:#f9f9f9!important;clip-path:polygon(10% 0,100% 0,90% 100%,0 100%)!important}
+/* SF flag is in the number/portrait gutter, away from the driver name block. */
+.board.sf24 .sf-flag,.board.sf26 .sf-flag{left:17%!important;top:5%!important;width:1.5cqw;height:1.0cqw;z-index:9;background:#07191590;border-radius:.08cqw}
+.board.sf24 .sf-flag{left:22%!important;top:3%!important}
+.board.sf24 .sf-flag img,.board.sf26 .sf-flag img{object-fit:cover}
+/* Odd-sized group: ALL logos use the same outboard/above position in a preset. */
+.board.uniform-logo .fe10-logo{top:-4%!important;left:43%!important;width:14%!important;height:27%!important;background:#f7f9f9bb;border-radius:.16cqw}
+.board.uniform-logo .fe12-logo{top:-3%!important;bottom:auto!important;left:42%!important;width:16%!important;height:25%!important;background:var(--c);border-radius:.16cqw}
+.board.uniform-logo .mg-logo{top:-6%!important;left:42%!important;width:16%!important;height:23%!important;background:color-mix(in srgb,var(--c) 83%,#101010);border-radius:.15cqw}
+/* A logo-below option remains functional when applied to specialty card renderers. */
+.board.logo-below .fe10-logo{top:78%!important;height:18%!important;left:39%!important;width:22%!important;z-index:9!important}
+.board.logo-below .mg-logo{top:84%!important;height:14%!important;left:39%!important;width:22%!important;z-index:9!important}
+.board.logo-below .fe12-logo{top:84%!important;bottom:auto!important;height:16%!important;left:39%!important;width:22%!important;z-index:9!important}
+/* MotoGP numbers etc keep same dimensions regardless of option visibility. */
+.board.mg24 .opt-number,.board.mg25 .opt-number,.board.mg26 .opt-number{font-size:1.1cqw!important}
+.board.indy26 .opt-flag{top:.4cqw}
+.board.fe10 .opt-flag,.board.fe12 .opt-flag{top:.1cqw}
+
+.board .opt-hero{position:absolute;bottom:1%;left:50%;transform:translateX(-50%);z-index:35;
+  width:13cqw;min-height:2cqw;max-height:6cqw;display:flex;align-items:center;justify-content:center;
+  padding:.2cqw .4cqw;background:rgba(13,18,27,.60);border:1px dashed rgba(255,255,255,.60);
+  border-radius:.3cqw;cursor:pointer;color:white;font:700 .8cqw 'Barlow',sans-serif;text-align:center;}
+.board .opt-hero img{max-height:5cqw;max-width:100%;object-fit:contain;}
+.board.pv .opt-hero:not(:has(img)){display:none}
+
+/* v8: full-width lower-center orbit anchor for an unpaired final team.
+   The anchor spans the entire board so its card measures exactly as the side cards. */
+.grid.orbit .cell.orbit-orphan{
+  z-index:5;
+  position:relative;
+  transform:translateY(1.30cqw);
+  align-self:end;
+  justify-self:stretch;
+  pointer-events:none;
+}
+.grid.orbit .cell.orbit-orphan .team{pointer-events:auto;transform:none}
+/* Reserve three non-overlapping card zones on the last row, even when a
+   mixed roster includes four-driver teams. */
+.board.orbit.has-orphan .team{max-width:33cqw}
+.board{--split-gap-color:#f4f4f4}
+.board.grey{--split-gap-color:#d0d0d2}
+.board.dark{--split-gap-color:#15171d}
+/* Diagonal breaks are painted over the strip, not separate grid tracks:
+   card/portrait dimensions remain identical with the option on or off. */
+.board.f1 .strip .driver-split,
+.board.f3 .strip .driver-split{
+  position:absolute;
+  top:0;bottom:0;left:var(--split-position);
+  width:clamp(1.5px,.25cqw,4px);
+  transform:translateX(-50%) skewX(-36deg);
+  background:var(--split-gap-color);
+  pointer-events:none;
+  z-index:2;
+}
+.board.f1 .strip .driver-split::after,
+.board.f3 .strip .driver-split::after{
+  content:'';
+  position:absolute;inset:0;
+  box-shadow:0 0 .045cqw #ffffff66;
+}
+#driverGapsLabel[hidden]{display:none!important}
+
+/* v9 adaptive team layouts: preserve equal-size cards and center incomplete rows.
+   All rows are assigned explicitly; no grid auto-placement or blank final columns. */
+.board.mg24 .mg-stage,.board.mg25 .mg-stage,.board.mg26 .mg-stage{
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  column-gap:0;
+  top:var(--mg-top,4%);bottom:var(--mg-bottom,3.3%);
+}
+.mg-cell{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;overflow:visible;}
+.mg24 .mg-cell{padding-inline:1.6cqw;}
+.mg25 .mg-cell{padding-inline:1.3cqw;}
+.mg26 .mg-cell{padding-inline:.45cqw;}
+.mg-cell .mg-team{width:100%;height:min(100%,var(--mg-card-height,11.4cqw));flex:none;}
+.mg-cell .mg-title{width:100%;height:100%;max-height:var(--mg-card-height,11.4cqw);}
+.board.fe12 .fe12-grid{
+  grid-template-columns:repeat(24,minmax(0,1fr));
+  column-gap:0;
+  top:var(--fe12-top,25.5%);bottom:var(--fe12-bottom,6.5%);
+}
+.fe12-slot{min-width:0;min-height:0;padding-inline:var(--fe12-card-gutter,1.05cqw);display:flex;justify-content:center;align-items:center;}
+.fe12-slot .fe12-team{width:100%;height:min(100%,var(--fe12-card-height,10.6cqw));max-height:none;flex:none;align-self:center;}
+
+/* Standard grid options also balance remainder rows at 4–14 teams. */
+.grid.standard-three{grid-template-columns:repeat(6,minmax(0,1fr));column-gap:0;row-gap:2.3cqw;}
+.grid.standard-three .cell{min-width:0;padding-inline:1.1cqw;}
+.grid.standard-two .cell.standard-orphan{justify-content:center;}
+.grid.standard-two .cell.standard-orphan .team{width:min(calc(var(--w,1) * 39%),34cqw);max-width:100%;}
+
+/* Variable-length Super Formula posters maintain roster text and portrait
+   sizes instead of reducing font size as the number of drivers grows. */
+.sf24.sf-adaptive .sf-top{height:24cqw;}
+.sf24.sf-adaptive .sf-roster{top:24cqw;bottom:1.5cqw;}
+.sf26.sf-adaptive .sf-top{height:17cqw;}
+.sf26.sf-adaptive .sf26-caption{top:17cqw;height:6cqw;}
+.sf26.sf-adaptive .sf-roster{top:23cqw;bottom:8cqw;}
+.sf26.sf-adaptive .sf-footer{height:6cqw;}
+
+/* ===== Custom Studio: opt-in, scoped design overrides ===== */
+.board.custom-studio .team.custom-plate-active .strip::before{background:var(--custom-plate)!important}
+
+.custom-panel[hidden],.custom-field[hidden]{display:none!important}
+.custom-panel{margin:0 0 15px;background:var(--pn);border:1px solid var(--ln);border-radius:12px;padding:16px;color:var(--tx);box-shadow:0 6px 30px #0000000a}
+.custom-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 16px}
+.custom-header h2{font:800 22px/1.15 Barlow,sans-serif;margin:0 0 4px;letter-spacing:-.03em}
+.custom-header p{color:var(--mu);font:500 13px/1.5 Barlow,sans-serif;margin:0;max-width:76ch}
+.custom-columns{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start}
+.custom-section{border:1px solid var(--ln);border-radius:9px;padding:13px 12px 12px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.custom-section legend{padding:0 5px;font:800 13px Barlow,sans-serif;color:var(--tx)}
+.custom-field{display:flex;flex-direction:column;gap:4px;color:var(--mu);font:600 12px/1.3 Barlow,sans-serif;min-width:0}
+.custom-field>span{display:flex;align-items:center;gap:7px;min-width:0}
+.custom-field output{color:var(--tx);font:800 12px Barlow,sans-serif;min-width:34px;font-variant-numeric:tabular-nums}
+.custom-field select,.custom-field input[type=text]{width:100%;border:1px solid var(--ln);border-radius:6px;background:var(--pn);color:var(--tx);min-width:0;padding:7px;font:600 13px Barlow,sans-serif}
+.custom-field input[type=color]{height:32px;width:100%;border:1px solid var(--ln);border-radius:6px;background:var(--pn);padding:2px;cursor:pointer}
+.custom-field input[type=range]{flex:1;width:100%;min-width:0}
+.custom-pair{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.custom-check{display:flex;align-items:center;gap:7px;font:600 12px Barlow,sans-serif;color:var(--tx);cursor:pointer}
+.custom-check input{accent-color:var(--ac)}
+.custom-note{font:500 11px/1.4 Barlow,sans-serif;color:var(--mu);margin:2px 0 0}
+.custom-quiet{padding:7px 10px;border:1px solid var(--ln);background:var(--pn);color:var(--tx);border-radius:6px;cursor:pointer;font:700 12px Barlow,sans-serif;text-align:center}
+.custom-quiet:hover{border-color:#d62431}
+.custom-inline{display:flex;flex-direction:column}
+@media(max-width:1040px){.custom-columns{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.custom-columns{grid-template-columns:1fr}.custom-header{flex-direction:column}.custom-panel{padding:10px}}
+.board.custom-studio .t,.board.custom-studio .f{will-change:translate}
+/* ===========================================================================
+   V11: template-independent COMPOSITION ENGINE + Formula 2 2022 reference card
+   Component styles are independent of board layouts and per-driver variants.
+   =========================================================================== */
+.mix-toolset{margin-top:12px;border-top:1px solid var(--ln);padding-top:12px}
+.mix-toolset h3{font:800 16px Barlow,sans-serif;margin:0 0 9px}
+.mix-toolset p{color:var(--mu);font-size:12px;margin:4px 0 10px}
+.mix-settings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.mix-fieldset{border:1px solid var(--ln);border-radius:9px;min-width:0;padding:11px 12px;display:flex;flex-direction:column;gap:9px}
+.mix-fieldset legend{font-size:12px;font-weight:800;padding:0 6px}
+.mix-inline{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mix-help{color:var(--mu);font:500 11px/1.35 Barlow,sans-serif}
+.mix-fieldset .custom-field select,.mix-fieldset .custom-field input{max-width:100%}
+@media(max-width:940px){.mix-settings{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.mix-settings{grid-template-columns:1fr}}
+
+.board.mix-board{padding:2.6cqw;--bt:#f5f8fb;--bm:#b3bdc8;min-height:42cqw;background:radial-gradient(ellipse at 50% 15%,#132c49,#07131e 82%);color:#f8fafb;overflow:hidden;isolation:isolate;border-radius:0;container-type:inline-size}
+.board.mix-board.mix-tone-light{background:repeating-linear-gradient(132deg,#fff 0 2.1cqw,#f2f3f5 2.1cqw 4cqw);color:#121620;--bt:#171b21;--bm:#777f87}
+.board.mix-board.mix-tone-metal{background:radial-gradient(ellipse at 48% 5%,#f3f3f4,#9299a4 95%);--bt:#17212c;--bm:#58616d;color:#14161b}
+.board.mix-board.mix-tone-blue{background:linear-gradient(135deg,#042637,#0b5f77 55%,#032f42);--bt:#fff;--bm:#a9e0e6}
+.board.mix-board.mix-tone-dark{background:radial-gradient(ellipse at 50% 20%,#253846,#080c12 85%);--bt:#fff;--bm:#a7b1ba}
+.board.mix-board.mix-tone-navy{background:repeating-linear-gradient(136deg,transparent 0 17px,rgba(64,158,186,.023) 17px 18px),radial-gradient(ellipse at 48% 48%,#0e4663,#092139 76%,#061323);--bt:#fff;--bm:#91b3ca}
+.board.mix-board:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,transparent 49.8%,#ffffff12 50%,transparent 50.2%),repeating-linear-gradient(0deg,transparent 0 8.4cqw,#ffffff07 8.4cqw 8.5cqw);opacity:.55;z-index:-1}
+.mix-header{margin:0 auto 1.3cqw;max-width:70%;min-height:9cqw;display:flex;justify-content:center;align-items:center;text-align:center}
+.mix-stage{display:grid;gap:1.5cqw 1.65cqw;position:relative;min-width:0}
+.mix-stage.mix-grid{grid-auto-flow:row;grid-auto-rows:var(--mix-row-h,15.5cqw);align-items:stretch}
+.mix-tile{min-height:0;min-width:0;position:relative;display:flex;align-items:center;justify-content:center}
+.mix-series{width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:.5cqw;text-align:center;padding:.3cqw;color:inherit}
+.mix-series .mix-series-mark{cursor:pointer;display:flex;align-items:center;justify-content:center;min-width:5.2cqw;min-height:2.4cqw;max-width:87%;font:italic 900 2cqw/.9 'Titillium Web',sans-serif;color:#2bcaeb;border:.13cqw dashed #45abce66;padding:.3cqw .6cqw}
+.mix-series .mix-series-mark img,.mix-logo-tile img{width:100%;height:100%;max-height:5.8cqw;object-fit:contain}
+.mix-series .ttl{font:italic 900 clamp(10px,3.3cqw,51px)/.93 'Titillium Web','Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:-.045em;white-space:pre-line;max-width:100%;overflow-wrap:break-word;color:inherit}
+.mix-series .sub{font:italic 700 clamp(8px,1.3cqw,19px)/1.05 'Titillium Web',sans-serif;text-transform:uppercase;letter-spacing:.04em;color:inherit}
+.mix-logo-tile{height:100%;width:100%;display:flex;align-items:center;justify-content:center;border:1px dashed #ffffff55;color:inherit;cursor:pointer;font:italic 900 1.7cqw 'Titillium Web',sans-serif}
+.mix-logo-tile .mix-logo-text{color:#8ccce9;text-transform:uppercase}
+.mix-title-left{align-items:flex-start;text-align:left}.mix-title-left .mix-series{align-items:flex-start;text-align:left}
+.mix-title-right{align-items:flex-end;text-align:right}.mix-title-right .mix-series{align-items:flex-end;text-align:right}
+.mix-tile.team-tile{overflow:visible}
+
+.mix-team{--tc:#fff;height:100%;width:100%;min-width:0;min-height:0;position:relative;display:flex;flex-direction:column;justify-content:flex-end;isolation:isolate;container-type:inline-size}
+.mix-team .mix-photozone{position:relative;display:flex;flex:1;min-height:0;min-width:0;align-items:stretch;justify-content:stretch;gap:.15cqw}
+.mix-team .mix-driver{flex:1;min-width:0;min-height:0;position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;z-index:2;isolation:isolate}
+.mix-driver .mix-photo{height:76%;min-height:0;position:relative;cursor:pointer;overflow:hidden;align-self:stretch;display:flex;align-items:end;justify-content:center;margin-bottom:-.7cqw;z-index:1;color:#c0d0d9;background:linear-gradient(180deg,#bdc9d515,#bdc9d526)}
+.mix-driver .mix-photo img{width:100%;height:108%;object-fit:contain;object-position:center bottom;position:absolute;inset:auto 0 0}
+.mix-driver .mix-photo svg{width:66%;height:98%;position:absolute;bottom:0;opacity:.55;color:#9fb5c9}
+.mix-driver .mix-label{position:relative;z-index:5;height:27%;min-height:0;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:.16cqw .24cqw;background:var(--c);color:var(--tc);text-align:center;min-width:0;overflow:hidden}
+.mix-driver .mix-label .f,.mix-driver .mix-label .t{font:800 clamp(7px,1.42cqw,23px)/.95 'Barlow Condensed',sans-serif;white-space:nowrap;overflow:hidden;max-width:100%;text-transform:uppercase;outline:none;letter-spacing:-.01em}
+.mix-driver .mix-label .f{font-weight:500;font-size:clamp(7px,1.05cqw,16px);opacity:.9}
+.mix-driver .mix-label .t{font-size:clamp(8px,1.5cqw,24px)}
+.mix-driver .mix-num{position:absolute;right:.33cqw;top:7%;z-index:6;color:white;text-shadow:0 .1cqw .25cqw #081521;font:italic 900 clamp(9px,2.5cqw,40px)/1 'Titillium Web',sans-serif;outline:none;white-space:nowrap}
+.mix-driver .mix-flag{position:absolute;left:.32cqw;top:3%;z-index:7;width:2.15cqw;height:1.5cqw;cursor:pointer;display:flex;align-items:center;justify-content:center;background:#f2f5f7;border-radius:.15cqw;box-shadow:0 .1cqw .3cqw #0007;overflow:hidden;font-size:1.3cqw}
+.mix-flag img{width:100%;height:100%;object-fit:cover}
+.mix-driver .rk.mix-rookie{position:absolute!important;left:8%;right:8%;width:84%;bottom:-1.25cqw;top:auto;z-index:8;margin:0!important;display:block!important;clip-path:polygon(5% 0,100% 0,95% 100%,0 100%);background:#148fd2;color:white;font:italic 800 clamp(6px,.9cqw,13px)/1 'Titillium Web',sans-serif;letter-spacing:.06em;border:0;padding:.16cqw;cursor:pointer;height:auto;box-sizing:border-box}
+.mix-driver .rk.mix-rookie:not(.on){opacity:.34}
+.mix-team-logo{position:absolute;z-index:4;left:50%;top:29%;transform:translate(-50%,-50%);width:26%;height:42%;background:#10202a9c;display:flex;align-items:center;justify-content:center;padding:.28cqw;cursor:pointer;color:#fff;max-width:100%}
+.mix-team-logo img{width:100%;height:100%;object-fit:contain}
+.mix-team-logo .box{font:800 clamp(7px,1.15cqw,17px)/.95 'Barlow Condensed',sans-serif;word-break:break-word;text-align:center;text-transform:uppercase;letter-spacing:-.02em}
+.mix-team.logo-below .mix-team-logo{top:auto;bottom:-.5cqw;transform:translate(-50%,100%);width:52%;height:2.4cqw;background:transparent}
+.mix-team.logo-above .mix-team-logo{top:-.8cqw;transform:translate(-50%,-60%);height:3.2cqw;background:transparent}
+.mix-team.logo-left .mix-team-logo{left:1%;top:36%;transform:translate(0,-50%);width:25%;height:52%}
+.mix-team.logo-right .mix-team-logo{left:auto;right:0;top:36%;transform:translate(0,-50%);width:25%;height:52%}
+.mix-band{position:absolute;top:24%;height:46%;width:100%;z-index:0;background:linear-gradient(90deg,transparent,var(--c),transparent);opacity:.17}
+.mix-team .mix-teamtext{display:none}
+.mix-team .cp{position:absolute;right:1.5%;top:8%;width:1.35cqw;height:1.35cqw;z-index:11;bottom:auto}
+.mix-board.pv .mix-team .cp,.mix-board.pv .mix-logo-tile:not(:has(img)){display:none}
+.mix-board.pv .mix-series-mark:not(:has(img)){border-color:transparent}
+
+/* TEAM frameworks: each framework changes structure without requiring a new roster. */
+.mix-team.team-f1 .mix-photozone{gap:0}
+.mix-team.team-f1 .mix-photo{background:transparent}
+.mix-team.team-f1 .mix-label{clip-path:polygon(12% 0,100% 0,88% 100%,0 100%);margin-inline:-.1cqw}
+.mix-team.team-f3 .mix-photozone{gap:.25cqw}
+.mix-team.team-f3 .mix-label{clip-path:polygon(12% 0,100% 0,88% 100%,0 100%);background:linear-gradient(145deg,var(--c),color-mix(in srgb,var(--c) 63%,#e7ebec));box-shadow:0 -.16cqw 0 #ffffff77}
+.mix-team.team-f3 .mix-photo{background:linear-gradient(135deg,#e7ecf21b,#f9fbfd18)}
+.mix-team.team-f2 .mix-label{clip-path:polygon(11% 0,100% 0,89% 100%,0 100%)}
+.mix-team.team-f2 .mix-photozone{gap:.16cqw}
+.mix-team.team-f2 .mix-team-logo{background:#f2f7fa;clip-path:polygon(10% 0,100% 0,86% 100%,0 100%);height:27%;top:38%;color:#112739}
+.mix-team.team-broadcast .mix-photozone{gap:.5cqw;padding:0 .2cqw}
+.mix-team.team-broadcast .mix-photo{height:73%;border:2px solid var(--c);border-bottom:0;background:linear-gradient(145deg,color-mix(in srgb,var(--c) 38%,#0c1420),#0a1118);clip-path:polygon(0 0,80% 0,100% 14%,100% 100%,0 100%)}
+.mix-team.team-broadcast .mix-label{height:29%;background:linear-gradient(110deg,#293138,#0a0e13);color:#fff;border:1px solid #9eaeb9;border-top:2px solid var(--c);align-items:flex-start;padding-left:.25cqw}
+.mix-team.team-broadcast .mix-team-logo{background:transparent;top:-.5cqw;transform:translate(-50%,-50%);width:48%;height:3cqw}
+.mix-team.team-ice .mix-label{background:#c4d8e2;color:#111b27;clip-path:polygon(0 0,94% 0,100% 17%,100% 84%,93% 100%,11% 100%,0 80%)}
+.mix-team.team-ice .mix-photo{background:transparent}
+.mix-team.team-ice .mix-team-logo{background:transparent}
+.mix-team.team-formulae .mix-photo{background:transparent}
+.mix-team.team-formulae .mix-photozone:before{content:"";position:absolute;z-index:0;top:22%;height:46%;left:27%;right:27%;background:var(--c)}
+.mix-team.team-formulae .mix-label{background:#f7f8f8;color:#182024;border-top:.19cqw solid var(--c);border-radius:0 0 .65cqw .65cqw;align-items:flex-start}
+.mix-team.team-formulae .mix-team-logo{background:transparent;top:41%;height:22%;width:33%}
+.mix-team.team-pill .mix-label{border-radius:6cqw;background:var(--c);color:#fff}
+.mix-team.team-pill .mix-photo{background:transparent}
+.mix-team.team-pill .mix-team-logo{background:transparent;top:40%;height:20%;width:35%}
+.mix-team.team-motogp .mix-label{background:var(--c);clip-path:polygon(11% 0,100% 0,89% 100%,0 100%)}
+.mix-team.team-motogp .mix-photo{background:transparent}
+.mix-team.team-motogp .mix-team-logo{background:#111;top:79%;height:23%;width:25%;clip-path:polygon(12% 0,100% 0,88% 100%,0 100%)}
+.mix-team.team-sf .mix-photozone{flex-direction:column;gap:.15cqw}
+.mix-team.team-sf .mix-driver{flex-direction:row;align-items:stretch;min-height:0}
+.mix-team.team-sf .mix-photo{height:100%;width:27%;flex:none;margin:0;z-index:2;background:transparent}
+.mix-team.team-sf .mix-label{height:100%;width:73%;flex:1;align-items:flex-start;padding-left:.6cqw;background:linear-gradient(90deg,#125944,var(--c));color:white;clip-path:none;border-radius:.35cqw}
+.mix-team.team-sf .mix-num{right:auto;left:.1cqw;top:13%;font-size:1.7cqw;color:white}
+.mix-team.team-sf .mix-flag{left:28%;top:4%;height:1.3cqw;width:1.5cqw}
+.mix-team.team-sf .mix-team-logo{width:24%;height:30%;left:auto;right:0;transform:none;top:39%;background:transparent}
+.mix-team.team-sf .mix-band{height:100%;top:0}
+
+/* Independent DRIVER card styles override the framework where requested. */
+.mix-driver.frame-ribbon .mix-label{background:var(--c);color:var(--tc);clip-path:polygon(10% 0,100% 0,90% 100%,0 100%)}
+.mix-driver.frame-metal .mix-label{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 80%,#eee),var(--c));clip-path:polygon(8% 0,100% 0,91% 100%,0 100%);border-top:.17cqw solid #ffffffb0}
+.mix-driver.frame-broadcast .mix-photo{border:2px solid var(--c);border-bottom:0;background:linear-gradient(145deg,color-mix(in srgb,var(--c) 52%,#111c26),#12151a);clip-path:polygon(0 0,78% 0,100% 16%,100% 100%,0 100%)}
+.mix-driver.frame-broadcast .mix-label{background:linear-gradient(135deg,#28323a,#0c1014);border:1px solid #c7d5df;border-top:2px solid var(--c);color:#fff;align-items:flex-start;text-align:left}
+.mix-driver.frame-broadcast .mix-num{font-size:2.4cqw;right:5%;top:16%;color:#fff}
+.mix-driver.frame-ice .mix-label{background:#cadce3;color:#12212c;clip-path:polygon(0 0,94% 0,100% 20%,100% 83%,93% 100%,11% 100%,0 80%)}
+.mix-driver.frame-ice .mix-num{background:var(--c);border:.12cqw solid #edf6f7;border-radius:50%;width:2.5cqw;height:2.5cqw;display:flex;align-items:center;justify-content:center;left:0;right:auto;top:auto;bottom:14%;font-size:1.7cqw;text-shadow:none}
+.mix-driver.frame-pill .mix-label{background:var(--c);border-radius:5cqw;color:#fff}
+.mix-driver.frame-paper .mix-label{background:rgba(240,244,246,.96);color:#101923;clip-path:polygon(0 0,62% 0,76% 17%,100% 17%,100% 100%,0 100%);align-items:flex-start;text-align:left}
+.mix-driver.frame-clean .mix-label{background:#f9fafc;color:#1c2229;border-top:.17cqw solid var(--c);border-radius:0 0 .6cqw .6cqw;align-items:flex-start;text-align:left}
+.mix-driver.frame-segment .mix-label{background:var(--c);clip-path:polygon(12% 0,100% 0,88% 100%,0 100%)}
+.mix-driver.frame-segment .mix-label .f{display:none}
+.mix-driver.frame-timing .mix-label{background:linear-gradient(90deg,#17483c,var(--c));align-items:flex-start;border-radius:.3cqw;color:white}
+.mix-driver.frame-f2 .mix-label{background:linear-gradient(120deg,var(--c),color-mix(in srgb,var(--c) 67%,#020f21));clip-path:polygon(15% 0,100% 0,86% 100%,0 100%);box-shadow:0 -.13cqw 0 #ffffff85}
+.mix-driver.frame-f2 .mix-label .f{display:none}
+.mix-driver.frame-f2 .mix-rookie{background:#00aee3!important}
+
+.mix-board.mix-orbit{aspect-ratio:16/9;padding:2.6cqw 3.3cqw;container-type:inline-size}
+.mix-orbit-stage{height:100%;min-height:0;display:grid;grid-template-columns:36% 28% 36%;grid-template-rows:repeat(var(--mix-orbit-rows),1fr);gap:.7cqw .15cqw;align-items:center}
+.mix-orbit-stage .team-tile{height:100%;min-height:0;max-width:100%;justify-self:center}
+.mix-orbit-stage .team-tile .mix-team{width:100%;height:100%}
+.mix-orbit-stage .mix-orbit-series{grid-column:2;grid-row:1/-1;justify-content:center;align-items:center;align-self:stretch;z-index:3;min-width:0}
+.mix-orbit-stage .mix-orbit-series .mix-series .ttl{font-size:3.7cqw}
+.mix-orbit-stage .mix-orbit-series .mix-series-mark{min-width:5cqw}
+.mix-orbit-stage .mix-orbit-orphan{grid-column:1/-1;z-index:2;justify-self:center;width:34%;max-width:34%;align-items:center}
+.mix-board.mix-orbit .mix-team .mix-label .t{font-size:clamp(7px,1.15cqw,17px)}
+.mix-board.mix-orbit .mix-driver .mix-photo{height:70%}
+.mix-board.mix-orbit .mix-team-logo{height:29%}
+
+/* The standalone Formula 2 2022 preset uses its own correct 4-column poster map */
+.board.f2-board{background:repeating-linear-gradient(132deg,#063a5810 0 2cqw,transparent 2cqw 4cqw),radial-gradient(ellipse at 45% 27%,#0a506d,#092e46 80%,#04182c 120%);border-radius:0;padding:1.8cqw 2.5cqw 2.1cqw;color:white;--bt:#fff;--bm:#70b4d2}
+.f2-board .mix-stage.mix-grid{gap:1.1cqw 1.7cqw}
+.f2-board .mix-tile{overflow:visible}
+.f2-board .mix-team .mix-photo{background:transparent}
+.f2-board .mix-team .mix-label{height:24%}
+.f2-board .mix-team-logo{background:#e4f3f9e0;color:#123d54;top:40%;height:22%;clip-path:polygon(9% 0,100% 0,91% 100%,0 100%)}
+.f2-board .mix-series{align-items:flex-start;text-align:left;gap:.1cqw}
+.f2-board .mix-series .mix-series-mark{border:none;font-size:3.7cqw;padding:0;min-height:3.9cqw;color:#20c6ed}
+.f2-board .mix-series .ttl{font:italic 900 3.35cqw/.86 'Titillium Web',Impact,sans-serif;color:#fff;letter-spacing:-.05em;white-space:pre-line}
+.f2-board .mix-series .sub{font:italic 800 2.4cqw/1 'Titillium Web',sans-serif;color:#25c7f0}
+.f2-board .mix-flag{left:0;top:59%;background:none;box-shadow:none;font-size:1.2cqw}
+.f2-board .mix-rookie.rk{bottom:-.95cqw;background:#0a9fcf!important}
+/* Final measured component sizing: cqw here is relative to each team card. */
+.mix-orbit-stage .team-tile{width:100%}
+.mix-orbit-stage .mix-orbit-orphan{width:34%}
+.mix-team .mix-teamtext{display:block;position:absolute;bottom:-1.55cqw;left:50%;transform:translateX(-50%);max-width:100%;font:800 clamp(8px,3.8cqw,13px)/1 'Barlow Condensed',sans-serif;white-space:nowrap;text-align:center;color:inherit;z-index:9;text-shadow:0 1px 2px #0009}
+.mix-driver .mix-label .f{font-size:clamp(8px,3.7cqw,13px)}
+.mix-driver .mix-label .t{font-size:clamp(9px,5cqw,19px)}
+.mix-team[data-count="3"] .mix-label .t{font-size:clamp(8px,3.9cqw,15px)}
+.mix-team[data-count="4"] .mix-label .t{font-size:clamp(7px,3.1cqw,12px)}
+.mix-team .mix-team-logo .box{font-size:clamp(7px,3.1cqw,12px)}
+.mix-driver .mix-flag{width:clamp(14px,7cqw,24px);height:clamp(10px,5cqw,18px);font-size:clamp(11px,5.3cqw,19px)}
+.mix-driver .mix-num{font-size:clamp(11px,8cqw,38px)}
+.mix-driver .rk.mix-rookie{font-size:clamp(7px,3.5cqw,11px)}
+.mix-team.team-f2 .mix-label .t{font-size:clamp(9px,4.7cqw,16px)}
+.mix-board.mix-orbit .mix-team .mix-label .t{font-size:clamp(8px,4.3cqw,14px)}
+.f2-board .mix-series .ttl{font-size:4.1cqw;white-space:nowrap}
+.f2-board .mix-series .sub{font-size:2.8cqw}
+.f2-board .mix-series-mark{font-size:6.4cqw;line-height:.8;letter-spacing:-.14em;transform:skewX(-10deg);font-family:Impact,'Archivo Black',sans-serif}
+.f2-board .mix-driver .mix-flag{top:63%;left:7%;background:transparent;box-shadow:none;width:clamp(12px,5cqw,19px);height:clamp(10px,4cqw,16px)}
+/* Final spacing pass: rookie indicators must stay within an orbit row. */
+.mix-orbit .mix-driver .rk.mix-rookie{bottom:31%;transform:none;left:12%;right:12%;width:76%}
+.mix-team-logo .box svg{width:clamp(15px,9cqw,28px);height:clamp(15px,9cqw,28px);margin:0 auto .16cqw;display:block}
+.mix-team.team-f2 .mix-team-logo{width:19%;height:22%;top:41%}
+.f2-board .mix-team.team-f2 .mix-team-logo{width:22%;height:23%;top:41%}
+.f2-board .mix-series .ttl{white-space:nowrap;letter-spacing:-.04em}
+/* Additional exact-template families, each independently mixable by team/driver. */
+.mix-team.team-indy .mix-photo{background:linear-gradient(#ffffff08,#ffffff19)}
+.mix-team.team-indy .mix-label{background:#f2f2f2;color:#131313;clip-path:polygon(0 0,60% 0,75% 15%,100% 15%,100% 100%,0 100%);align-items:flex-start;text-align:left}
+.mix-team.team-indy .mix-team-logo{background:transparent;top:36%;color:#fff}
+.mix-team.team-fe22 .mix-photozone{background:linear-gradient(90deg,var(--c) 0 30%,transparent 30%)}
+.mix-team.team-fe22 .mix-photo{background:transparent}
+.mix-team.team-fe22 .mix-label{background:#f8fafc;color:#161923;border-bottom:.27cqw solid var(--c);align-items:flex-start}
+.mix-team.team-fe22 .mix-team-logo{background:var(--c);top:42%;left:12%;width:25%;height:38%;transform:translate(-50%,-50%)}
+.mix-team.team-mg24 .mix-label{background:var(--c);color:white}
+.mix-team.team-mg24 .mix-photo{background:transparent}
+.mix-team.team-mg24 .mix-team-logo{background:var(--c);color:white;top:42%;width:24%;height:28%}
+.mix-team.team-mg25 .mix-photozone{background:var(--c)}
+.mix-team.team-mg25 .mix-photo{background:transparent}
+.mix-team.team-mg25 .mix-label{background:var(--c);color:var(--tc);border-top:.14cqw solid #09111b}
+.mix-team.team-mg25 .mix-team-logo{background:color-mix(in srgb,var(--c) 70%,#0b0b12);top:43%;left:19%;width:30%;height:32%}
+.mix-team.team-mg26 .mix-label{background:var(--c);color:var(--tc);clip-path:polygon(13% 0,100% 0,87% 100%,0 100%)}
+.mix-team.team-mg26 .mix-photo{background:transparent}
+.mix-team.team-mg26 .mix-team-logo{top:82%;height:24%;width:24%;background:#0d0e11;clip-path:polygon(15% 0,100% 0,85% 100%,0 100%)}
+.mix-team.team-sf26 .mix-photozone{flex-direction:column;gap:.15cqw}
+.mix-team.team-sf26 .mix-driver{flex-direction:row;align-items:stretch;min-height:0}
+.mix-team.team-sf26 .mix-photo{height:100%;width:28%;flex:none;margin:0;background:transparent}
+.mix-team.team-sf26 .mix-label{height:100%;width:72%;flex:1;align-items:flex-start;padding-left:.55cqw;background:linear-gradient(90deg,#174d40,var(--c));color:white;border-radius:.23cqw}
+.mix-team.team-sf26 .mix-num{right:auto;left:0;top:8%}
+.mix-team.team-sf26 .mix-flag{left:29%;top:5%}
+.mix-team.team-sf26 .mix-team-logo{top:50%;left:auto;right:0;transform:translateY(-50%);background:transparent;width:23%;height:28%}
+.mix-driver.frame-fe22 .mix-label{background:#f8fafc;color:#141b24;border-bottom:.28cqw solid var(--c);align-items:flex-start;text-align:left}
+.mix-driver.frame-mg24 .mix-label{background:var(--c);color:white}
+.mix-driver.frame-mg24 .mix-num{right:auto;left:0;top:auto;bottom:1%;padding:.16cqw .25cqw;background:#fff;color:var(--c);font-size:clamp(10px,6cqw,27px);text-shadow:none}
+.mix-driver.frame-mg24:nth-child(even) .mix-num{right:0;left:auto}
+.mix-driver.frame-mg25 .mix-label{background:var(--c);color:var(--tc);border-top:.13cqw solid #111}
+.mix-driver.frame-mg25 .mix-photo{background:color-mix(in srgb,var(--c) 55%,#1e2530)}
+.mix-driver.frame-mg26 .mix-label{background:var(--c);color:var(--tc);clip-path:polygon(13% 0,100% 0,87% 100%,0 100%)}
+.mix-driver.frame-sf26 .mix-label{background:linear-gradient(90deg,#174537,var(--c));align-items:flex-start;color:white}
+
+
+
+/* v12: unselected rookie controls are tiny '+' edit handles, never full-size labels.
+   Selected ROOKIE badges float outside layout and never change card or row size. */
+.board .rk:not(.on){
+  width:12px!important;height:12px!important;min-width:12px!important;min-height:12px!important;
+  padding:0!important;margin:0!important;border:1px dashed #828b92!important;
+  background:#f8fbfc!important;color:#3b4854!important;
+  clip-path:none!important;border-radius:50%!important;
+  font:700 10px/10px Arial,sans-serif!important;text-align:center!important;
+  letter-spacing:0!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  opacity:.65!important;transform:none!important;box-sizing:border-box!important;
+}
+.board.pv .rk:not(.on){display:none!important}
+.board .nm .rk:not(.on){position:absolute!important;left:auto!important;right:0!important;top:calc(100% + 2px)!important;bottom:auto!important}
+.board .nm .rk.on{width:auto!important;min-width:0!important;font-size:clamp(7px,.46em,11px)!important;
+  margin:0!important;top:calc(100% + 2px)!important;left:50%!important;right:auto!important;
+  transform:translateX(-50%)!important;display:block!important;padding:1px 4px!important;line-height:1!important;
+  white-space:nowrap!important;max-width:96%!important;
+}
+.board.mix-board .mix-driver .rk.mix-rookie:not(.on){
+  position:absolute!important;z-index:12!important;
+  left:auto!important;right:2px!important;top:auto!important;bottom:1px!important;
+  width:12px!important;height:12px!important;
+}
+.board.mix-board .mix-driver .rk.mix-rookie.on{
+  position:absolute!important;z-index:12!important;
+  left:14%!important;right:14%!important;top:auto!important;bottom:-9px!important;
+  width:72%!important;height:9px!important;min-height:0!important;padding:1px 1px!important;
+  clip-path:polygon(7% 0,100% 0,93% 100%,0 100%)!important;
+  background:#159fd1!important;color:#fff!important;opacity:1!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  font:italic 800 8px/8px 'Titillium Web',Arial,sans-serif!important;
+  letter-spacing:.04em!important;box-sizing:border-box!important;
+  border:0!important;transform:none!important;white-space:nowrap!important;
+}
+.board.mix-board.pv .rk.mix-rookie:not(.on){display:none!important}
+.board.f3 .nm .rk.on{background:#ae2197!important;color:#fff!important}
+.board.f1 .nm .rk.on{background:#122d42!important;color:#fff!important}
+.board.indy .nm .rk.on{background:#e9edf3!important;color:#132027!important}
+/* Rookies are the only badges shown at rest. The small + handles appear only
+   when inspecting a card in edit mode or using the keyboard. */
+.board:not(.pv) .rk:not(.on){opacity:0!important}
+.board:not(.pv) .rk:not(.on):hover,
+.board:not(.pv) .rk:not(.on):focus-visible,
+.board:not(.pv) .nm:hover .rk:not(.on),
+.board:not(.pv) .mix-driver:hover .rk:not(.on),
+.board:not(.pv) .fox-card:hover .rk:not(.on),
+.board:not(.pv) .indy26-card:hover .rk:not(.on),
+.board:not(.pv) .fe12-team:hover .rk:not(.on),
+.board:not(.pv) .fe10-bar:hover .rk:not(.on),
+.board:not(.pv) .mg-team:hover .rk:not(.on),
+.board:not(.pv) .sf-slot:hover .rk:not(.on){opacity:.86!important}
+/* Hide any nonrookie empty label in printed and exported previews. */
+@media print{.board .rk:not(.on){display:none!important}}
+
+
+
+/* ===== v13: F1 + F2 legible rookie graphics, with no layout reflow ===== */
+.board.f1 .nm .rk.on,
+.board.f3 .nm .rk.on,
+.board.indy .nm .rk.on {
+  position:absolute!important;z-index:30!important;
+  top:calc(100% + 2px)!important;bottom:auto!important;
+  left:50%!important;right:auto!important;transform:translateX(-50%)!important;
+  min-width:58%!important;width:auto!important;height:clamp(12px,1.4vw,17px)!important;
+  max-width:96%!important;min-height:0!important;
+  border:0!important;box-sizing:border-box!important;
+  font:italic 900 clamp(10px,1.02vw,14px)/1 'Titillium Web',Impact,Arial,sans-serif!important;
+  letter-spacing:.06em!important;white-space:nowrap!important;
+  padding:2px 8px!important;margin:0!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  clip-path:polygon(7% 0,100% 0,93% 100%,0 100%)!important;
+  background:#08b2e2!important;color:#fff!important;
+}
+.board.f3 .nm .rk.on{background:#c026a9!important}
+.board.indy .nm .rk.on{background:#e9edf3!important;color:#122433!important}
+.board.f1 .nm .rk:not(.on),.board.f3 .nm .rk:not(.on),.board.indy .nm .rk:not(.on){
+  right:0!important;left:auto!important;top:calc(100% + 3px)!important;
+  transform:none!important;
+}
+/* F2 2022 - reference-specific poster, not a four-column F1 fallback. */
+.board.f2-native {
+  --bm:#a1cfdf;position:relative;padding:0!important;border-radius:0!important;
+  container-type:inline-size;overflow:hidden;isolation:isolate;color:#f9fbff;
+  height:calc(var(--f2-rows)*16.2cqw + 6.2cqw);
+  background:radial-gradient(ellipse at 54% 32%,#09618a 0%,#074766 38%,#052c47 83%,#052036 100%);
+}
+.board.f2-native::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.39;
+  background:repeating-linear-gradient(124deg,transparent 0 2.8cqw,#ffffff07 2.85cqw 2.9cqw,transparent 3cqw 5.7cqw),
+  radial-gradient(ellipse at 72% 12%,#1eadd524,transparent 58%);
+}
+.f2-native .f2-stage {
+  position:relative;z-index:1;
+  display:grid;grid-template-columns:repeat(8,minmax(0,1fr));
+  grid-template-rows:repeat(var(--f2-rows),16.2cqw);
+  column-gap:.28cqw;row-gap:0;
+  padding:2.6cqw 2.8cqw 2.2cqw;
+}
+.f2-native .f2-tile{position:relative;min-width:0;min-height:0;width:100%;height:100%;}
+.f2-native .f2-titletile{display:flex;align-items:flex-start;justify-content:flex-start;padding:1.2cqw 1.2cqw 0 .8cqw;}
+.f2-native .f2-heading{display:flex;flex-direction:column;align-items:flex-start;width:100%;}
+.f2-native .f2-brandmark{border:0;padding:0;min-height:0;width:100%;height:6.5cqw;display:flex;flex-direction:column;align-items:flex-start;cursor:pointer;
+  color:white;line-height:1;justify-content:flex-start;position:relative}
+.f2-native .f2-brandmark img{max-width:73%;height:100%;object-fit:contain;object-position:left center}
+.f2-native .f2-glyph{display:block;font:italic 900 5.5cqw/.78 'Titillium Web',Impact,sans-serif;
+  letter-spacing:-.12em;transform:skewX(-10deg);text-shadow:.09cqw .08cqw .02cqw #061a30;color:#fff}
+.f2-native .f2-glyph span{color:#1cc6f4}
+.f2-native .f2-brandmark small{display:block;margin:.6cqw 0 0 2cqw;font:italic 800 .7cqw/.87 'Titillium Web',sans-serif;letter-spacing:.025em}
+.f2-native .f2-titletext{margin-top:1.2cqw;white-space:pre-line;letter-spacing:-.04em;
+  font:italic 900 3.6cqw/1.02 'Titillium Web',Arial,sans-serif;text-align:left;outline:none}
+.f2-native .f2-yeartxt{margin-top:.04cqw;color:#1fd4f7;text-transform:uppercase;
+  font:italic 900 3.4cqw/.95 'Titillium Web',Arial,sans-serif;outline:none}
+.f2-native .f2-team{--cardbottom:1.55cqw;isolation:isolate;padding:0 .12cqw 0;}
+.f2-native .f2-livery{position:absolute;z-index:0;top:39%;left:4%;right:4%;height:28%;pointer-events:none;
+  background:linear-gradient(100deg,transparent,#d8f3ff14 22%,#ffffff4a 50%,#d8f3ff18 78%,transparent);
+  clip-path:polygon(8% 0,100% 0,95% 100%,0 100%);opacity:.72}
+.f2-native .f2-heads{position:absolute;z-index:2;inset:0 0 var(--cardbottom);display:grid;
+  grid-template-columns:repeat(var(--d),minmax(0,1fr));gap:.27cqw;align-items:stretch;}
+.f2-native .f2-driver{min-width:0;height:100%;position:relative;isolation:isolate;}
+.f2-native .f2-face.ph{position:absolute!important;inset:7% 5% 23%!important;width:90%!important;height:70%!important;
+  margin:0!important;min-width:0;max-width:none;aspect-ratio:auto!important;display:flex;
+  align-items:flex-end;justify-content:center;border:0!important;border-radius:0!important;
+  background:transparent!important;overflow:hidden!important;z-index:2;color:#95c3d7;}
+.f2-native .f2-face img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;}
+.f2-native .f2-face svg{position:absolute;left:6%;width:88%;height:96%;bottom:0;opacity:.55}
+.f2-native .f2-label{position:absolute;z-index:6;left:-3%;right:-3%;bottom:12%;height:19%;
+  display:flex;align-items:center;justify-content:center;gap:.2cqw;padding:0 .55cqw .1cqw;
+  color:var(--ink);background:var(--c);clip-path:polygon(12% 0,100% 0,88% 100%,0 100%);
+  box-shadow:inset 0 -.10cqw 0 #0004;white-space:nowrap;}
+.f2-native .f2-label .t{display:block;min-width:0;white-space:nowrap;text-overflow:clip;overflow:hidden;outline:none;text-transform:uppercase;
+  font:900 clamp(9px,1.0cqw,15px)/1 'Titillium Web','Barlow Condensed',sans-serif;letter-spacing:-.02em;text-align:center;}
+.f2-native .f2-flag{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;min-width:0;width:1.35cqw;height:1cqw;cursor:pointer;font-size:1.0cqw;}
+.f2-native .f2-flag img{width:100%;height:100%;object-fit:cover}
+.f2-native .f2-flag span{display:block;font-size:1.05cqw;line-height:1}
+.f2-native .f2-teamlogo{position:absolute;left:50%;top:32%;transform:translateX(-50%);z-index:3;
+  width:24%;height:20%;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:.14cqw;
+  color:#142c3b;background:rgba(240,251,255,.88);clip-path:polygon(12% 0,100% 0,88% 100%,0 100%);
+}
+.f2-native .f2-teamlogo img{height:100%;width:100%;object-fit:contain}
+.f2-native .f2-logo-placeholder{font:900 clamp(7px,.8cqw,11px)/.9 'Barlow Condensed',sans-serif;text-transform:uppercase;text-align:center;max-width:100%;overflow:hidden;letter-spacing:-.05em;word-break:break-word}
+.f2-native.f2-any-odd .f2-teamlogo{left:50%;top:0;transform:translateX(-50%);height:17%;width:35%;}
+.f2-native .f2-number{position:absolute;z-index:8;top:7%;right:9%;color:white;text-shadow:0 1px 3px #07121c;
+  font:italic 900 clamp(10px,1.45cqw,23px)/1 'Titillium Web',sans-serif;outline:none}
+/* Match the reference name-to-rookie type hierarchy. */
+.f2-native .f2-label{height:16%;}
+.f2-native .f2-label .t{font-size:clamp(10px,1.19cqw,16px);}
+.f2-native .f2-team[data-count="3"] .f2-label .t{font-size:clamp(9px,1.03cqw,14px);}
+.f2-native .f2-team[data-count="4"] .f2-label .t{font-size:clamp(8px,.88cqw,12px);}
+.f2-native:not(.pv) .f2-driver:hover .f2-rookie:not(.on),
+.f2-native:not(.pv) .f2-rookie:not(.on):focus-visible{opacity:.9!important;}
+/* Keep ROOKIE *below* the sloped nameplate, never behind the names or portraits. */
+.f2-native .f2-rookie.rk.on{
+  position:absolute!important;z-index:11!important;left:12%!important;right:12%!important;
+  top:auto!important;bottom:calc(12% - 1.25cqw)!important;
+  width:76%!important;height:clamp(12px,1.35cqw,18px)!important;min-height:0!important;
+  padding:1px 2px!important;margin:0!important;
+  border:0!important;border-radius:0!important;
+  clip-path:polygon(12% 0,100% 0,88% 100%,0 100%)!important;
+  background:#08bced!important;color:#fff!important;opacity:1!important;
+  font:italic 900 clamp(10px,1.13cqw,15px)/1 'Titillium Web',Arial,sans-serif!important;
+  text-shadow:none!important;letter-spacing:.02em!important;white-space:nowrap!important;
+  box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  transform:none!important;}
+.f2-native .f2-rookie.rk:not(.on){position:absolute!important;left:auto!important;right:5%!important;top:auto!important;
+  bottom:7%!important;z-index:11!important;transform:none!important;}
+.f2-native .f2-team .cp{position:absolute;z-index:14;right:2%;top:9%;width:1.2cqw;height:1.2cqw;opacity:0;}
+.f2-native .f2-team:hover .cp,.f2-native .f2-team .cp:focus-visible{opacity:1}
+.f2-native .f2-tile .opt-logo-band{top:31%;height:27%;border:0;background:linear-gradient(90deg,transparent,var(--c),transparent);opacity:.19;z-index:1;pointer-events:none}
+.f2-native .f2-team .f2-heads .f2-driver:has(.f2-label .t[contenteditable]:focus) .f2-label{outline:1px solid #fff}
+.f2-native.pv .f2-team .cp{display:none}
+/* Responsive fallback: cards may grow vertically with four rows instead of compressing. */
+@media(max-width:740px){.f2-native .f2-label .t{font-size:clamp(7px,.92cqw,13px)}
+.f2-native .f2-rookie.rk.on{font-size:clamp(8px,1.1cqw,11px)!important;height:clamp(10px,1.35cqw,14px)!important}}
+
+
+/* ===== v14: independent, composable team shells + driver cards =====
+   Only hc-* classes participate in this renderer. Original 14 reference presets
+   continue to be rendered by their native functions until a hybrid option changes. */
+.board.hc-board {box-sizing:border-box;container-type:inline-size;container-name:hybrid-board;
+  padding:2.7cqw 3.2cqw 3.6cqw;min-height:0;height:auto!important;
+  border-radius:0;overflow:hidden;isolation:isolate;position:relative;color:#f7fcff;
+  background:radial-gradient(ellipse at 50% 24%,#13506b,#052037 85%)}
+.board.hc-board.hc-tone-light{background:repeating-linear-gradient(135deg,#fafafa 0 2.3cqw,#f0f1f3 2.3cqw 4.6cqw);color:#13202a}
+.board.hc-board.hc-tone-metal{background:radial-gradient(ellipse at 45% 10%,#eeeeef,#aaaeb5 95%);color:#14202c}
+.board.hc-board.hc-tone-navy{background:repeating-linear-gradient(135deg,#ffffff05 0 1px,transparent 1px 22px),linear-gradient(130deg,#083d60,#08253f);color:#fff}
+.board.hc-board.hc-tone-blue{background:linear-gradient(135deg,#0d8793,#00647d 62%,#07304a);color:#fff}
+.board.hc-board.hc-tone-dark{background:radial-gradient(ellipse at 45% 20%,#2c333c,#0a0d13 80%);color:#fff}
+.hc-board .hc-stage{position:relative;display:grid;gap:var(--hc-gap,1.4cqw);grid-auto-rows:var(--hc-row,16cqw);min-width:0;align-items:stretch}
+.hc-board .hc-stage-grid{grid-template-columns:repeat(var(--hc-tracks),minmax(0,1fr))}
+.hc-board .hc-stage-orbit{grid-template-columns:minmax(0,36fr) minmax(0,28fr) minmax(0,36fr);column-gap:.7cqw;row-gap:var(--hc-gap,.8cqw)}
+.hc-board .hc-tile{min-width:0;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+.hc-board .hc-tile[data-kind="team"]{overflow:visible}
+.hc-board .hc-series{width:100%;height:100%;min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1%;gap:.3cqw}
+.hc-board .hc-series .ttl{font:italic 900 clamp(18px,3.8cqw,67px)/.89 'Titillium Web',Impact,sans-serif;letter-spacing:-.045em;text-transform:uppercase;white-space:pre-line;overflow-wrap:normal;max-width:100%;outline:none}
+.hc-board .hc-series .sub{font:italic 700 clamp(10px,1.45cqw,20px)/1 'Titillium Web',sans-serif;text-transform:uppercase;letter-spacing:.08em}
+.hc-board .hc-series.left{align-items:flex-start;text-align:left}.hc-board .hc-series.right{align-items:flex-end;text-align:right}
+.hc-board .hc-series-mark{max-width:100%;min-height:2.5cqw;max-height:6cqw;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:.3cqw .5cqw;
+  border:1px dashed #879aaa;color:#00b7ed;font:italic 900 clamp(14px,2cqw,30px)/.9 'Titillium Web',sans-serif;text-transform:uppercase}
+.hc-board .hc-series-mark img{max-width:100%;max-height:5cqw;object-fit:contain}
+.hc-board .hc-logo-tile{width:100%;height:100%;display:flex;justify-content:center;align-items:center;border:1px dashed #8498aa;color:#78909f;cursor:pointer;font:800 clamp(11px,1.5cqw,18px) 'Barlow Condensed',sans-serif;text-align:center}
+.hc-board .hc-logo-tile img{width:85%;height:80%;object-fit:contain}
+.hc-board.pv .hc-logo-tile:not(:has(img)),.hc-board.pv .hc-series-mark:not(:has(img)){border-color:transparent}
+.hc-board .hc-header{margin:0 auto 1.4cqw;width:min(70%,700px);min-height:9.5cqw}
+.hc-board .hc-orphan{width:31%;max-width:31%;justify-self:center;z-index:2}
+.hc-board .hc-last-left{justify-content:flex-start}.hc-board .hc-last-right{justify-content:flex-end}
+/* Team shell: all content is inside one independently sized tile. */
+.hc-board .hc-team{position:relative;width:100%;height:100%;min-height:0;min-width:0;box-sizing:border-box;
+  display:flex;flex-direction:column;justify-content:flex-end;--c:#39bdb0;--tc:#fff;--hc-logo-height:21%;
+  container-type:inline-size;container-name:hybrid-team;isolation:isolate;overflow:visible}
+.hc-board .hc-cardrow{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:repeat(var(--hc-slots),minmax(0,1fr));gap:var(--hc-card-gap,.3cqw);align-items:stretch;position:relative}
+.hc-board .hc-logo-slot{display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;z-index:4;position:relative;overflow:hidden}
+.hc-board .hc-logo{height:70%;width:92%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:inherit;overflow:hidden;padding:3%;box-sizing:border-box}
+.hc-board .hc-logo img{width:100%;height:100%;object-fit:contain}
+.hc-board .hc-logo .box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;height:100%;border:1px dashed currentColor;border-radius:3px;font:800 clamp(7px,2.75cqw,14px)/.95 'Barlow Condensed',sans-serif;text-align:center;opacity:.65;overflow:hidden}
+.hc-board .hc-logo .box svg{width:25%;max-height:48%;display:block}
+.hc-board .hc-logo-top,.hc-board .hc-logo-bottom{flex:0 0 var(--hc-logo-height);max-height:var(--hc-logo-height);display:flex;align-items:center;justify-content:center;position:relative;z-index:8}
+.hc-board .hc-logo-top .hc-logo,.hc-board .hc-logo-bottom .hc-logo{width:min(38%,150px);height:90%}
+.hc-board .hc-logo-top .hc-logo .box,.hc-board .hc-logo-bottom .hc-logo .box{flex-direction:row;gap:.35em}
+.hc-board .hc-logo-top .hc-logo .box svg,.hc-board .hc-logo-bottom .hc-logo .box svg{width:18%;max-height:90%}
+.hc-board .hc-teamname{display:block;position:absolute;z-index:10;left:50%;bottom:-1.2em;transform:translateX(-50%);font:800 clamp(9px,3.4cqw,16px)/1 'Barlow Condensed',sans-serif;white-space:nowrap;text-shadow:0 1px 2px #0006}
+.hc-board .hc-band{position:absolute;z-index:-1;inset:20% 0 27%;opacity:.30;background:linear-gradient(90deg,transparent,var(--c),transparent);pointer-events:none}
+.hc-board .hc-team .cp{position:absolute;z-index:20;right:1%;top:2%;width:clamp(10px,4cqw,19px);height:clamp(10px,4cqw,19px);bottom:auto;background:var(--c);border:1px solid #fff9;border-radius:100%;cursor:pointer;opacity:.72}
+.hc-board.pv .hc-team .cp{display:none}
+/* Each driver is its own framed component. The framework never overrides its grid. */
+.hc-board .hc-driver{min-width:0;min-height:0;position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;z-index:3;isolation:isolate;box-sizing:border-box}
+.hc-board .hc-portrait{height:69%;flex:1;min-height:0;width:100%;cursor:pointer;position:relative;display:flex;align-items:end;justify-content:center;overflow:hidden;background:linear-gradient(180deg,transparent 5%,#7894a61f 55%,#7894a639);border-radius:4px 4px 0 0;z-index:2;box-sizing:border-box}
+.hc-board .hc-portrait img{width:100%;height:100%;object-fit:contain;object-position:center bottom;display:block;position:absolute;inset:0}
+.hc-board .hc-portrait svg{width:73%;height:78%;max-width:100%;opacity:.64;color:#7798a9}
+.hc-board .hc-nameplate{height:27%;flex:0 0 27%;min-height:0;position:relative;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:center;padding:2px 3px;box-sizing:border-box;background:var(--c);color:var(--tc)}
+.hc-board .hc-nameplate .f,.hc-board .hc-nameplate .t{min-width:0;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:clip;outline:none;text-transform:uppercase;font-family:'Barlow Condensed',Impact,sans-serif;letter-spacing:0}
+.hc-board .hc-nameplate .f{font-size:clamp(7px,2.5cqw,14px);font-weight:500;line-height:1.0}
+.hc-board .hc-nameplate .t{font-size:clamp(9px,4.0cqw,19px);font-weight:900;line-height:1.0}
+.hc-board .hc-number{position:absolute;z-index:7;top:11%;right:4%;max-width:44%;color:#fff;text-shadow:0 1px 3px #000c;font:italic 900 clamp(12px,7cqw,35px)/1 'Titillium Web',Impact,sans-serif;white-space:nowrap;outline:none}
+.hc-board .hc-flag{position:absolute;z-index:8;top:4%;left:4%;width:clamp(13px,7cqw,25px);height:clamp(10px,4.5cqw,18px);cursor:pointer;background:#f9fafb;border:1px solid #081b2a33;border-radius:2px;display:flex;justify-content:center;align-items:center;overflow:hidden;font:700 clamp(11px,5cqw,18px) Arial,sans-serif}
+.hc-board .hc-flag img{height:100%;width:100%;object-fit:cover}
+.hc-board .hc-rookie.rk.on{position:absolute!important;z-index:11!important;top:auto!important;bottom:-.8em!important;left:12%!important;right:12%!important;width:76%!important;height:clamp(12px,3.3cqw,19px)!important;
+  min-height:0!important;margin:0!important;padding:1px 3px!important;border:0!important;display:flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;
+  clip-path:polygon(5% 0,100% 0,95% 100%,0 100%)!important;background:#00b2dc!important;color:#fff!important;
+  font:italic 900 clamp(9px,2.75cqw,13px)/1 'Titillium Web',Arial,sans-serif!important;letter-spacing:.045em!important;white-space:nowrap!important;opacity:1!important;transform:none!important}
+.hc-board .hc-rookie.rk:not(.on){position:absolute!important;bottom:0!important;right:0!important;left:auto!important;top:auto!important;width:12px!important;height:12px!important;display:flex!important;z-index:14!important}
+.hc-board .hc-cardrow[data-flow="stack"]{display:flex;flex-direction:column;gap:clamp(3px,.6cqw,8px)}
+.hc-board .hc-cardrow[data-flow="stack"] .hc-driver{height:0;flex:1;flex-direction:row;align-items:stretch;border-radius:3px;min-width:0;min-height:0}
+.hc-board .hc-cardrow[data-flow="stack"] .hc-portrait{height:100%;width:29%;flex:0 0 29%;border-radius:4px 0 0 4px}
+.hc-board .hc-cardrow[data-flow="stack"] .hc-nameplate{height:100%;width:71%;flex:1;align-items:flex-start;text-align:left;padding-left:5%;border-radius:0 4px 4px 0}
+.hc-board .hc-cardrow[data-flow="stack"] .hc-number{top:15%;right:3%;left:auto;font-size:clamp(12px,6cqw,30px)}
+.hc-board .hc-cardrow[data-flow="stack"] .hc-flag{top:9%;left:29%;transform:translateX(-40%)}
+.hc-board .hc-cardrow[data-flow="stack"] .hc-rookie.rk.on{bottom:2px!important;left:auto!important;right:3%!important;width:28%!important;height:clamp(10px,2.7cqw,15px)!important}
+.hc-board .hc-cardrow[data-flow="stack"] .hc-logo-slot{display:none}
+.hc-board .hc-cardrow[data-flow="stack"] .hc-portrait svg{height:85%;width:85%}
+.hc-board .hc-team[data-flow="stack"] .hc-logo-top{max-height:17%;flex-basis:17%}
+/* Team design layer — livery, backplate, team-logo treatment only. */
+.hc-board .hc-team[data-team-style="f1"]{--hc-card-gap:0}
+.hc-board .hc-team[data-team-style="f3"] .hc-cardrow{background:linear-gradient(180deg,#ffffff18,#828f9c0b);border-top:1px solid var(--c)}
+.hc-board .hc-team[data-team-style="f3"] .hc-logo{background:#ffffff46;clip-path:polygon(10% 0,100% 0,90% 100%,0 100%)}
+.hc-board .hc-team[data-team-style="f2"] .hc-logo{background:#e7eef2d9;color:#172736;clip-path:polygon(13% 0,100% 0,87% 100%,0 100%)}
+.hc-board .hc-team[data-team-style="indy"] .hc-cardrow{background:linear-gradient(#fff2,#fff0)}
+.hc-board .hc-team[data-team-style="indy"] .hc-logo{background:transparent}
+.hc-board .hc-team[data-team-style="broadcast"] .hc-cardrow{padding:2px;background:linear-gradient(#13192088,#080a0e77);box-shadow:inset 0 0 0 1px #ffffff20;gap:clamp(3px,1cqw,11px)}
+.hc-board .hc-team[data-team-style="broadcast"] .hc-logo{background:#09161f;color:#fff}
+.hc-board .hc-team[data-team-style="ice"] .hc-cardrow{background:linear-gradient(135deg,#63b3c936,#ffffff22)}
+.hc-board .hc-team[data-team-style="ice"] .hc-logo{background:transparent}
+.hc-board .hc-team[data-team-style="formulae"] .hc-cardrow::before{content:"";position:absolute;left:30%;right:30%;top:10%;height:48%;background:var(--c);z-index:-1;pointer-events:none}
+.hc-board .hc-team[data-team-style="formulae"] .hc-logo{background:transparent}
+.hc-board .hc-team[data-team-style="pill"] .hc-cardrow{border-radius:30px}
+.hc-board .hc-team[data-team-style="fe22"]{background:linear-gradient(120deg,var(--c) 0 33%,#e8ebee 33% 100%);clip-path:polygon(0 0,68% 0,76% 16%,100% 16%,100% 100%,0 100%)}
+.hc-board .hc-team[data-team-style="fe22"] .hc-logo{background:var(--c)}
+.hc-board .hc-team[data-team-style="motogp"] .hc-cardrow{background:linear-gradient(135deg,#ffffff25,#ffffff03)}
+.hc-board .hc-team[data-team-style="mg24"] .hc-cardrow{background:linear-gradient(135deg,#ffffff10,#0000000d)}
+.hc-board .hc-team[data-team-style="mg25"] .hc-cardrow{background:linear-gradient(135deg,var(--c),color-mix(in srgb,var(--c) 68%,#0b1828))}
+.hc-board .hc-team[data-team-style="mg26"] .hc-cardrow{background:repeating-linear-gradient(145deg,transparent 0 25px,#00000012 25px 26px),linear-gradient(90deg,var(--c),color-mix(in srgb,var(--c) 70%,black))}
+.hc-board .hc-team[data-team-style="sf"],.hc-board .hc-team[data-team-style="sf26"]{background:linear-gradient(110deg,#015d4b1c,#00cfab20)}
+.hc-board .hc-team[data-team-style="sf"] .hc-cardrow,.hc-board .hc-team[data-team-style="sf26"] .hc-cardrow{padding:2px;border-left:3px solid #00ad8a}
+/* Driver design layer — only this decides portrait, plate, number and badge shape. */
+.hc-board .hc-driver[data-card-style="ribbon"] .hc-nameplate{clip-path:polygon(10% 0,100% 0,90% 100%,0 100%);background:var(--c);font-style:italic}
+.hc-board .hc-driver[data-card-style="metal"] .hc-nameplate{background:linear-gradient(#ffffffe0,var(--c) 24%,var(--c) 80%,#172f42);clip-path:polygon(11% 0,100% 0,89% 100%,0 100%);font-style:italic;border-top:2px solid #e5edf4}
+.hc-board .hc-driver[data-card-style="f2"] .hc-nameplate{background:linear-gradient(110deg,var(--c),color-mix(in srgb,var(--c) 83%,#002f43));clip-path:polygon(12% 0,100% 0,88% 100%,0 100%);font-style:italic}
+.hc-board .hc-driver[data-card-style="f2"] .hc-rookie.rk.on{background:#00c5f5!important}
+.hc-board .hc-driver[data-card-style="paper"] .hc-nameplate{background:#e8ebec;color:#172128;clip-path:polygon(0 0,62% 0,76% 18%,100% 18%,100% 100%,0 100%);align-items:flex-start;text-align:left}
+.hc-board .hc-driver[data-card-style="broadcast"]{padding:2px 2px 0;background:linear-gradient(150deg,var(--c),#6c767a);clip-path:polygon(0 0,80% 0,100% 13%,100% 100%,0 100%)}
+.hc-board .hc-driver[data-card-style="broadcast"] .hc-portrait{border:2px solid var(--c);border-bottom:0;background:linear-gradient(125deg,color-mix(in srgb,var(--c) 35%,#101b22),#101116);border-radius:0;clip-path:none}
+.hc-board .hc-driver[data-card-style="broadcast"] .hc-nameplate{background:linear-gradient(145deg,#343b3d,#090e11);color:#fff;border-top:2px solid var(--c);height:33%;flex-basis:33%;align-items:flex-start;text-align:left}
+.hc-board .hc-driver[data-card-style="broadcast"] .hc-number{top:15%;right:7%;font-size:clamp(15px,8cqw,39px)}
+.hc-board .hc-driver[data-card-style="ice"] .hc-nameplate{background:#c5dce5;color:#14202b;clip-path:polygon(0 0,92% 0,100% 16%,100% 85%,92% 100%,10% 100%,0 84%)}
+.hc-board .hc-driver[data-card-style="ice"] .hc-number{top:auto;right:auto;bottom:22%;left:1%;width:clamp(16px,8cqw,38px);height:clamp(16px,8cqw,38px);background:var(--c);border:2px solid #fff;border-radius:100%;display:flex;align-items:center;justify-content:center;font-size:clamp(12px,5cqw,23px);text-shadow:none}
+.hc-board .hc-driver[data-card-style="pill"] .hc-nameplate{background:var(--c);border-radius:100px;color:white}
+.hc-board .hc-driver[data-card-style="clean"] .hc-nameplate{background:#f8fafb;color:#1b2632;border-top:3px solid var(--c);border-radius:0 0 7px 7px}
+.hc-board .hc-driver[data-card-style="fe22"] .hc-nameplate{background:#f7fafc;color:#17212b;border-bottom:4px solid var(--c);align-items:flex-start;text-align:left}
+.hc-board .hc-driver[data-card-style="segment"] .hc-nameplate{background:linear-gradient(90deg,var(--c) 0 87%,#0b0e13 87% 100%);clip-path:polygon(10% 0,100% 0,90% 100%,0 100%)}
+.hc-board .hc-driver[data-card-style="mg24"] .hc-nameplate{background:var(--c);color:var(--tc);border-left:clamp(4px,2cqw,9px) solid #f7fafb}
+.hc-board .hc-driver[data-card-style="mg24"] .hc-number{top:auto;right:0;bottom:0;background:#f5f8fa;color:var(--c);font-size:clamp(10px,5cqw,25px);text-shadow:none}
+.hc-board .hc-driver[data-card-style="mg25"] .hc-portrait{background:linear-gradient(145deg,color-mix(in srgb,var(--c) 85%,white),var(--c))}
+.hc-board .hc-driver[data-card-style="mg25"] .hc-nameplate{background:var(--c);color:var(--tc);border-top:3px solid #13161a}
+.hc-board .hc-driver[data-card-style="mg26"] .hc-nameplate{background:var(--c);color:var(--tc);clip-path:polygon(12% 0,100% 0,88% 100%,0 100%);border-right:4px solid #101014}
+.hc-board .hc-driver[data-card-style="timing"] .hc-nameplate{background:linear-gradient(90deg,#065d4c,var(--c));color:white;text-align:left;align-items:flex-start;border-radius:3px}
+.hc-board .hc-driver[data-card-style="sf26"] .hc-nameplate{background:linear-gradient(90deg,#033e31,#008d76 50%,var(--c));color:white;text-align:left;align-items:flex-start;border-radius:5px}
+.hc-board .hc-cardrow[data-flow="stack"] .hc-driver[data-card-style="broadcast"]{clip-path:polygon(0 0,94% 0,100% 19%,100% 100%,0 100%)}
+.hc-board .hc-cardrow[data-flow="stack"] .hc-driver[data-card-style="ice"] .hc-number{bottom:0;left:20%}
+.hc-board .hc-cardrow[data-flow="stack"] .hc-driver[data-card-style="mg24"] .hc-number{bottom:0;left:0;right:auto}
+.hc-board .hc-team[data-logo="above"] .hc-cardrow,.hc-board .hc-team[data-logo="below"] .hc-cardrow{height:0}
+.hc-board .hc-team[data-logo="above"] .hc-logo-top{order:0}.hc-board .hc-team[data-logo="above"] .hc-cardrow{order:1}
+.hc-board .hc-team[data-logo="below"] .hc-cardrow{order:0}.hc-board .hc-team[data-logo="below"] .hc-logo-bottom{order:1}
+@media(max-width:650px){.hc-board .hc-series .ttl{font-size:clamp(13px,3.9cqw,33px)}.hc-board .hc-logo .box{font-size:7px}}
+
+
+/* Mixed-orientation safeguards: explicit driver frame may not shrink a timing row. */
+.hc-board .hc-cardrow[data-flow="stack"] .hc-driver .hc-nameplate{height:100%!important;min-height:0!important;flex:1 1 auto!important;align-items:flex-start!important;justify-content:center!important;overflow:hidden!important;padding:1px 5% 1px 6%!important}
+.hc-board .hc-cardrow[data-flow="stack"] .hc-driver .hc-portrait{height:100%!important;flex:0 0 29%!important;max-width:29%!important;min-width:0!important}
+.hc-board .hc-cardrow[data-flow="stack"] .hc-driver .hc-nameplate .t{font-size:clamp(10px,3.4cqw,18px)}
+.hc-board .hc-cardrow[data-flow="stack"] .hc-driver .hc-nameplate .f{font-size:clamp(8px,2.5cqw,12px)}
+.hc-board .hc-team[data-flow="stack"] .hc-logo-top{min-height:23%!important;max-height:23%!important;flex:0 0 23%!important;overflow:visible}
+.hc-board .hc-team[data-flow="stack"] .hc-logo-top .hc-logo{width:55%;height:100%;min-height:100%;overflow:visible}
+.hc-board .hc-team[data-flow="stack"] .hc-logo-top .hc-logo .box{min-height:17px;height:100%;font-size:clamp(9px,2.9cqw,14px);border:1px dashed #618596;border-radius:3px;overflow:visible;flex-direction:row}
+.hc-board .hc-team[data-flow="stack"] .hc-logo-top .hc-logo .box svg{height:85%;width:17%;max-height:none}
+.hc-board .hc-team[data-flow="stack"] .hc-logo-top .hc-logo .box span{font-size:inherit;line-height:1}
+.hc-board .hc-team[data-flow="stack"] .hc-logo-top .hc-logo img{height:95%;width:100%;object-fit:contain}
+
+/* Legible exterior team logo at low row heights. The placeholder does not
+   collapse into dashed scribbles when another team's driver count moves it. */
+.hc-board .hc-team[data-flow="stack"] .hc-logo-top .hc-logo .box svg{display:none}
+.hc-board .hc-team[data-flow="stack"] .hc-logo-top .hc-logo .box span{display:block;font:800 clamp(10px,3.5cqw,16px)/1 'Barlow Condensed',Arial,sans-serif;letter-spacing:.09em;text-transform:uppercase}
+.hc-board .hc-team[data-flow="stack"] .hc-logo-top .hc-logo .box{border:1px dashed #a3b1b9;overflow:visible;justify-content:center}
+.hc-board .hc-teamname{position:absolute;z-index:16;top:1px;bottom:auto;left:3px;transform:none;padding:2px 5px;background:#091723bb;color:#fff;border-radius:3px;font:800 clamp(9px,3cqw,14px)/1.05 'Barlow Condensed',sans-serif}
+.hc-board .hc-team[data-team-style="motogp"] .hc-cardrow{background:linear-gradient(135deg,#ffffff24,#0000000d)}
+.hc-board .hc-team[data-team-style="motogp"] .hc-logo{background:#0b0d12;color:#fff;clip-path:polygon(11% 0,100% 0,89% 100%,0 100%)}
+
+/* ===== v15: real horseshoe placement; no forced straight-column grid ===== */
+.hc-board .hc-stage-orbit{overflow:visible;}
+.hc-board .hc-stage-orbit .hc-tile.hc-arc-left,
+.hc-board .hc-stage-orbit .hc-tile.hc-arc-right{
+  translate:var(--hc-arc,0px) 0;
+  will-change:auto;
+}
+/* The last centered team must be the same physical size as its neighbors. */
+.hc-board .hc-stage-orbit .hc-orphan{width:36%;max-width:36%;}
+.hc-board .hc-stage-orbit .hc-center{pointer-events:none;}
+.hc-board .hc-stage-orbit .hc-center [contenteditable],
+.hc-board .hc-stage-orbit .hc-center [data-k]{pointer-events:auto;}
+
+/* ===== v15: native-looking 2025 IndyCar cutout paper cards in hybrid mode =====
+   The portrait is unframed; the off-white folded plate has normal first name
+   above bold surname, with its distinctive high-right angled paper corner. */
+.hc-board .hc-driver[data-card-style="paper"]{
+  overflow:visible; background:transparent!important;
+  padding:0 1px; isolation:isolate;
+}
+.hc-board .hc-cardrow:not([data-flow="stack"]) .hc-driver[data-card-style="paper"] .hc-portrait{
+  height:auto; flex:1 1 auto; min-height:0; margin-bottom:-2%;
+  overflow:visible; border:0; border-radius:0; z-index:2;
+  background:transparent!important;
+}
+.hc-board .hc-driver[data-card-style="paper"] .hc-portrait svg{
+  width:88%;height:89%;margin:0 auto;opacity:.78;color:#7b8994;
+}
+.hc-board .hc-driver[data-card-style="paper"] .hc-portrait img{
+  object-fit:contain; object-position:center bottom;filter:none;
+}
+.hc-board .hc-cardrow:not([data-flow="stack"]) .hc-driver[data-card-style="paper"] .hc-nameplate{
+  flex:0 0 29%; height:29%;min-height:0;
+  padding:3px 7% 3px 7%; margin:0; align-items:flex-start;
+  justify-content:center;overflow:hidden;text-align:left;
+  background:#eeefed!important;color:#090b0d!important;
+  border:0;border-radius:0;
+  clip-path:polygon(0 0,60% 0,73% 23%,100% 23%,100% 100%,0 100%);
+  box-shadow:none;
+}
+.hc-board .hc-driver[data-card-style="paper"] .hc-nameplate .f{
+  font-family:'Barlow Semi Condensed','Barlow Condensed',Arial,sans-serif;
+  font-weight:400; font-style:normal; font-size:clamp(9px,2.9cqw,16px);
+  line-height:1.0;text-align:left;letter-spacing:0;text-transform:uppercase;
+}
+.hc-board .hc-driver[data-card-style="paper"] .hc-nameplate .t{
+  font-family:'Barlow Semi Condensed','Barlow Condensed',Arial,sans-serif;
+  font-style:normal;font-weight:800;font-size:clamp(11px,4.6cqw,21px);
+  line-height:.97;text-align:left;letter-spacing:-.02em;text-transform:uppercase;
+}
+.hc-board .hc-driver[data-card-style="paper"] .hc-number{
+  top:6%;right:5%;color:#202b33;text-shadow:none;
+  font-size:clamp(11px,5cqw,24px);
+}
+.hc-board .hc-driver[data-card-style="paper"] .hc-flag{top:1%;left:1%;}
+/* Distinct paper first+last line remains visible in a Super Formula timing
+   team too; stacked drivers retain an uncut full-height plate. */
+.hc-board .hc-cardrow[data-flow="stack"] .hc-driver[data-card-style="paper"] .hc-nameplate{
+  background:#eeefed!important;color:#0c131a!important;clip-path:polygon(0 0,95% 0,100% 17%,100% 100%,0 100%);
+}
+.hc-board .hc-cardrow[data-flow="stack"] .hc-driver[data-card-style="paper"] .hc-portrait{background:transparent!important}
+/* Honor the separate custom text-color setting without recoloring paper cards
+   through unrelated team shell treatments. */
+.hc-board .hc-driver[data-card-style="paper"] .hc-nameplate .f,
+.hc-board .hc-driver[data-card-style="paper"] .hc-nameplate .t{color:inherit;}
+
+
+/* ================= v16: authentic hybrid paper cards + color mixing ================ */
+.mix-color-controls{display:flex;flex-direction:column;gap:9px;margin-top:3px;padding:12px 10px;border:1px solid var(--ln);border-radius:8px;background:color-mix(in srgb,var(--pn) 92%,var(--ac) 8%)}
+.mix-color-controls strong{font:800 13px/1.2 Barlow,sans-serif;color:var(--tx)}
+/* The IndyCar 2025 team shell must not create a dark billboard spanning the portraits.
+   Each portrait/nameplate is its own card; the team logo is an exterior element. */
+.hc-board .hc-team[data-team-style="indy"] .hc-cardrow{
+  background:transparent!important;border:0!important;box-shadow:none!important;
+  gap:clamp(5px,.8cqw,12px);padding:0!important;
+}
+.hc-board .hc-team[data-team-style="indy"] .hc-driver[data-card-style="paper"]{background:none!important;}
+.hc-board .hc-team[data-team-style="indy"] .hc-logo-bottom{flex-basis:13%;max-height:13%;}
+.hc-board .hc-team[data-team-style="indy"] .hc-logo-bottom .hc-logo{height:100%;width:32%;padding:0;}
+.hc-board .hc-team[data-team-style="indy"] .hc-logo-bottom .hc-logo .box{background:transparent;border-color:currentColor;}
+.hc-board .hc-team[data-team-style="indy"] .hc-band{opacity:.08;}
+/* Photograph is a cutout BEHIND the paper card, never a framed rectangle in
+   front of its name. The paper plate overlaps the bottom of the image. */
+.hc-board .hc-cardrow:not([data-flow="stack"]) .hc-driver[data-card-style="paper"]{
+  padding:0;overflow:visible;isolation:isolate;
+}
+.hc-board .hc-cardrow:not([data-flow="stack"]) .hc-driver[data-card-style="paper"] .hc-portrait{
+  flex:1 1 auto;height:auto;min-height:0;position:relative;
+  margin:0 0 -10% 0!important;z-index:1!important;overflow:hidden;
+  background:transparent!important;border:0!important;border-radius:0!important;
+}
+.hc-board .hc-cardrow:not([data-flow="stack"]) .hc-driver[data-card-style="paper"] .hc-portrait img{
+  height:100%;width:100%;inset:0;object-fit:contain;object-position:center bottom;
+}
+.hc-board .hc-cardrow:not([data-flow="stack"]) .hc-driver[data-card-style="paper"] .hc-portrait svg{
+  width:82%;height:86%;opacity:.56;
+}
+.hc-board .hc-cardrow:not([data-flow="stack"]) .hc-driver[data-card-style="paper"] .hc-nameplate{
+  flex:0 0 33%;height:33%;position:relative;z-index:10!important;
+  background:#eeefef!important;color:#14191d!important;
+  padding:3px 5%;border:0!important;border-radius:0!important;
+  align-items:flex-start;justify-content:center;text-align:left;
+  clip-path:polygon(0 0,62% 0,73% 15%,100% 15%,100% 100%,0 100%);
+}
+.hc-board .hc-driver[data-card-style="paper"] .hc-nameplate .f{font-weight:400;font-style:normal;opacity:1;line-height:.97;}
+.hc-board .hc-driver[data-card-style="paper"] .hc-nameplate .t{font-weight:900;font-style:normal;line-height:1;}
+.hc-board .hc-driver[data-card-style="paper"] .hc-nameplate .f,.hc-board .hc-driver[data-card-style="paper"] .hc-nameplate .t{
+  font-family:'Barlow Semi Condensed','Barlow Condensed',Arial,sans-serif;
+}
+/* Optional livery mapping applies to the actual plate regardless of source
+   template; card clipping, paper folds and portrait layout are preserved. */
+.hc-board .hc-driver.hc-team-plate .hc-nameplate{
+  background:var(--c)!important;
+  color:var(--hc-plate-ink)!important;
+}
+.hc-board .hc-driver.hc-team-plate:not(.hc-team-lettering) .hc-nameplate .f,
+.hc-board .hc-driver.hc-team-plate:not(.hc-team-lettering) .hc-nameplate .t{
+  color:var(--hc-plate-ink)!important;
+}
+.hc-board .hc-driver.hc-team-lettering .hc-nameplate .f,
+.hc-board .hc-driver.hc-team-lettering .hc-nameplate .t{
+  color:var(--c)!important;
+}
+/* When both toggles are on, an inset contrasting field avoids identical
+   foreground/background team colors disappearing into one another. */
+.hc-board .hc-driver.hc-team-lettering.hc-team-plate .hc-nameplate .f,
+.hc-board .hc-driver.hc-team-lettering.hc-team-plate .hc-nameplate .t{
+  background:var(--hc-plate-ink)!important;color:var(--c)!important;
+  padding:0 .2em;border-radius:1px;
+}
+.hc-board .hc-driver.hc-team-lettering:not(.hc-team-plate) .hc-nameplate .f,
+.hc-board .hc-driver.hc-team-lettering:not(.hc-team-plate) .hc-nameplate .t{
+  text-shadow:0 1px 1px #0003;
+}
+/* Paper plates have reference-specific !important backgrounds, so the
+   optional team fill needs equal-or-higher specificity to take priority. */
+.hc-board .hc-cardrow:not([data-flow="stack"]) .hc-driver[data-card-style="paper"].hc-team-plate .hc-nameplate,
+.hc-board .hc-cardrow[data-flow="stack"] .hc-driver[data-card-style="paper"].hc-team-plate .hc-nameplate{
+  background:var(--c)!important;color:var(--hc-plate-ink)!important;
+}
+.hc-board .hc-team[data-team-style="indy"] .hc-logo-bottom{flex-basis:17%;max-height:17%;}
+.hc-board .hc-team[data-team-style="indy"] .hc-logo-bottom .hc-logo{width:40%;}
+.hc-board .hc-team[data-team-style="indy"] .hc-logo-bottom .hc-logo .box{font-size:clamp(8px,2.7cqw,13px);}
+.hc-board .hc-cardrow:not([data-flow="stack"]) .hc-driver[data-card-style="paper"] .hc-portrait svg{
+  width:98%;height:100%;opacity:.6;
+}
+/* Color dots are editable on hover or focus, not broadcast-style decorations. */
+.hc-board:not(.pv) .hc-team .cp{opacity:0;}
+.hc-board:not(.pv) .hc-team:hover .cp,.hc-board:not(.pv) .hc-team .cp:focus-visible{opacity:.92;}
+
+
+.seg label[hidden]{display:none!important}
+/* ===== Two standalone build-your-own compositions; all earlier templates remain intact ===== */
+.quick-panel{background:var(--pn);border:1px solid var(--ln);border-radius:12px;padding:14px 17px;margin-bottom:14px}
+.quick-panel[hidden]{display:none!important}
+.quick-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.quick-head div{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline}
+.quick-head strong{font:900 17px/1 'Barlow Condensed',Arial,sans-serif;letter-spacing:.065em;color:var(--tx)}
+.quick-head span,.quick-more p{font:500 12px/1.4 Barlow,sans-serif;color:var(--mu)}
+.quick-head button{flex:none;border:1px solid var(--ln);border-radius:7px;background:transparent;padding:7px 10px;cursor:pointer;color:var(--tx);font:700 12px Barlow,sans-serif}
+.quick-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px 14px;align-items:end}
+.quick-fields label{font:600 12px/1.3 Barlow,sans-serif;color:var(--mu);display:flex;flex-direction:column;gap:5px;min-width:0}
+.quick-fields label span{display:inline;color:var(--tx)}
+.quick-fields label.quick-check{flex-direction:row;align-items:center;color:var(--tx);padding:9px 0;gap:7px}
+.quick-fields select{width:100%;min-width:0;background:var(--bg);color:var(--tx);border:1px solid var(--ln);border-radius:6px;padding:7px 9px;font:600 13px Barlow,sans-serif}
+.quick-fields input[type=range]{width:100%;min-width:0;accent-color:var(--ac)}
+.quick-fields input[type=checkbox]{accent-color:var(--ac)}
+.quick-more{border-top:1px solid var(--ln);margin-top:12px;padding-top:10px}
+.quick-more summary{cursor:pointer;font:800 12px Barlow,sans-serif;color:var(--tx);margin-bottom:9px}
+.quick-more p{margin:12px 0 1px}
+.hc-board.hc-standalone-orbit:before{content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;opacity:.20;background:repeating-linear-gradient(145deg,transparent 0 68px,#ffffff19 69px 70px,transparent 71px 104px)}
+.hc-board.hc-standalone-orbit .hc-series{position:relative;gap:.85cqw}
+.hc-board.hc-standalone-orbit .hc-series:before,.hc-board.hc-standalone-orbit .hc-series:after{content:"";width:50%;max-width:6cqw;height:2px;background:#16c5db;opacity:.9;flex:none}
+.hc-board.hc-standalone-orbit .hc-series .ttl{font-style:normal;letter-spacing:-.042em;font-weight:900}
+.hc-board.hc-standalone-grid:before{content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;opacity:.35;background:repeating-linear-gradient(133deg,transparent 0 75px,#8a9aab16 76px 112px,transparent 113px 150px)}
+.hc-board.hc-standalone-grid .hc-header{min-height:8.5cqw;margin-bottom:2cqw}
+.hc-board.hc-standalone-grid .hc-series .ttl{font-style:normal;letter-spacing:-.037em}
+.hc-board.hc-standalone-grid .hc-tile[data-kind=team]{padding:.3cqw}
+.hc-board.hc-standalone-grid .hc-team[data-team-style=formulae] .hc-cardrow::before{height:47%;left:27%;right:27%;top:6%}
+.hc-board.hc-standalone-grid .hc-team .hc-logo-slot{z-index:9}
+/* No decorative overlays capture clicks or trigger unexpected card reflow. */
+.hc-board.hc-standalone-orbit .hc-team,.hc-board.hc-standalone-grid .hc-team{overflow:visible}
+@media(max-width:700px){.quick-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.quick-head{align-items:flex-start}}
+
+.lineup-board{visibility:hidden}
+
+@font-face{font-family:Formula1;src:url('../fonts/Formula1-Regular_web_0%20(1).ttf')}@font-face{font-family:Formula1;src:url('../fonts/Formula1-Bold_web_0%20(1).ttf');font-weight:700}html,body{height:100%;overflow:hidden;padding:0!important}body .wrap{position:absolute;width:1600px;max-width:none;transform-origin:top left}.lineup-board{visibility:hidden}.lineup-board.f1 .ttl,.lineup-board.f1 .sub,.lineup-board.f1 .nm,.lineup-board.f2 .f2-name,.lineup-board.f2 .f2-nameplate,.lineup-board.f2 .f2-surname,.lineup-board.f2 .f2-title,.lineup-board.f2 .ttl,.lineup-board.f2 .sub{font-family:Formula1,sans-serif!important}.lineup-board .fe12-bg-action{display:none!important}
+.lineup-board.f2-native .f2-label,.lineup-board.f2-native .f2-titletext,.lineup-board.f2-native .f2-yeartxt{font-family:Formula1,sans-serif!important}.lineup-board.btg-dark .fe12-back{display:none}.lineup-board.f2-native .f2-yeartxt,.lineup-board.f1 .sub{color:var(--btg-accent)!important}.lineup-board .fe12-name .t{color:var(--name-ink,#111)!important}
+.lineup-board.btg-dark{background:#17181d!important}.lineup-board.btg-light{background:#f4f4f4!important}.lineup-board.btg-grey{background:#aaa!important}.lineup-board::before,.lineup-board::after,.lineup-board .band::before{display:none!important}.lineup-board .band::after{border-top:0!important}.lineup-board.f2-native .f2-teamlogo{background:transparent!important;clip-path:none!important;padding:0!important;box-shadow:none!important;filter:none!important;transform:translateX(-50%) scale(1.2)!important;overflow:visible!important}.lineup-board.f1 .lg{transform:scale(1.2)}.lineup-board .nm .t,.lineup-board .f2-label .t,.lineup-board .fe12-name .t,.lineup-board .fe12-name .f{overflow:visible!important;text-overflow:clip!important}
+.lineup-board [data-k="img"],.lineup-board [data-k="logo"]{background:transparent!important;box-shadow:none!important;border:0!important}.lineup-board.f1.btg-light{background:repeating-linear-gradient(135deg,#f4f4f4 0 .6cqw,#ececec .6cqw 1.2cqw)!important}.lineup-board.f1.btg-dark{background:repeating-linear-gradient(135deg,#17181d 0 .6cqw,#1c1e24 .6cqw 1.2cqw)!important}
+@font-face{font-family:Formula1Wide;src:url('../fonts/Formula1-Wide_web_0%20(1).ttf');font-weight:700}.lineup-board .opt-logo-band{display:none!important}.lineup-board.f2-native.btg-dark{background:radial-gradient(ellipse at 55% 30%,#075a80,#03314c 70%,#021d30)!important}.lineup-board.f2-native::before{display:block!important;background:repeating-linear-gradient(125deg,#0004 0 1px,transparent 1px 5px)!important;opacity:.45}.lineup-board.f2-native .f2-titletext{font-family:Formula1Wide,Formula1,sans-serif!important;font-size:2.65cqw;font-weight:700;font-style:italic;white-space:nowrap;letter-spacing:-.04em;margin-top:1.4cqw}.lineup-board.f2-native .f2-yeartxt{font-family:Formula1Wide,Formula1,sans-serif!important;font-size:4.1cqw;font-weight:700;font-style:italic}.lineup-board.f2-native .f2-label .t{font-family:Formula1,sans-serif!important;font-weight:700;font-size:1.18cqw}.lineup-board.f2-native .f2-label{background:linear-gradient(110deg,var(--c) 0%,var(--c) 53%,#07101be6 100%);height:16%;overflow:visible}.lineup-board.f2-native .f2-livery{top:34%;height:22%;opacity:1;background:linear-gradient(100deg,transparent 0%,#fff 24%,#fff 78%,transparent 100%);clip-path:polygon(9% 0,100% 0,93% 100%,0 100%)}.lineup-board.f2-native .f2-driver>.f2-flag{position:absolute;left:8%;top:65%;width:1.65cqw;height:1.1cqw;z-index:8;transform:skew(-10deg)}.lineup-board.f2-native .f2-face img{object-fit:cover;object-position:center 14%}.lineup-board.f2-native .f2-brandmark img{max-width:90%}
+.lineup-board.f1 .nm{padding-inline:.75em!important}.lineup-board.f2-native .f2-titletext,.lineup-board.f2-native .f2-yeartxt{max-width:100%}.lineup-board .sl{border:0!important;background:transparent!important}
+.lineup-board.f1 .nm{padding-inline:1.15em!important}.lineup-board .fe12-team,.lineup-board .fe12-backbar,.lineup-board .fe12-logo,.lineup-board .fe12-logo img{opacity:1!important;filter:none!important;mix-blend-mode:normal!important}.lineup-board .fe12-backbar{background:var(--logo-bg,var(--c))!important}.lineup-board.f2-native .f2-livery{top:32%;height:26%}.lineup-board.f1 [data-k=logo] img,.lineup-board.f2-native [data-k=logo] img{filter:drop-shadow(0 .4px .4px #0009)}
+.lineup-board.f1 .tb .sl{width:18cqw;aspect-ratio:2.4;height:7.5cqw}.lineup-board.f1 .tb>.sub{font:italic 700 2.5cqw Formula1,sans-serif;margin:0!important}.lineup-board.f1 .tb .ttl{font-size:3.8cqw}.lineup-board.fe12 .fe12-series{top:0;transform:scale(3);transform-origin:top right}
+:scope{position:relative;width:100%;height:100%;overflow:hidden;container-type:inline-size} .wrap{position:absolute;width:1600px;padding:0;margin:0;max-width:none;transform-origin:top left}.wrap>.lineup-board{visibility:visible!important}.wrap [data-k]{pointer-events:none}
+
+}
+
+@scope (.native-lineup-root) {
+  .lineup-board.fe12 .fe12-header { gap: .65cqw; }
+  .lineup-board.fe12 .fe12-header .title-year,
+  .lineup-board.fe12 .fe12-header .ttl {
+    letter-spacing: .015em;
+    word-spacing: .12em;
+    line-height: 1.08;
+  }
+}
+
+@scope (.native-lineup-root) {
+  .lineup-board.fe12 .fe12-header .title-year,
+  .lineup-board.fe12 .fe12-header .ttl { font-family: 'Archivo Black', Arial, sans-serif; }
+}
+
+@scope (.native-lineup-root) {
+ .support-map .lineup-role{position:absolute;white-space:nowrap;z-index:20;background:var(--btg-accent,#1686b0);color:#fff;padding:.15cqw .5cqw;font:700 .65cqw/1.1 Arial,sans-serif;text-transform:uppercase;letter-spacing:.03em;transform:skew(-10deg);border-radius:.1cqw}
+ .support-map .nm>.lineup-role{top:calc(100% + .15cqw);left:15%}
+ .support-map .f2-driver>.lineup-role{bottom:3%;left:10%}
+ .support-map .fe12-name{position:relative}
+ .support-map .fe12-name>.lineup-role{top:calc(100% + .3cqw);left:0}
+ .support-map .fe12-name:last-child>.lineup-role{left:auto;right:0}
+ .support-map .fe12-team[data-drivers="1"] .fe12-name{align-items:flex-start;text-align:left}
+ .support-map .fe12-team[data-drivers="1"] .fe12-logo{left:56%}
+ .support-map .fe12-team[data-drivers="1"] .fe12-portrait{width:50%}
+ .support-map .f2-team[data-count="1"] .f2-heads{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .support-map .f2-team[data-count="1"] .f2-teamlogo{left:70%}
+ .support-small{padding:3cqw!important;aspect-ratio:auto;min-height:25cqw}
+ .support-small .support-small-grid{gap:4cqw;padding-bottom:2cqw;margin-top:3cqw}
+ .support-small .tb.inline .sl{width:12cqw!important;height:6cqw!important}
+ .support-small .team{width:100%}
+}
+
+@scope (.native-lineup-root) {
+ .support-map .lineup-role{font-size:14px;padding:2px 6px;}
+}
+
+@scope (.native-lineup-root) {
+ .lineup-driver-link{color:inherit;text-decoration:none;pointer-events:auto;cursor:pointer}
+ .lineup-driver-link:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+ .lineup-photo-link{position:absolute;inset:0;display:block}
+ .lineup-board .nm .t>.lineup-driver-link,.lineup-board .f2-label .t>.lineup-driver-link{display:block}
+ .lineup-board .fe12-name>.lineup-driver-link{display:contents}
+ .support-map:not(.orbit) .cell .team{max-width:100%;transform:none}
+ .support-map .grid.standard-two{gap:3cqw 2cqw}
+ .support-map .standard-orphan .team{max-width:38cqw;margin:auto}
+}
+
+@scope (.native-lineup-root) { .support-map.orbit{padding-bottom:6cqw} }

@@ -640,7 +640,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
       <div class="field-row">
         <div class="field">
           <label for="new-driver-name">Driver name</label>
-          <input type="text" id="new-driver-name" placeholder="e.g. Eetu Väisänen">
+          <input type="text" id="new-driver-name" placeholder="e.g. Eetu VÃ¤isÃ¤nen">
         </div>
         <div class="field" style="flex:2; min-width:200px;">
           <label for="new-driver-nation">Nation</label>
@@ -770,7 +770,7 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
           <select id="sr-series-select">
             <option value="F1">F1</option>
             <option value="F2">F2</option>
-            <option value="GT1">GT1</option>
+            
             <option value="XGT">XGT</option>
           </select>
         </div>
@@ -1601,7 +1601,10 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
         <label for="cm-message">Message</label>
         <input type="text" id="cm-message" placeholder="Optional note to your driver…">
       </div>
-      <p class="muted" style="margin-top:8px;">The start year is locked. This is an offer — the driver has to accept it. A change must pay at least 80% of the current salary, and only one change per month.</p>
+      <div class="field contract-buyout-field"><label for="cm-buyout">Buyout clause: <output id="cm-buyout-value">2.0×</output> remaining contract value</label>
+        <input type="range" id="cm-buyout" min="1.5" max="5" step="0.1" value="2" oninput="document.getElementById('cm-buyout-value').textContent=Number(this.value).toFixed(1)+'×'">
+        <span class="muted">Changes only after the revised contract is agreed and signed. Mutual termination is free.</span></div>
+      <p class="muted" style="margin-top:8px;">The start year is locked. This is an offer — the driver has to accept it. A change must pay at least 80% of the current salary. Driving roles take two game weeks; demotions take one week. Promotions from Affiliate to Junior, or Junior/Affiliate to Reserve, are immediate once agreed.</p>
       <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
         <button class="action action-quiet action-compact" onclick="closeContractModify()"><span>Cancel</span></button>
         <button class="action action-lead action-compact" id="cm-send-btn" onclick="submitContractModify()"><span>Send change</span></button>
@@ -1611,16 +1614,17 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
   </div>
 </div>
 
-<script src="js/common.js"></script>
+<script src="js/common.js?v=20261117-profile-team-16"></script>
 <script src="js/border-glow.js"></script>
-<script src="teams/f1.js"></script>
+<script src="teams/f1.js?v=20261117-lineups-photos"></script>
 <script src="js/roster.js"></script>
-<script src="js/data-loader.js"></script>
-<script src="js/db-cache.js"></script>
+<script src="js/data-loader.js?v=20261117-profile-team-16"></script>
+<script src="js/db-cache.js?v=20261117-profile-team-16"></script>
 <script src="js/driver-profile.js"></script>
 <script src="js/circuits.js"></script>
 <script src="js/notification-sounds.js"></script>
 <script src="js/parts-design.js"></script>
+<script src="js/contract-workflows.js"></script>
 <script>
 /* ============================================================
    CONFIG
@@ -2371,6 +2375,7 @@ function openPartModal(partId, car, teamKey) {
   const pt = ((window._paParts || []).find(function (p) { return p.part_id === Number(partId); })) || null;
   if (!pt) return;
   let sel = Number(car === 1 ? pt.car1_design_id : pt.car2_design_id);
+  const otherDesign = Number(car === 1 ? pt.car2_design_id : pt.car1_design_id);
   const designs = pt.designs || [];
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
@@ -2381,7 +2386,7 @@ function openPartModal(partId, car, teamKey) {
     + '<div class="pa-design-list">'
     + designs.map(function (d) {
         var qty = Number(d.quantity) || 0;
-        var outOfStock = qty <= 0;
+        var outOfStock = qty < (d.design_id === otherDesign ? 2 : 1);
         return '<button type="button" class="pa-design-option' + (d.design_id === sel ? ' active' : '') + (outOfStock ? ' pa-design-option--empty' : '') + '" data-design="' + d.design_id + '">'
           + '<span class="pa-design-head"><span class="pa-design-name">' + BTG.esc(d.name) + '</span>'
           + '<span class="pa-design-right"><span class="pa-design-src">' + (d.design_id === Number(car === 1 ? pt.car1_design_id : pt.car2_design_id) ? 'on this car' : d.source === 'fitted' ? 'base' : 'developed') + '</span><span class="pa-design-qty">×' + qty + '</span></span></span>'
@@ -2421,7 +2426,7 @@ function openPartModal(partId, car, teamKey) {
       showResult(resultEl, true, '✓ Fitted ' + BTG.esc(paDesignName(pt, sel)) + ' to Car ' + car + '.');
       setTimeout(function () { overlay.remove(); renderPartsAllocation(); }, 700);
     } else {
-      showResult(resultEl, false, '✗ ' + res.error);
+      showResult(resultEl, false, res.error === 'no_stock' ? 'Not enough copies for both cars. Manufacture another copy or change the other car design first.' : 'Could not fit design: ' + res.error);
       if (btn) btn.disabled = false;
     }
   };
@@ -2536,12 +2541,12 @@ function renderDriverOverview() {
   const num = d.number || (rec ? rec.carNumber : '') || '';
   el.innerHTML =
     '<div class="ov-hero">'
-    + '<div class="ov-hero__photo">' + BTG.driverPhotoImg(d.driver, 84, 'dp-hero__img') + (num ? '<div class="ov-hero__num">' + BTG.esc(num) + '</div>' : '') + '</div>'
+    + '<div class="ov-hero__photo">' + BTG.driverPhotoImg(d.driver, 84, 'dp-hero__img', CURRENT_YEAR) + (num ? '<div class="ov-hero__num">' + BTG.esc(num) + '</div>' : '') + '</div>'
     + '<div><div class="ov-hero__name">' + BTG.esc(d.driver) + '</div>'
     + '<div class="ov-hero__meta">'
     + (d.team ? '<span class="ov-tag">' + BTG.esc(d.team) + '</span>' : '')
     + '<span>' + BTG.flagImg(d.nation, 16, 11) + ' ' + BTG.esc(d.nation || '') + '</span>'
-    + (num ? '<span style="font-family:var(--data-face)">#' + BTG.esc(num) + '</span>' : '')
+    + (BTG.numberSlot ? BTG.numberSlot(num, name, 20, '', undefined, undefined, CURRENT_YEAR) : '')
     + '</div></div></div>'
     + '<div class="ov-stats">'
     + '<div class="ov-stat-card"><div class="v" style="color:var(--team-accent-hot)">' + (d.ovr != null ? d.ovr : '—') + '</div><div class="k">Overall rating</div></div>'
@@ -2571,7 +2576,7 @@ function renderTpOverview() {
     const pos = rec && rec.standings && rec.standings.pos ? rec.standings.pos : '—';
     const num = rec && rec.carNumber ? rec.carNumber : '';
     return '<tr><td><div style="display:flex;align-items:center;gap:10px;">'
-      + '<div style="width:34px;height:34px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--card-high);">' + BTG.driverPhotoImg(dn, 34, 'dp-hero__img') + '</div>'
+      + '<div style="width:34px;height:34px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--card-high);">' + BTG.driverPhotoImg(dn, 34, 'dp-hero__img', CURRENT_YEAR) + '</div>'
       + '<span class="strong">' + BTG.esc(dn) + (num ? ' <span style="color:var(--copy-faint);font-family:var(--data-face)">#' + BTG.esc(num) + '</span>' : '') + '</span>'
       + '</div></td><td>P' + pos + '</td><td>' + p + '</td></tr>';
   }).join('');
@@ -2692,6 +2697,21 @@ function refreshMinPayFor(teamId, driverId, roleId, resultId) {
   }, 250);
 }
 
+function contractBuyoutSlider(id, value) {
+  return '<div class="field contract-buyout-field"><label for="' + id + '">Buyout clause: <output>' + Number(value == null ? 2 : value).toFixed(1) + '</output>&times; remaining contract value</label>'
+    + '<input type="range" id="' + id + '" min="1.5" max="5" step="0.1" value="' + Number(value == null ? 2 : value) + '" oninput="this.previousElementSibling.lastElementChild.value=this.value">'
+    + '<span class="muted">Agreed when signing. Either side pays this clause for a unilateral exit; mutual termination is free.</span></div>';
+}
+
+function contractOfferDetails(o) {
+  var effective = o.counter || o;
+  return (o.counter ? '<div class="offer-body"><b>Latest revision:</b> ' + fmtMoney(effective.salary) + ' / season; ' + BTG.esc(effective.from) + '–' + BTG.esc(effective.till) + '; ' + BTG.esc(effective.role) + '.</div>' : '')
+    + '<div class="offer-body">Buyout clause: <b>' + Number(effective.buyoutMultiplier == null ? 2 : effective.buyoutMultiplier).toFixed(1) + '&times;</b> remaining contract value.'
+    + (o.signableOn ? ' Earliest signature: <b>' + BTG.esc(o.signableOn) + '</b> (game date).' : '')
+    + ((o.role === 'Driving' || (o.counter && o.counter.role === 'Driving')) ? ' Monthly leak chance: ' + Number(o.leakChance == null ? 5 : o.leakChance) + '% (' + Number(o.revisionCount || 0) + ' revisions).' : '')
+    + (o.signingError ? ' Awaiting signature: ' + BTG.esc(contractActionError(o.signingError)) : '') + '</div>';
+}
+
 function renderContracts() {
   const el = document.getElementById('contracts-content');
   const role = CURRENT_USER && CURRENT_USER.role;
@@ -2702,14 +2722,16 @@ function renderContracts() {
   const sorted = contracts.slice().sort(function (a, b) { return (Number(a.seat) || 0) - (Number(b.seat) || 0); });
   const rows = sorted.map(function (c) {
     var actions = '';
-    if (role === 'tp') {
-      actions = '<td><button class="action action-quiet action-compact" onclick="openContractModify(\'' + String(c.row) + '\')"><span>Modify</span></button></td>';
+    if (role === 'tp' || role === 'driver') {
+      actions = '<td>' + (role === 'tp' ? '<button class="action action-quiet action-compact" onclick="openContractModify(' + Number(c.row) + ')"><span>Modify</span></button>' : '')
+        + '<button class="action action-quiet action-compact" onclick="openContractExit(' + Number(c.row) + ')"><span>End contract</span></button></td>';
     }
     return '<tr><td class="strong">' + BTG.esc(c.driver) + '</td><td>' + BTG.esc(c.team) + '</td>'
       + '<td>' + fmtMoney(c.salary) + '</td><td>' + BTG.esc(c.from || '—') + '–' + BTG.esc(c.till || '—') + '</td>'
       + '<td>' + BTG.esc(c.seat || '—') + '</td><td><span class="tag-pill">' + BTG.esc(seatCategoryLabel_(c.seat, c.team)) + '</span></td>'
       + '<td>' + (c.promise ? BTG.esc(c.promise.series + (c.promise.by ? ' by ' + c.promise.by : '')) : '—') + '</td>'
       + '<td>' + (c.bonus > 0 ? fmtMoney(c.bonus) : '—') + '</td>'
+      + '<td>' + Number(c.buyoutMultiplier == null ? 2 : c.buyoutMultiplier).toFixed(1) + '&times;</td>'
       + actions + '</tr>';
   }).join('');
 
@@ -2727,17 +2749,20 @@ function renderContracts() {
       + (o.message ? '<div class="offer-body">' + BTG.esc(o.message) + '</div>' : '')
       + (o.promise ? '<div class="offer-body">Promise: seat in <b>' + BTG.esc(o.promise.series) + '</b>' + (o.promise.by ? ' by <b>' + BTG.esc(o.promise.by) + '</b>' : '') + '</div>' : '')
       + (o.bonus > 0 ? '<div class="offer-body">Signing bonus: <b>' + fmtMoney(o.bonus) + '</b></div>' : '')
+      + contractOfferDetails(o)
       + offerActionsHtml(o, role)
       + '</div>';
   });
 
-  var actionsHead = (role === 'tp') ? '<th>Actions</th>' : '';
-  var html = '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Active contracts</div>'
-    + (rows ? '<table class="contract-table"><thead><tr><th>Driver</th><th>Team</th><th>Salary</th><th>Period</th><th>Seat</th><th>Role</th><th>Promise</th><th>Bonus</th>' + actionsHead + '</tr></thead><tbody>' + rows + '</tbody></table>' : '<div class="muted">No contracts.</div>')
+  var actionsHead = (role === 'tp' || role === 'driver') ? '<th>Actions</th>' : '';
+  var html = '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Signed contracts</div>'
+    + (rows ? '<div class="contract-table-scroll"><table class="contract-table"><thead><tr><th>Driver</th><th>Team</th><th>Salary</th><th>Period</th><th>Seat</th><th>Role</th><th>Promise</th><th>Bonus</th><th>Buyout</th>' + actionsHead + '</tr></thead><tbody>' + rows + '</tbody></table></div>' : '<div class="muted">No contracts.</div>')
     + '</div>'
     + '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Pending offers</div>'
     + (offerHtml || '<div class="muted">No pending offers.</div>')
     + '</div>';
+
+  html += contractExitRequestsHtml(role);
 
   if (role === 'tp') {
     var tpTeams = (DASH.tp.teams || []).map(function (t) { return t.key; });
@@ -2756,6 +2781,7 @@ function renderContracts() {
       + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div><div class="field"><label for="c-role">Role</label><select id="c-role">' + ROLE_OPTIONS + '</select></div></div>'
       + '<div class="field-row"><div class="field"><label for="c-promise-series">Promise seat in</label><select id="c-promise-series">' + PROMISE_SERIES_OPTIONS + '</select></div><div class="field"><label for="c-promise-by">By (year)</label><input type="text" id="c-promise-by" placeholder="2027"></div></div>'
       + '<p class="muted" style="margin-bottom:10px;">Only drivers on a Reserve contract can be used as reserves in races.</p>'
+      + contractBuyoutSlider('c-buyout', 2)
       + '<div class="field"><label for="c-terms">Extra terms</label><input type="text" id="c-terms"></div>'
       + '<div class="field"><label for="c-message">Message</label><input type="text" id="c-message"></div>'
       + '<button class="action action-lead" id="c-send-btn"><span>Send offer</span></button><div class="result-line" id="c-result"></div></div>'
@@ -2766,16 +2792,18 @@ function renderContracts() {
       + '<div class="field-row"><div class="field"><label for="l-from">From</label><input type="text" id="l-from" placeholder="2025"></div><div class="field"><label for="l-till">Till</label><input type="text" id="l-till" placeholder="2026"></div><div class="field"><label for="l-salary">Race salary</label><input type="text" id="l-salary" placeholder="8,000,000"></div></div>'
       + '<div class="field-row"><div class="field"><label for="l-parent-role">Parent role</label><select id="l-parent-role"><option value="Reserve">Reserve</option><option value="Junior">Junior</option></select></div></div>'
       + '<div class="field"><label for="l-percent">% of salary paid by racing team: <span id="l-percent-val">0%</span></label><input type="range" id="l-percent" min="0" max="100" step="5" value="0"></div>'
+      + contractBuyoutSlider('l-buyout', 2)
       + '<button class="action action-lead" id="l-send-btn"><span>Send loan offer</span></button><div class="result-line" id="l-result"></div></div>';
   } else if (role === 'driver') {
     html += '<div class="ov-card" style="margin-bottom:18px;"><div class="ov-card-title">Initiate a contract offer</div>'
-      + '<p class="muted" style="margin-bottom:10px;">Offer yourself to a team. Salary can be negative — a pay driver pays the team.</p>'
+      + '<p class="muted" style="margin-bottom:10px;">Propose a role, annual salary, contract term and buyout clause to a team.</p>'
       + '<div class="muted" id="driver-minsum" style="margin-bottom:10px;"></div>'
-      + '<div class="field-row"><div class="field"><label for="c-team">Team</label><select id="c-team">' + contractTeamOptions('') + '</select></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="-2,000,000"></div></div>'
+      + '<div class="field-row"><div class="field"><label for="c-team">Team</label><select id="c-team">' + contractTeamOptions('') + '</select></div><div class="field"><label for="c-salary">Salary</label><input type="text" id="c-salary" placeholder="2,000,000"></div></div>'
       + '<div class="muted" id="driver-minpay" style="margin-bottom:10px;"></div>'
       + '<div class="field-row"><div class="field"><label for="c-bonus">Request signing bonus</label><input type="text" id="c-bonus" placeholder="500,000"></div></div>'
       + '<div class="field-row"><div class="field"><label for="c-from">From</label><input type="text" id="c-from" placeholder="2024"></div><div class="field"><label for="c-till">Till</label><input type="text" id="c-till" placeholder="2026"></div><div class="field"><label for="c-role">Role</label><select id="c-role">' + ROLE_OPTIONS + '</select></div></div>'
       + '<div class="field-row"><div class="field"><label for="c-promise-series">Ask for promise: seat in</label><select id="c-promise-series">' + PROMISE_SERIES_OPTIONS + '</select></div><div class="field"><label for="c-promise-by">By (year)</label><input type="text" id="c-promise-by" placeholder="2027"></div></div>'
+      + contractBuyoutSlider('c-buyout', 2)
       + '<div class="field"><label for="c-terms">Extra terms</label><input type="text" id="c-terms"></div>'
       + '<div class="field"><label for="c-message">Message</label><input type="text" id="c-message"></div>'
       + '<button class="action action-lead" id="c-send-btn"><span>Send offer</span></button><div class="result-line" id="c-result"></div></div>'
@@ -2783,6 +2811,7 @@ function renderContracts() {
       + '<p class="muted" style="margin-bottom:10px;">Pay a team to take on another driver. 70% of your payment goes to the team; 30% becomes that driver\'s contract salary.</p>'
       + '<div class="field-row"><div class="field"><label for="p-team">Team</label><select id="p-team">' + contractTeamOptions('') + '</select></div><div class="field"><label for="p-target">Driver</label><select id="p-target">' + contractDriverOptions('', SELECTED && SELECTED.driver) + '</select></div></div>'
       + '<div class="field-row"><div class="field"><label for="p-amount">Amount</label><input type="text" id="p-amount" placeholder="30,000,000"></div><div class="field"><label for="p-role">Role</label><select id="p-role">' + ROLE_OPTIONS + '</select></div></div>'
+      + contractBuyoutSlider('p-buyout', 2)
       + '<div class="field"><label for="p-message">Message</label><input type="text" id="p-message"></div>'
       + '<button class="action action-lead" id="p-send-btn"><span>Send pay-for-seat</span></button><div class="result-line" id="p-result"></div></div>';
   }
@@ -2857,7 +2886,7 @@ function renderContracts() {
       resultEl.style.display = 'none';
       if (role === 'tp' && !document.getElementById('c-driver').value) { showResult(resultEl, false, 'Choose a driver.'); return; }
       if (role === 'driver' && !document.getElementById('c-team').value.trim()) { showResult(resultEl, false, 'Enter a team.'); return; }
-      if (!salary) { showResult(resultEl, false, 'Enter a salary.'); return; }
+      if (!salary || !from || !till) { showResult(resultEl, false, 'Enter a salary, start year and end year.'); return; }
       var salaryNum = parseMoney(salary);
       if (salaryNum == null || isNaN(salaryNum)) { showResult(resultEl, false, 'Salary must be a number.'); return; }
       if (from && !validYear(from)) { showResult(resultEl, false, 'From year must be between 1990 and 2100.'); return; }
@@ -2872,6 +2901,7 @@ function renderContracts() {
         const payload = role === 'tp'
           ? { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team-tp').value, target: document.getElementById('c-driver').value, salary: salaryNum, from: from, till: till, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim(), promiseSeries: document.getElementById('c-promise-series').value, promiseBy: promiseBy, signingBonus: bonusNum || null, parentCompensation: compNum || null }
           : { username: CURRENT_USER.username, password: CURRENT_USER.password, team: document.getElementById('c-team').value.trim(), salary: salaryNum, from: from, till: till, role: document.getElementById('c-role').value, terms: document.getElementById('c-terms').value.trim(), message: document.getElementById('c-message').value.trim(), promiseSeries: document.getElementById('c-promise-series').value, promiseBy: promiseBy, signingBonus: bonusNum || null };
+        payload.buyoutMultiplier = Number((document.getElementById('c-buyout') || { value: 2 }).value);
         const data = await callGateway(role === 'tp' ? 'sendContractOffer' : 'sendDriverOffer', payload);
         if (data.ok) { showResult(resultEl, true, '✓ Offer sent.'); }
         else { showResult(resultEl, false, '✗ ' + data.error); }
@@ -2895,7 +2925,7 @@ function renderContracts() {
       const lFrom = document.getElementById('l-from').value.trim();
       const lTill = document.getElementById('l-till').value.trim();
       resultEl.style.display = 'none';
-      if (!driver || !team || !salary) { showResult(resultEl, false, 'Choose driver, loan team and salary.'); return; }
+      if (!driver || !team || !salary || !lFrom || !lTill) { showResult(resultEl, false, 'Choose a driver, loan team, salary and contract years.'); return; }
       var salaryNum = parseMoney(salary);
       if (salaryNum == null || isNaN(salaryNum)) { showResult(resultEl, false, 'Salary must be a number.'); return; }
       if (lFrom && !validYear(lFrom)) { showResult(resultEl, false, 'From year must be between 1990 and 2100.'); return; }
@@ -2906,7 +2936,7 @@ function renderContracts() {
         const data = await callGateway('sendLoanOffer', {
           username: CURRENT_USER.username, password: CURRENT_USER.password,
           parentTeam: document.getElementById('c-team-tp').value, driver: driver, loanTeam: team,
-          salary: salaryNum, from: lFrom, till: lTill,
+          salary: salaryNum, from: lFrom, till: lTill, buyoutMultiplier: Number(document.getElementById('l-buyout').value),
           percent: document.getElementById('l-percent').value, parentRole: document.getElementById('l-parent-role').value
         });
         if (data.ok) { showResult(resultEl, true, '✓ Loan offer sent.'); }
@@ -2931,7 +2961,7 @@ function renderContracts() {
       try {
         const data = await callGateway('sendPayForSeat', {
           username: CURRENT_USER.username, password: CURRENT_USER.password,
-          team: team, targetDriver: target, amount: amountNum, role: document.getElementById('p-role').value, message: document.getElementById('p-message').value.trim()
+          team: team, targetDriver: target, amount: amountNum, buyoutMultiplier: Number(document.getElementById('p-buyout').value), role: document.getElementById('p-role').value, message: document.getElementById('p-message').value.trim()
         });
         if (data.ok) { showResult(resultEl, true, '✓ Pay-for-seat offer sent.'); }
         else { showResult(resultEl, false, '✗ ' + data.error); }
@@ -3042,6 +3072,7 @@ function onLoginSuccess(data) {
     teamDrivers: data.teamDrivers || [],
     allDrivers: data.allDrivers || [],
     contracts: data.contracts || [],
+    terminations: data.terminations || [],
     teamPrincipals: data.teamPrincipals || [],
     chatRooms: data.chatRooms || [],
     importantSenders: data.importantSenders || [],
@@ -3179,7 +3210,7 @@ function populateAdminDropdowns() {
 }
 
 /* ── admin: reset-password user picker (drivers grouped per series + search) ── */
-const RESET_SERIES_ORDER = ['F1', 'F2', 'GT1', 'XGT'];
+const RESET_SERIES_ORDER = ['F1', 'F2', 'XGT'];
 function resetUserOptionLabel(name, username) {
   if (!name) return username;
   if (String(name).toLowerCase() === String(username).toLowerCase()) return name;
@@ -3498,7 +3529,7 @@ var IMP = { parsed: null, payload: [], cache: null, warnings: [], league: null }
 function impNorm(s) {
   return String(s || '').toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[Σσ]/g, 'a')
+    .replace(/[Î£Ïƒ]/g, 'a')
     .replace(/[^a-z0-9]+/g, ' ').trim();
 }
 function impNormCircuit(s) {
@@ -3796,7 +3827,7 @@ function impRenderPreview() {
 function impPopulateSeries() {
   var sel = document.getElementById('imp-series-select');
   if (!sel || sel.options.length > 1) return;
-  ['F1', 'F2', 'GT1', 'XGT'].forEach(function (s) {
+  ['F1', 'F2', 'XGT'].forEach(function (s) {
     var o = document.createElement('option');
     o.value = s; o.textContent = s;
     sel.appendChild(o);
@@ -3939,7 +3970,7 @@ var PTS = { rows: [], series: '', type: '' };
 function ptsPopulateSeries() {
   var sel = document.getElementById('pts-series-select');
   if (!sel || sel.options.length > 1) return;
-  ['F1', 'F2', 'GT1', 'XGT'].forEach(function (s) {
+  ['F1', 'F2', 'XGT'].forEach(function (s) {
     var o = document.createElement('option');
     o.value = s; o.textContent = s;
     sel.appendChild(o);
@@ -4040,7 +4071,7 @@ const PTSB_TYPES = [
 function ptsbPopulateSeries() {
   var sel = document.getElementById('pts-bonus-series');
   if (!sel || sel.options.length > 1) return;
-  ['F1', 'F2', 'GT1', 'XGT'].forEach(function (s) {
+  ['F1', 'F2', 'XGT'].forEach(function (s) {
     var o = document.createElement('option');
     o.value = s; o.textContent = s;
     sel.appendChild(o);
@@ -4112,7 +4143,7 @@ var PP = { series: '', races: [], raceId: null, results: [], penalties: [], grid
 function ppPopulateSeries() {
   var sel = document.getElementById('pp-series');
   if (!sel || sel.options.length > 1) return;
-  ['F1', 'F2', 'GT1', 'XGT'].forEach(function (s) {
+  ['F1', 'F2', 'XGT'].forEach(function (s) {
     var o = document.createElement('option');
     o.value = s; o.textContent = s;
     sel.appendChild(o);
@@ -4380,7 +4411,7 @@ var RD = { races: [], race: null };
 function rdPopulateSeries() {
   var sel = document.getElementById('rd-series-select');
   if (!sel || sel.options.length > 1) return;
-  ['F1', 'F2', 'GT1', 'XGT'].forEach(function (s) {
+  ['F1', 'F2', 'XGT'].forEach(function (s) {
     var o = document.createElement('option');
     o.value = s; o.textContent = s;
     sel.appendChild(o);
@@ -5413,12 +5444,32 @@ function offerActionsHtml(o, role) {
   var row = o.row;
   var tpTeams = (DASH && DASH.tp && DASH.tp.teams) ? DASH.tp.teams.map(function (t) { return t.key; }) : [];
   var isMyTpTeam = role === 'tp' && tpTeams.indexOf(o.team) !== -1;
+  var isMyLoanTeam = role === 'tp' && o.offerKind === 'loan' && tpTeams.indexOf(o.loanTeam) !== -1;
+  if (st === 'Agreed') {
+    return '<div class="offer-actions"><span class="tag-pill warn">Agreed — signs ' + BTG.esc(o.signableOn || 'when ready') + '</span>'
+      + ((role === 'driver' || isMyTpTeam || isMyLoanTeam) ? '<button class="action action-quiet action-compact" onclick="respondOffer(' + Number(row) + ', \'decline\')"><span>Withdraw before signature</span></button>' : '') + '</div>';
+  }
   if (o.offerKind === 'loan') return loanOfferActionsHtml(o, role, st, tpTeams);
   if (st === '') {
-    var isDriverInitiated = /driver-initiated/i.test(o.terms || '');
+    if (o.paySeat && (role === 'driver' || isMyTpTeam)) {
+      var alreadyAgreed = role === 'driver' ? o.driverAccepted : o.loanTeamAccepted;
+      return '<div class="offer-actions">'
+        + (alreadyAgreed ? '<span class="tag-pill warn">Waiting for the other contract party</span>' : '<button class="action action-lead action-compact" onclick="respondOffer(' + row + ', \'accept\')"><span>Agree to sponsored seat</span></button>')
+        + '<button class="action action-quiet action-compact" onclick="respondOffer(' + row + ', \'decline\')"><span>Decline</span></button></div>';
+    }
+    if (o.hasCounter && (role === 'driver' || isMyTpTeam)) {
+      var mayRespond = (o.counter.bySide || 'driver') !== role;
+      return '<div class="offer-actions">'
+        + (mayRespond ? '<button class="action action-lead action-compact" onclick="respondCounter(' + row + ', true)"><span>Agree to revision</span></button>'
+          + '<button class="action action-quiet action-compact" onclick="respondCounter(' + row + ', false)"><span>Reject revision</span></button>' : '<span class="tag-pill warn">Waiting for the other side</span>')
+        + '<button class="action action-quiet action-compact" onclick="promptCounter(' + row + ')"><span>Revise terms</span></button>'
+        + '<button class="action action-quiet action-compact" onclick="respondOffer(' + row + ', \'decline\')"><span>Withdraw talks</span></button></div>';
+    }
+    var isDriverInitiated = o.initiatedSide ? o.initiatedSide === 'driver' : /driver-initiated/i.test(o.terms || '');
     if (role === 'driver') {
       if (isDriverInitiated) {
         return '<div class="offer-actions">'
+          + '<button class="action action-quiet action-compact" onclick="promptCounter(' + row + ')"><span>Revise terms</span></button>'
           + '<button class="action action-quiet action-compact" onclick="respondOffer(' + row + ', \'decline\')"><span>Withdraw</span></button>'
           + '</div>';
       }
@@ -5442,6 +5493,7 @@ function offerActionsHtml(o, role) {
           + '</div>';
       }
       return '<div class="offer-actions">'
+        + '<button class="action action-quiet action-compact" onclick="promptCounter(' + row + ')"><span>Revise terms</span></button>'
         + '<button class="action action-quiet action-compact" onclick="respondOffer(' + row + ', \'decline\')"><span>Withdraw</span></button>'
         + '</div>';
     }
@@ -5529,9 +5581,11 @@ function renderMailbox() {
       + 'Salary: ' + fmtMoney(o.salary)
       + '\nPeriod: ' + (o.from || '—') + '–' + (o.till || '—')
       + (o.role ? '\nRole: ' + o.role : '')
+      + '\nBuyout: ' + Number(o.buyoutMultiplier == null ? 2 : o.buyoutMultiplier).toFixed(1) + 'x remaining value'
+      + (o.signableOn ? '\nEarliest signature: ' + o.signableOn + ' (game date)' : '')
       + (o.terms ? '\nTerms: ' + o.terms : '')
       + (counter
-          ? '\n' + (role === 'tp' ? 'Driver counter: ' : 'Your counter: ') + fmtMoney(counter.salary) + (counter.role ? ' · ' + counter.role : '')
+          ? '\n' + (counter.bySide === role ? 'Your latest revision: ' : 'Latest revision: ') + fmtMoney(counter.salary) + (counter.role ? ' · ' + counter.role : '')
           : '');
     return {
       idx: i, kind: 'offer', open: open, status: st, row: o.row,
@@ -5921,6 +5975,8 @@ function openContractModify(contractRow) {
   document.getElementById('cm-team').textContent = c.team || '—';
   document.getElementById('cm-from').textContent = c.from || '—';
   document.getElementById('cm-salary').value = c.salary;
+  document.getElementById('cm-buyout').value = c.buyoutMultiplier == null ? 2 : c.buyoutMultiplier;
+  document.getElementById('cm-buyout-value').textContent = Number(c.buyoutMultiplier == null ? 2 : c.buyoutMultiplier).toFixed(1) + '×';
   document.getElementById('cm-till').value = c.till || '';
   const roleSel = document.getElementById('cm-role');
   if (roleSel) roleSel.value = seatCategoryLabel_(c.seat, c.team) || 'Driving';
@@ -5945,7 +6001,8 @@ async function submitContractModify() {
   try {
     const data = await callGateway('sendContractChange', {
       username: CURRENT_USER.username, password: CURRENT_USER.password,
-      contractRow: CONTRACT_MODIFY_ROW, salary: salary, till: till, role: role, message: message
+      contractRow: CONTRACT_MODIFY_ROW, salary: parseMoney(salary), till: till, role: role, message: message,
+      buyoutMultiplier: Number(document.getElementById('cm-buyout').value)
     });
     if (data.ok) { showResult(resultEl, true, '✓ Contract change sent to the driver.'); closeContractModify(); }
     else if (data.error === 'below_change_min') { showResult(resultEl, false, '✗ Must pay at least ' + fmtMoney(data.minPay) + ' (80% of the current salary).'); }
@@ -6364,7 +6421,7 @@ function scoutTableCols() {
 function scoutAvatarHtml(d) {
   // Only drivers have real photos; staff/engineers get an initials avatar.
   if (d.targetType === 'driver') {
-    var photo = BTG.driverPhotoImg(d.name, 28, '');
+    var photo = BTG.driverPhotoImg(d.name, 28, '', CURRENT_YEAR);
     if (photo && photo.indexOf('<img') !== -1) return photo;
   }
   return scoutInitials(d.name);
@@ -6584,7 +6641,7 @@ function scoutRenderDetail(name) {
   // Fallback / staff / engineers — compact summary card
   var photoHtml = '';
   if (d.targetType === 'driver') {
-    photoHtml = BTG.driverPhotoImg(d.name, 56, '');
+    photoHtml = BTG.driverPhotoImg(d.name, 56, '', CURRENT_YEAR);
   }
   if (!photoHtml || photoHtml.indexOf('<img') === -1) photoHtml = '<span style="font-size:19px;font-weight:700;">' + scoutInitials(d.name) + '</span>';
   var stats = '<div class="scout-stats">'
@@ -6675,11 +6732,13 @@ async function respondOffer(offerRow, response) {
     });
     if (data.ok) {
       o.status = data.result || '';
+      if (data.signableOn) o.signableOn = data.signableOn;
+      await ContractWorkflows.refresh();
       renderMailbox();
       renderContracts();
       if (CURRENT_USER) buildDashSidebar(CURRENT_USER.role);
     } else {
-      alert('✗ ' + data.error);
+      alert(contractActionError(data.error));
     }
   } catch (e) {
     alert('✗ Could not reach the gateway script.');
@@ -6700,6 +6759,8 @@ async function adminResolveOffer(offerRow, approve) {
     });
     if (data.ok) {
       o.status = data.result || '';
+      if (data.signableOn) o.signableOn = data.signableOn;
+      await ContractWorkflows.refresh();
       renderMailbox();
       renderContracts();
       if (CURRENT_USER) buildDashSidebar(CURRENT_USER.role);
@@ -6725,6 +6786,8 @@ async function respondParentOffer(offerRow, accept) {
     });
     if (data.ok) {
       o.status = data.result || '';
+      if (data.signableOn) o.signableOn = data.signableOn;
+      await ContractWorkflows.refresh();
       renderMailbox();
       renderContracts();
       if (CURRENT_USER) buildDashSidebar(CURRENT_USER.role);
@@ -6750,6 +6813,8 @@ async function respondLoanTeam(offerRow, accept) {
     });
     if (data.ok) {
       o.status = data.result || '';
+      if (data.signableOn) o.signableOn = data.signableOn;
+      await ContractWorkflows.refresh();
       renderMailbox();
       renderContracts();
       if (CURRENT_USER) buildDashSidebar(CURRENT_USER.role);
@@ -6775,6 +6840,8 @@ async function respondCounter(offerRow, accept) {
     });
     if (data.ok) {
       o.status = data.result || '';
+      if (data.signableOn) o.signableOn = data.signableOn;
+      await ContractWorkflows.refresh();
       if (!accept) { o.counter = null; o.hasCounter = false; }
       renderMailbox();
       renderContracts();
@@ -6824,31 +6891,7 @@ async function markMailReadItem(row) {
   }
 }
 
-function promptCounter(offerRow) {
-  const o = offerByRow(offerRow);
-  if (!o) return;
-  var salary = prompt('Counter salary', o.salary ? String(o.salary) : '');
-  if (salary === null) return;
-  var salaryNum = parseMoney(salary);
-  if (salaryNum == null || isNaN(salaryNum)) { alert('✗ Salary must be a number.'); return; }
-  var from = prompt('Counter from (year)', String(CURRENT_YEAR || 2024));
-  if (from === null) return;
-  if (from && !validYear(from)) { alert('✗ From year must be between 1990 and 2100.'); return; }
-  var till = prompt('Counter till (year)', String(o.till || (CURRENT_YEAR || 2024) + 1));
-  if (till === null) return;
-  if (till && !validYear(till)) { alert('✗ Till year must be between 1990 and 2100.'); return; }
-  if (from && till && Number(till) < Number(from)) { alert('✗ Till year must be the same or later than From year.'); return; }
-  var terms = prompt('Counter extra terms', '') || '';
-  var message = prompt('Counter message', '') || '';
-  callGateway('respondContractOffer', {
-    username: CURRENT_USER.username, password: CURRENT_USER.password,
-    offerRow: o.row, response: 'counter',
-    counter: { role: o.role, salary: salaryNum, from: from, till: till, terms: terms, message: message }
-  }).then(function (data) {
-    if (data.ok) { renderMailbox(); renderContracts(); }
-    else alert('✗ ' + data.error);
-  }).catch(function () { alert('✗ Could not reach the gateway script.'); });
-}
+function promptCounter(offerRow) { return ContractWorkflows.openCounter(offerRow); }
 
 /* --- admin: next month --- */
 document.getElementById('advance-month-btn').addEventListener('click', async () => {
@@ -7338,6 +7381,21 @@ function mailMaxIdFrom(mail) {
   return m;
 }
 
+function mergePolledMail(existing, incoming) {
+  var mail = (existing || []).slice();
+  var unread = [], changed = false;
+  (incoming || []).forEach(function (m) {
+    var index = mail.findIndex(function (old) { return old.row === m.row; });
+    var old = index < 0 ? null : mail[index];
+    if (!old || old.message !== m.message || old.read !== m.read || old.to !== m.to) {
+      if (index < 0) mail.push(m); else mail[index] = m;
+      changed = true;
+      if (!m.read && (!old || old.message !== m.message || old.read)) unread.push(m);
+    }
+  });
+  return { mail: mail, changed: changed, unread: unread };
+}
+
 async function pollMailOnce() {
   if (!CURRENT_USER) return;
   try {
@@ -7346,10 +7404,10 @@ async function pollMailOnce() {
     if (data.ok) {
       if (data.maxId > MAIL_MAX_ID) MAIL_MAX_ID = data.maxId;
       if (data.mail && data.mail.length) {
-        DASH.mail = (DASH.mail || []).concat(data.mail);
-        renderMailbox();
-        buildDashSidebar(CURRENT_USER.role);
-        if (CURRENT_USER.role !== 'admin' && data.mail.some(mailIsInboxUnread)) playNewMailSound();
+        var merged = mergePolledMail(DASH.mail, data.mail);
+        DASH.mail = merged.mail;
+        if (merged.changed) { renderMailbox(); buildDashSidebar(CURRENT_USER.role); }
+        if (CURRENT_USER.role !== 'admin' && merged.unread.some(mailIsInboxUnread)) playNewMailSound();
       }
     }
   } catch (e) { /* transient — next poll retries */ }
@@ -7549,5 +7607,8 @@ function showLoginGate() {
 })();
 tryAutoLogin();
 </script>
+<script src="js/driver-numbers.js?v=20261117-yearly-style-6"></script>
+<script src="js/lineup-data.js"></script>
+<script src="js/lineup-admin.js?v=20261117-studio"></script>
 </body>
 </html>

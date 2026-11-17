@@ -133,9 +133,9 @@
     return null;
   }
   // DB team colour (hex) by team_key / team_id / team_name — site-wide truth.
-  function teamColorHex(key) {
+  function teamColorHex(key, secondary) {
     var t = teamRow(key);
-    return (t && t.color_primary) ? str(t.color_primary) : '';
+    return t ? str(secondary ? t.color_secondary : t.color_primary) : '';
   }
   // DB team colour as "#RRGGBB" -> "r,g,b" comma form (what setTeamColors/
   // the drivers page chip expects). Empty string when unknown.
@@ -173,19 +173,19 @@
     return (t && t.logo) ? str(t.logo) : '';
   }
 
-  // Names of drivers who currently hold a DRIVING seat (seat 1-2) in a series,
-  // from contract_history. Empty when the cache has no contract data yet.
-  function drivingSet(series) {
-    var set = {};
-    (D && D.contract_history || []).forEach(function (h) {
-      if (str(h.entity_type) !== 'driver') return;
-      if (!h.is_current) return;
-      if (str(h.role) !== 'Driving') return;
-      if (seriesOfTeam(h.team_id) !== series) return;
-      set[str(h.entity_name)] = true;
-    });
-    return set;
+  // Membership belongs to a season, not the contract's current-row marker.
+  function drivingContracts(series,year){
+    var rows=(D&&D.driver_cars||[]).filter(function(c){return seriesOfTeam(c.team_id)===series;});
+    if(rows.length)return rows.filter(function(c){return (c.contract_role?String(c.contract_role).toLowerCase()==='driving':Number(c.seat)>=1&&Number(c.seat)<=2)&&c.from_year!=null&&c.till_year!=null&&Number(c.from_year)<=year&&Number(c.till_year)>=year;}).map(function(c){return {name:c.driver_name,team_id:c.team_id};});
+    return (D&&D.contract_history||[]).filter(function(h){return h.entity_type==='driver'&&h.role==='Driving'&&(h.series||seriesOfTeam(h.team_id))===series&&h.from_year!=null&&h.till_year!=null&&Number(h.from_year)<=year&&Number(h.till_year)>=year;}).map(function(h){return {name:h.entity_name,team_id:h.team_id};});
   }
+  function profileTeam(name,year){
+    var contracts=(D&&D.driver_cars||[]).filter(function(c){return nameKey(c.driver_name)===nameKey(name)&&c.from_year!=null&&c.till_year!=null&&Number(c.from_year)<=year&&Number(c.till_year)>=year;});
+    if(!contracts.length)return undefined;
+    var real=contracts.filter(function(c){return c.team_id!=999&&!/^(?:none|no team|free agent)$/i.test(teamName(c.team_id));}).sort(function(a,b){return Number(a.seat)-Number(b.seat);});
+    return real.length?teamName(real[0].team_id):null;
+  }
+  function drivingSet(series,year){var set={};drivingContracts(series,year).forEach(function(c){set[c.name]=true;});return set;}
 
   /* ── Car / seat order ────────────────────────────────────────────────────
      `Contracts.seat` is the league's source of truth for who is in which car:
@@ -630,7 +630,7 @@
     });
     return Object.keys(seen)
       .map(function (id) { return seen[id]; })
-      .filter(function (s) { return seriesHasDrivers(s.id); })
+      .filter(function (s) { return BTG.seriesIsVisible(s.id) && seriesHasDrivers(s.id); })
       .sort(function (a, b) {
         var oa = order[a.id] != null ? order[a.id] : 99, ob = order[b.id] != null ? order[b.id] : 99;
         return oa - ob || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
@@ -664,12 +664,20 @@
     return by(D && D.race_car_performance || [], 'race_id', raceId);
   }
 
+  function finishCountback(a,b){
+    function counts(rows){var out={};(rows||[]).forEach(function(r){var pos=Number(r.finish_position!=null?r.finish_position:r.pos);if(pos>0&&!isDsqResult(r)&&!/dns|did not start/i.test(str(r.status)))out[pos]=(out[pos]||0)+1;});return out;}
+    var ac=counts(a),bc=counts(b),positions=Object.keys(ac).concat(Object.keys(bc)).map(Number).sort(function(x,y){return x-y;});
+    for(var i=0;i<positions.length;i++){var pos=positions[i],diff=(bc[pos]||0)-(ac[pos]||0);if(diff)return diff;}return 0;
+  }
   function getTeamStandings(series, year) {
     var sid = seasonIdFor(series, year);
     if (sid == null) return [];
+    var ids=getRaces(series,year).map(function(r){return String(r.race_id);});
+    var results=(D.race_results||[]).filter(function(r){return ids.indexOf(String(r.race_id))!==-1;});
+    function finishes(team){return results.filter(function(r){return teamRef(r.team_id||r.entry_key)===teamRef(team.team_id||team.entry_key);});}
     return by(D && D.season_team_standings || [], 'season_id', sid)
-      .slice().sort(function (a, b) { return num(a.position) - num(b.position); })
-      .map(function (r) { return { team: teamName(r.entry_key), entryKey: r.entry_key, teamId: r.team_id, position: num(r.position), points: num(r.points) }; });
+      .slice().sort(function(a,b){return num(b.points)-num(a.points)||finishCountback(finishes(a),finishes(b))||num(a.position)-num(b.position);})
+      .map(function(r,i){return {team:teamName(r.entry_key),entryKey:r.entry_key,teamId:r.team_id,position:i+1,points:num(r.points)};});
   }
 
   function rosterNation(name) {
@@ -729,7 +737,7 @@
     var sprints = (D && D.race_sprints || []).filter(function (s) { return raceIds.indexOf(String(s.race_id)) !== -1; });
     var standings = by(D && D.season_driver_standings || [], 'season_id', seasonIdFor(series, year));
     // Current driving-seat drivers for this series (reserves/Juniors excluded).
-    var driving = drivingSet(series);
+    var driving = drivingSet(series,year);
     var drivingKnown = Object.keys(driving).length > 0;
 
     // Pre-season edge case: the season has a calendar but no race results and
@@ -738,7 +746,10 @@
     // order) — the drivers are BTG's own, not the real-world drivers, so we
     // never seed with real F1 championship order.
     if (!results.length && !standings.length) {
-      return preSeasonList(series, year);
+      var preseason=preSeasonList(series, year);
+      if(opts.driver && !preseason.some(function(d){return (d.fullName||d.name)===opts.driver;})
+        && (D.drivers||[]).some(function(d){return (d.full_name||d.driver_name||d.name)===opts.driver;}))preseason.push(buildDriver(opts.driver));
+      return preseason;
     }
 
     var list = [];
@@ -755,75 +766,21 @@
 
     results.forEach(function (r) { if (!drivingKnown || raced[str(r.driver_name)] || driving[str(r.driver_name)]) push(str(r.driver_name)); });
     standings.forEach(function (s) { if (!drivingKnown || raced[str(s.driver_name)] || driving[str(s.driver_name)]) push(str(s.driver_name)); });
+    // Signed drivers belong to this season even before their first race here.
+    Object.keys(driving).forEach(push);
+    // Direct profile links may target a reserve/junior who has not raced here.
+    if(opts.driver && (D.drivers||[]).some(function(d){return (d.full_name||d.driver_name||d.name)===opts.driver;}))push(opts.driver);
 
     function preSeasonList(series, year) {
       var rs = window.BTG && BTG.Roster;
       var rows = [];
 
-      // Prefer DB drivers (series resolved via team → Teams.series) when the
-      // cache carries them; otherwise fall back to the roster CSV drivers.
-      var dbDrivers = (D && D.drivers || []).filter(function (dd) {
-        return seriesOfTeam(dd.team_id) === series;
+      var contracts=drivingContracts(series,year),seenMembers={};
+      contracts.forEach(function(c){
+        var key=nameKey(c.name);if(!key||seenMembers[key])return;seenMembers[key]=true;
+        var dd=(D.drivers||[]).find(function(d){return nameKey(d.full_name||d.driver_name||d.name)===key;})||{};
+        rows.push({name:c.name,fullName:dd.full_name||c.name,team:teamName(c.team_id),teamRef:c.team_id,nation:dd.nation||dbNation(c.name),number:dd.driver_number!=null?dd.driver_number:null});
       });
-      if (dbDrivers.length && drivingKnown) dbDrivers = dbDrivers.filter(function (dd) {
-        return driving[str(dd.driver_name || dd.full_name || dd.name)];
-      });
-      if (dbDrivers.length) {
-        rows = dbDrivers.map(function (dd) {
-          return {
-            name: dd.driver_name || dd.full_name || dd.name,
-            fullName: dd.full_name || dd.name,
-            // Resolve team_id → team name via the DB teams table (covers
-            // XGT/GT teams the roster doesn't know); canon() passes names
-            // through if the roster has no match.
-            team: teamName(dd.team_id),
-            teamRef: dd.team_id,
-            nation: dd.nation || '',
-            number: dd.driver_number != null ? dd.driver_number : null
-          };
-        });
-      } else if (rs && rs.driversFor) {
-        var rosterRows = (rs.driversFor(series) || []).filter(function (d) { return !drivingKnown || driving[d.name]; });
-        rows = rosterRows.map(function (d) {
-          return {
-            name: d.name,
-            fullName: d.fullName || d.name,
-            team: d.team,
-            teamRef: d.team,
-            nation: d.nation || dbNation(d.name || d.fullName || ''),
-            number: d.number != null ? d.number : null
-          };
-        });
-      }
-      // Membership fallback: a driver with a CURRENT Driving seat in this
-      // series belongs on the grid even when their DB Drivers.team_id points
-      // at another series (e.g. an F1 Haas reserve whose racing seat is XGT).
-      if (drivingKnown) {
-        var nk = function (s) { return String(s || '').trim().toLowerCase(); };
-        var inRows = {};
-        rows.forEach(function (r) { inRows[nk(r.name)] = true; });
-        (D && D.contract_history || []).forEach(function (h) {
-          if (str(h.entity_type) !== 'driver' || !h.is_current) return;
-          if (str(h.role) !== 'Driving') return;
-          var hs = str(h.series) || seriesOfTeam(h.team_id);
-          if (hs !== series) return;
-          var nm = str(h.entity_name);
-          var k = nk(nm);
-          if (!nm || inRows[k]) return;
-          inRows[k] = true;
-          var dd = (D && D.drivers || []).filter(function (x) {
-            return nk(x.full_name || x.driver_name || '') === k;
-          })[0] || {};
-          rows.push({
-            name: nm,
-            fullName: str(dd.full_name) || nm,
-            team: teamName(h.team_id),
-            teamRef: h.team_id,
-            nation: str(dd.nation) || dbNation(nm),
-            number: dd.driver_number != null ? dd.driver_number : null
-          });
-        });
-      }
       if (!rows.length) return [];
 
       // Canonical team display name for a raw ref (roster key or DB name).
@@ -920,7 +877,8 @@
       // season, not whatever row happened to come last in the cache payload
       // (results arrive grouped by race, but never guaranteed sorted).
       var lastResult = sortedResults.length ? sortedResults[sortedResults.length - 1] : null;
-      var teamKey = lastResult ? teamRef(lastResult.team_id) : '';
+      var signedSeat=drivingContracts(series,year).find(function(c){return nameKey(c.name)===nameKey(name);});
+      var teamKey = lastResult ? teamRef(lastResult.team_id) : signedSeat ? teamRef(signedSeat.team_id) : '';
       var teamNameStr = teamKey ? teamName(teamKey) : '';
       var teamSeries = teamKey ? seriesOfTeam(teamKey) : series;
       var nation = rosterNation(name) || dbNation(name);
@@ -939,11 +897,17 @@
         var isRes = r === 'Reserve';
         if (r !== 'Junior' && r !== 'Affiliate' && r !== 'Reserve') return;
         var tk = str(h.team_key);
-        if (!tk) return;
-        // Current feeder tag: Junior/Affiliate → Academy, Reserve → Reserve.
-        if (h.is_current) { academy = tk; academyRole = r; }
+        if (!tk || h.team_id==999 || /^(?:none|no team|free agent)$/i.test(tk)) return;
+        /*
+         * A deal only tags the driver for the seasons it actually runs. A feeder deal signed from 2025 does not make
+         * him an academy driver while 2024 is being read, so the year on screen has to sit inside the deal's run
+         * before it is taken as current.
+         */
         var fy = num(h.from_year) || num(year);
         var ty = num(h.till_year) || fy;
+        var coversYear = fy <= num(year) && num(year) <= ty;
+        // Current feeder tag: Junior/Affiliate → Academy, Reserve → Reserve.
+        if (h.is_current && coversYear) { academy = tk; academyRole = r; }
         if (ty > num(year)) ty = num(year); // only current/past seasons, not future
         var map = isRes ? resByTeam : acadByTeam;
         if (!map[tk]) map[tk] = [];
@@ -1064,6 +1028,14 @@
       return r ? (r.name || r.circuit || '') : '';
     }
 
+    // Recompute published positions from points and race countback, rather than
+    // trusting stale imported positions when championship totals are tied.
+    list.slice().sort(function(a,b){
+      return num(b.standings&&b.standings.pts)-num(a.standings&&a.standings.pts)
+        ||finishCountback(a.seasonStats&&a.seasonStats.results,b.seasonStats&&b.seasonStats.results)
+        ||num(a.standings?a.standings.pos:999)-num(b.standings?b.standings.pos:999);
+    }).forEach(function(d,i){if(d.standings)d.standings.pos=i+1;});
+
     return list.sort(function (a, b) {
       var ta = a.teamOrder != null ? a.teamOrder : 99, tb = b.teamOrder != null ? b.teamOrder : 99;
       if (ta !== tb) return ta - tb;
@@ -1076,9 +1048,36 @@
   window.BTG.DBCache = {
     init: function () {
       if (ready) return ready;
-      ready = fetch('cache/public-data.json')
+      ready = fetch('cache/public-data.json',{cache:'no-store'})
         .then(function (r) { if (!r.ok) throw new Error('cache ' + r.status); return r.json(); })
-        .then(function (d) { D = d; return d; })
+        .then(async function (d) {
+          D = d;
+          function applyBranding(live){
+            (D.teams||[]).forEach(function(t){var fresh=live.teams.find(function(x){return String(x.team_id)===String(t.team_id);});if(fresh)Object.assign(t,fresh);});
+            D.lineup_series_settings=live.settings;
+            D.number_sheets=live.number_sheets||[];
+            if(BTG.registerNumberSheets)BTG.registerNumberSheets(D.number_sheets);
+          }
+          try{var saved=JSON.parse(localStorage.getItem('btg-public-branding-v1')||'null');
+            if(saved&&saved.savedAt>Date.parse(D.generatedAt||0)&&Array.isArray(saved.data.teams)&&Array.isArray(saved.data.settings))applyBranding(saved.data);
+          }catch(e){}
+          if(BTG.registerNumberSheets)BTG.registerNumberSheets(D.number_sheets||[]);
+          // Small public branding payload keeps admin changes current without
+          // replacing the cached race dataset or blocking on a full rebuild.
+          try {
+            var response=await fetch('https://jocmjietuviegelluiev.supabase.co/functions/v1/api?data=branding',
+              {cache:'no-store',signal:AbortSignal.timeout(5000)});
+            var live=await response.json();
+            if(response.ok&&live.ok&&Array.isArray(live.teams)&&Array.isArray(live.settings)) {
+              applyBranding(live);
+              try{localStorage.setItem('btg-public-branding-v1',JSON.stringify({savedAt:Date.now(),data:live}));}catch(e){}
+            }
+          } catch(e) { /* Saved branding remains usable offline. */ }
+          ['series','teams','lineup_series_settings','lineup_seasons','app_state','race_seasons'].forEach(function(key){
+            if(Array.isArray(D[key]))D[key]=D[key].filter(function(row){return BTG.seriesIsVisible(row.series_id||row.series);});
+          });
+          return d;
+        })
         .catch(function () { ready = null; D = null; return null; });
       return ready;
     },
@@ -1088,6 +1087,8 @@
     getRaces: getRaces,
     getCarPerformance: getCarPerformance,
     getTeamStandings: getTeamStandings,
+    finishCountback: finishCountback,
+    profileTeam: profileTeam,
     buildDriverList: buildDriverList,
     carSeat: carSeat,
     byCarOrder: byCarOrder,
@@ -1097,6 +1098,8 @@
     teamFullName: teamFullName,
     teamLogo: teamLogo,
     teamColorHex: teamColorHex,
+    teamBranding: teamRow,
+    teamColorSecondaryHex: function (key) { return teamColorHex(key, true); },
     teamColorRgb: teamColorRgb,
     contractHistory: contractHistory,
     driverCareer: driverCareer,

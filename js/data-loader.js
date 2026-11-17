@@ -612,6 +612,9 @@ BTG.Data.buildDriverList = function(targetSeries, targetSeason, opts) {
     // Only drivers that actually belong to this series — F1 drivers are not
     // F2 privateers and vice versa. Membership = a season record here, or the
     // roster lists them in this series.
+    // Only drivers that actually belong to this series — F1 drivers are not
+    // F2 privateers and vice versa. Membership = a season record here, or the
+    // roster lists them in this series.
     if (!sr && !(d.roster && d.roster.series === seriesId)) return;
 
     var team = (BTG.teamByName ? BTG.teamByName(sr ? sr.latestTeam : null) : null);
@@ -732,7 +735,7 @@ function teamOrderIndex(seriesId, team) {
 }
 
 BTG.Data.getSeriesList = function() {
-  return Object.keys(BTG.Data.series).map(function(id) {
+  return Object.keys(BTG.Data.series).filter(BTG.seriesIsVisible).map(function(id) {
     return { id: id, logo: BTG.Data.series[id].logo };
   });
 };

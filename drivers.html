@@ -1,13 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BeTheGrid â€” Drivers</title>
+<title>BeTheGrid — Drivers</title>
 <link rel="icon" type="image/x-icon" href="logos/BTG.ico">
 <link rel="stylesheet" href="style.css">
 <style>
-/* â”€â”€ TFG base tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── TFG base tokens ─────────────────────────────────────────────────────── */
 :root {
   --bg-base: #18181b;
   --bg-card: #0e0e12;
@@ -46,7 +46,7 @@
 }
 
 /* A team's mark and a car's number are both drawn in the team's own colour, so each carries a shadow that keeps its
-   edge readable wherever it is laid â€” on a dark page, or on a band of the colour it is drawn in. */
+   edge readable wherever it is laid — on a dark page, or on a band of the colour it is drawn in. */
 .team-logo { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)); }
 .team-logo--auto-white { filter: brightness(0) invert(1) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)); }
 .team-logo--auto-black { filter: brightness(0) drop-shadow(0 1px 2px rgba(255, 255, 255, 0.28)); }
@@ -76,7 +76,7 @@ body::before {
     linear-gradient(180deg, rgba(var(--theme-secondary-rgb) / 0.025), transparent 20%);
 }
 
-/* â”€â”€ TFG Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── TFG Layout ──────────────────────────────────────────────────────────── */
 .dp-layout { display: grid; grid-template-columns: 260px 1fr; gap: 0; min-height: calc(100vh - 120px); max-width: 1400px; margin: 0 auto; transition: grid-template-columns 0.25s ease; }
 .dp-layout.sb-collapsed { grid-template-columns: 0 1fr; }
 .dp-layout.sb-collapsed .dp-picker { border-right: 0; }
@@ -87,9 +87,13 @@ body::before {
 .dp-picker__toggle { border: 1px solid var(--border-subtle); background: transparent; color: var(--text-muted); font-size: 11px; padding: 2px 8px; border-radius: 4px; cursor: pointer; line-height: 1.4; flex: none; }
 .dp-picker__toggle:hover { color: var(--text-primary); border-color: var(--border-medium); }
 .dp-picker__group { display: flex; flex-direction: column; gap: 4px; }
+/* The list is a plain container, so it carries the same gap the picker does: without it a team's line sits
+   flush against the driver above it. */
+#sb-list { display: flex; flex-direction: column; gap: 4px; }
 /* A team's own line, shaped like the chips under it: rounded, inset, and carrying the accent border the rail rows
    carry. It is filled with the team's colours and the flag at its end takes the ink that reads on them. */
 .dp-picker__team { display: flex; align-items: center; gap: 6px; width: calc(100% - 12px); margin: 0 6px; padding: 4px 12px; border: 1px solid rgb(var(--accent-rgb) / 0.5); border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+.dp-picker__team > img:not(.dp-picker__team-flag), .dp-picker__acad img { filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.75)); }
 .dp-picker__team-flag { width: 19px; height: 13px; flex: 0 0 auto; margin-left: auto; object-fit: cover; border: 1px solid rgb(0 0 0 / 0.3); }
 /* The chip carries the team's colours and the number sits on the end of them without its own plate, so the height is
    the same whichever driver is in it. Its shape is the rail row's: rounded, inset from the list, under the same border. */
@@ -110,11 +114,11 @@ body::before {
 .dp-picker__flag { height: 14px; border: 1px solid rgba(255,255,255,0.15); }
 .dp-picker__name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dp-picker__num { display: flex; align-items: center; font-size: 12px; color: inherit; font-variant-numeric: tabular-nums; }
-/* Floating toggle â€” always visible, toggles the sidebar open/closed (same inline styling, slides in/out) */
+/* Floating toggle — always visible, toggles the sidebar open/closed (same inline styling, slides in/out) */
 .dp-sidebar-toggle { position: fixed; left: 8px; bottom: 12px; z-index: 65; border: 1px solid var(--border-subtle); background: rgb(var(--card-rgb)); color: var(--text-muted); font-size: 10px; font-family: var(--font-mono); padding: 5px 9px; border-radius: 4px; cursor: pointer; }
 .dp-sidebar-toggle:hover { color: var(--text-primary); }
 
-/* â”€â”€ TFG Cards (glow via --team-rgb) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── TFG Cards (glow via --team-rgb) ─────────────────────────────────────── */
 .dp-main { display: grid; grid-template-columns: 1fr 1.1fr 0.9fr; gap: 12px; padding: 12px; overflow-y: auto; }
 @media (max-width: 1100px) { .dp-main { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 760px) { .dp-main { grid-template-columns: 1fr; } }
@@ -155,7 +159,7 @@ body::before {
 .dp-card__title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-muted); margin-bottom: 10px; }
 .dp-card__subtitle { font-size: 10px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
 
-/* â”€â”€ Hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Hero ────────────────────────────────────────────────────────────────── */
 .dp-hero { display: flex; align-items: flex-start; gap: 12px; position: relative; }
 .dp-hero__photo { width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--border-medium); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; background: rgba(0,0,0,0.3); }
 .dp-hero__img { width: 100%; height: 100%; object-fit: cover; }
@@ -171,8 +175,10 @@ body::before {
 .dp-hero__team-dot { width: 10px; height: 10px; border-radius: 2px; flex: none; }
 /* A junior's line carries both halves of him: the feeder team he races for, and the grand prix team he belongs to. */
 .dp-hero__academy { display: flex; align-items: center; gap: 6px; margin-left: auto; opacity: 0.9; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); }
+/* The academy's mark sits on a plate of its own, so a logo drawn for a light page still reads here. */
+.dp-hero__acad-badge { display: inline-flex; align-items: center; justify-content: center; padding: 2px 5px; background: rgba(255,255,255,0.92); border-radius: 3px; flex: 0 0 auto; line-height: 0; }
 .dp-hero__academy .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-disabled); flex: none; }
-.dp-hero__number { position: absolute; top: 4px; right: 8px; font-size: 36px; font-weight: 900; color: rgba(255,255,255,0.04); font-family: 'Formula1', sans-serif; }
+.dp-hero__number { position: absolute; top: 4px; right: 8px; display: flex; align-items: center; justify-content: flex-end; }
 /* The hero card is the whole of its frame: kept its own margin, it would leave a strip of the frame showing below
    the fill. The margin moves out to the frame, where the gutter between the column's cards comes from. */
 .dp-hero-frame { margin-bottom: 10px; }
@@ -193,30 +199,30 @@ body::before {
 .dp-hero--band .dp-hero__sep { opacity: 0.6; }
 .dp-hero--band .dp-hero__flag { border-color: rgb(0 0 0 / 0.25); }
 
-/* â”€â”€ Contract â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Contract ────────────────────────────────────────────────────────────── */
 .dp-contract { display: flex; flex-direction: column; gap: 8px; }
 .dp-contract__row { display: flex; justify-content: space-between; align-items: center; }
 .dp-contract__label { font-size: 11px; color: var(--text-muted); }
 .dp-contract__val { font-size: 13px; font-weight: 700; color: var(--text-secondary); }
 
-/* â”€â”€ Season Position â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Season Position ─────────────────────────────────────────────────────── */
 .dp-pos { display: flex; align-items: baseline; gap: 12px; }
 .dp-pos__rank { font-size: 28px; font-weight: 900; color: var(--text-primary); font-family: 'Formula1', sans-serif; }
 .dp-pos__pts { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
 
-/* â”€â”€ Last Season â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Last Season ─────────────────────────────────────────────────────────── */
 .dp-prev { display: flex; flex-direction: column; gap: 6px; }
 .dp-prev__row { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; border-bottom: 1px solid var(--border-subtle); }
 .dp-prev__row span:first-child { color: var(--text-secondary); }
 .dp-prev__row span:last-child { font-weight: 600; color: var(--text-primary); }
 
-/* â”€â”€ Favorite Track â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Favorite Track ──────────────────────────────────────────────────────── */
 .dp-fav-track { display: flex; align-items: center; gap: 8px; }
 .dp-fav-track__flag { width: 24px; height: 16px; border: 1px solid var(--border-medium); }
 .dp-fav-track__name { font-size: 12px; font-weight: 600; color: var(--text-primary); }
 .dp-fav-track__note { font-size: 9px; color: var(--text-muted); }
 
-/* â”€â”€ Season Performance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Season Performance ──────────────────────────────────────────────────── */
 .dp-grade__overall { font-size: 48px; font-weight: 900; text-align: center; padding: 4px 0; margin-bottom: 12px; letter-spacing: -0.02em; font-family: 'Formula1', sans-serif; }
 .dp-grade__bars { display: flex; flex-direction: column; gap: 5px; }
 .dp-grade__row { display: flex; align-items: center; gap: 8px; }
@@ -225,12 +231,12 @@ body::before {
 .dp-grade__fill { height: 100%; transition: width 300ms; }
 .dp-grade__val { font-size: 10px; font-weight: 700; color: var(--text-secondary); width: 24px; text-align: center; }
 
-/* â”€â”€ Letter grade colors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Letter grade colors ─────────────────────────────────────────────────── */
 .gr { font-weight: 600; }
 .gr-s { color: #f59e0b; } .gr-a { color: #34d399; } .gr-b { color: #a1a1aa; }
 .gr-c { color: #71717a; } .gr-d { color: #ef4444; } .gr-e { color: #dc2626; } .gr-f { color: #991b1b; }
 
-/* â”€â”€ Season Race Positions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Season Race Positions ───────────────────────────────────────────────── */
 .dp-sparkline { display: flex; gap: 2px; overflow-x: auto; padding-bottom: 4px; }
 .dp-sparkline__race { display: flex; flex-direction: column; align-items: center; min-width: 24px; }
 .dp-sparkline__track { position: relative; width: 20px; height: 90px; }
@@ -238,13 +244,13 @@ body::before {
 .dp-sparkline__dot { position: absolute; left: 50%; transform: translate(-50%,-50%); width: 5px; height: 5px; border-radius: 50%; }
 .dp-sparkline__label { font-size: 7px; color: var(--text-disabled); margin-top: 2px; }
 
-/* â”€â”€ Stats Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Stats Grid ──────────────────────────────────────────────────────────── */
 .dp-stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
 .dp-stat { text-align: center; padding: 6px 4px; background: var(--border-subtle); border: 1px solid var(--border-subtle); }
 .dp-stat__val { font-size: 16px; font-weight: 800; color: var(--text-primary); }
 .dp-stat__lbl { font-size: 8px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 
-/* â”€â”€ Verdict â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Verdict ─────────────────────────────────────────────────────────────── */
 .dp-verdict__label { font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
 .dp-verdict__stats { display: flex; gap: 10px; margin-bottom: 10px; }
 .dp-verdict__stat { text-align: center; }
@@ -252,10 +258,10 @@ body::before {
 .dp-verdict__lbl { font-size: 8px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
 .dp-verdict__bullets { margin: 0; padding: 0 0 0 16px; font-size: 11px; color: var(--text-secondary); line-height: 1.6; }
 
-/* â”€â”€ Career Race Record â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Career Race Record ──────────────────────────────────────────────────── */
 .dp-career-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
 
-/* â”€â”€ Past Seasons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Past Seasons ────────────────────────────────────────────────────────── */
 .dp-past-head { display: grid; grid-template-columns: 34px 42px minmax(0,1fr) repeat(4, 34px) 44px; gap: 6px; align-items: center; padding: 6px 16px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-disabled); border-bottom: 1px solid var(--border-subtle); }
 .dp-past-head .tm { min-width: 0; }
 .dp-past-head .px { text-align: right; }
@@ -279,17 +285,17 @@ body::before {
   .dp-past-row .px:nth-of-type(5), .dp-past-row .px:nth-of-type(6) { display: none; }
 }
 
-/* â”€â”€ Grid Penalties â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Grid Penalties ──────────────────────────────────────────────────────── */
 .dp-penalty { display: flex; justify-content: space-between; padding: 4px 8px; font-size: 11px; color: var(--text-secondary); background: var(--border-subtle); margin-bottom: 2px; }
 
-/* â”€â”€ Career Timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Career Timeline ─────────────────────────────────────────────────────── */
 .dp-timeline { position: relative; padding: 26px 0 8px; }
 .dp-timeline-track { position: relative; height: 42px; background: var(--border-subtle); overflow: hidden; }
 .dp-timeline-seg { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .dp-timeline-seg-label { font-size: 9px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.7); letter-spacing: 0.05em; font-family: var(--font-mono); }
 .dp-timeline-years { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-muted); margin-top: 4px; font-family: var(--font-mono); }
 
-/* â”€â”€ Controls bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Controls bar ────────────────────────────────────────────────────────── */
 .dp-controls { display: flex; align-items: center; gap: 14px; padding: 10px 16px; background: var(--bg-card); border: 1px solid var(--border-subtle); flex-wrap: wrap; margin-bottom: 12px; }
 .dp-controls .label { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); }
 .dp-controls select { background: #3a3a3a; border: 1px solid #4d4d4d; color: #ffffff; font-family: var(--font-mono); font-size: 12px; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
@@ -297,7 +303,7 @@ body::before {
 .dp-series-logo { width: 64px; height: auto; display: block; flex-shrink: 0; }
 .dp-spacer { flex: 1; }
 
-/* â”€â”€ Series selector glow (TFG-style) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Series selector glow (TFG-style) ─────────────────────────────────────── */
 .series-tab { transition: color .15s, box-shadow .15s, border-color .15s; }
 .series-tab.active {
   color: var(--text-primary);
@@ -307,7 +313,7 @@ body::before {
     inset 0 0 6px color-mix(in srgb, var(--series-color, var(--accent)) 20%, transparent);
 }
 
-/* â”€â”€ TFG Timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── TFG Timeline ────────────────────────────────────────────────────────── */
 .dp-tl { background: var(--bg-card); border: 1px solid var(--border-subtle); padding: 14px 20px; }
 .dp-tl__years { display: flex; align-items: center; gap: 0; margin-bottom: 4px; }
 .dp-tl__years span { flex: 1; text-align: center; font-size: 9px; color: var(--text-disabled); font-weight: 600; }
@@ -325,12 +331,12 @@ body::before {
 .dp-tl__legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; font-size: 10px; color: var(--text-muted); }
 .dp-tl__legend .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 4px; vertical-align: -1px; }
 
-/* â”€â”€ Attribution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Attribution ─────────────────────────────────────────────────────────── */
 .tfg-attrib { position: fixed; bottom: 12px; right: 16px; font-size: 9px; color: var(--text-disabled); z-index: 60; font-family: var(--font-mono); }
 .tfg-attrib a { color: var(--text-disabled); text-decoration: underline; }
 .tfg-attrib a:hover { color: var(--text-muted); }
 
-/* â”€â”€ Empty state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Empty state ─────────────────────────────────────────────────────────── */
 .dp-empty { padding: 40px 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
 </style>
 </head>
@@ -353,29 +359,38 @@ body::before {
     <div class="dp-picker" id="sidebar">
       <div class="dp-picker__title" id="sb-head">
         <span>Drivers</span>
-        <button class="dp-picker__toggle" id="sb-collapse" title="Hide sidebar" type="button">â€¹</button>
+        <button class="dp-picker__toggle" id="sb-collapse" title="Hide sidebar" type="button">‹</button>
       </div>
       <div id="sb-list"></div>
     </div>
     <div id="detail-panel" class="dp-empty">Select a driver from the list.</div>
   </div>
-  <button class="dp-sidebar-toggle" id="sb-toggle" type="button">â˜° Drivers</button>
+  <button class="dp-sidebar-toggle" id="sb-toggle" type="button">☰ Drivers</button>
 </div>
 
 <div class="tfg-attrib">UI by <a href="https://www.patreon.com/c/TFGTools" target="_blank" rel="noopener">TFGTools</a></div>
 
-<script src="js/common.js"></script>
+<script src="js/common.js?v=20261117-profile-team-16"></script>
+<script src="js/driver-numbers.js?v=20261117-team-atlas-10"></script>
 <script src="js/border-glow.js"></script>
-<script src="teams/f1.js"></script>
+<script src="teams/f1.js?v=20261117-lineups-photos"></script>
 <script src="js/roster.js"></script>
-<script src="js/db-cache.js"></script>
+<script src="js/db-cache.js?v=20261117-profile-team-16"></script>
 <script src="js/circuits.js"></script>
-<script src="js/data-loader.js"></script>
+<script src="js/data-loader.js?v=20261117-profile-team-16"></script>
 <script>
 (function() {
+  /* Team colours, from the shared registry, so this page can paint a team's own colour. */
+  function teamRgbFor(name) { return BTG.teamRgbFor ? (BTG.teamRgbFor(name) || 'var(--accent-rgb)') : 'var(--accent-rgb)'; }
+  function teamColorCssFor(name) { return 'rgb(' + String(teamRgbFor(name)).replace(/\s+/g, ',') + ')'; }
   var drivers = [], activeSeries = null, seriesList = [];
   var seasons = [], activeSeason = null;
   var selectedDriverId = null;
+  var profileQuery = new URLSearchParams(location.search);
+  var requestedDriver = profileQuery.get('driver') || '';
+  var requestedSeries = profileQuery.get('series');
+  var requestedSeason = Number(profileQuery.get('season'));
+  var profileOpened = false;
 
   // Team colour source of truth = the DB public cache (same as teams.html).
   // Falls back to the legacy hardcoded F1/F2 list only when the DB cache
@@ -397,7 +412,7 @@ body::before {
       BTG.Data.getSeasons = BTG.DBCache.getSeasons;
       BTG.Data.buildDriverList = BTG.DBCache.buildDriverList;
     }
-    // Load from cache (fast) â€” init() resolves immediately and auto-discovery
+    // Load from cache (fast) — init() resolves immediately and auto-discovery
     // runs in the background, re-triggering load() via onUpdate when it lands.
     BTG.Data.init().then(load).catch(function() {
       drivers = [];
@@ -411,11 +426,24 @@ body::before {
   function load() {
     // Build series list from discovered data, preserving selection if possible
     seriesList = BTG.Data.getSeriesList().map(function(s){return s.id;});
+    if (!profileOpened && seriesList.indexOf(requestedSeries) !== -1) activeSeries = requestedSeries;
     if (seriesList.indexOf(activeSeries) === -1) activeSeries = seriesList[0] || 'F1';
     seasons = BTG.Data.getSeasons(activeSeries);
+    if (!profileOpened && requestedSeason >= 1900 && requestedSeason <= 2200) {
+      activeSeason = requestedSeason;
+      if (seasons.indexOf(activeSeason) === -1) seasons.push(activeSeason);
+    }
     if (seasons.indexOf(activeSeason) === -1) activeSeason = seasons[0] || 2026;
-    drivers = BTG.Data.buildDriverList(activeSeries, activeSeason, { includeAll: true });
+    drivers = BTG.Data.buildDriverList(activeSeries, activeSeason, { includeAll: true, driver: requestedDriver });
     build();
+    if (!profileOpened && requestedDriver) {
+      var requested = drivers.find(function(d){return (d.fullName || d.name) === requestedDriver || String(d.id) === requestedDriver;});
+      if (requested) {
+        selectedDriverId = requested.id;
+        renderDetail(selectedDriverId);
+        profileOpened = true;
+      }
+    }
   }
 
   function build() {
@@ -424,7 +452,7 @@ body::before {
     seriesList.forEach(function(s) {
       var t = document.createElement('div');
       t.className = 'series-tab' + (s === activeSeries ? ' active' : '');
-      // Accent color derived from the series data â€” never hardcoded per series name.
+      // Accent color derived from the series data — never hardcoded per series name.
       t.style.setProperty('--series-color', BTG.seriesAccent(s));
       t.setAttribute('data-series', s);
       // Clickable series logo (auto-discovered from logos/{series}.png, clamped)
@@ -464,17 +492,44 @@ body::before {
     };
   }
 
+  /*
+   * The contracts that hold a driver in this series for the season on screen. A roster entry can name a driver
+   * the save has no race records for, and the contracts are then the only thing that says whether he is here: a
+   * deal signed from 2025 does not put him in the 2024 field. Rows with no years say nothing and are ignored.
+   */
+  function holdsSeasonSeat(name, series, season) {
+    var rows = (BTG.DBCache.contractHistory ? BTG.DBCache.contractHistory(name) : []).filter(function (h) {
+      return String(h.role) === 'Driving' && String(h.series) === String(series);
+    });
+    if (!rows.length) return false;
+    var y = Number(season);
+    return rows.some(function (h) {
+      var from = h.from_year == null ? null : Number(h.from_year);
+      var till = h.till_year == null ? null : Number(h.till_year);
+      if (from == null && till == null) return false;
+      if (from != null && y < from) return false;
+      if (till != null && y > till) return false;
+      return true;
+    });
+  }
+
   function getSeriesDrivers() {
     return (BTG.groupBySeries(drivers)[activeSeries] || [])
+      .filter(function (dd) {
+        /* A driver with season records here is here. One without them is only here if a contract says so. */
+        if ((dd.history || []).some(function (h) {
+          return String(h.series) === String(activeSeries) && Number(h.season) === Number(activeSeason);
+        })) return true;
+        return holdsSeasonSeat(dd.fullName || dd.name, activeSeries, activeSeason);
+      })
       .sort(function(a,b) {
         var ta = a.teamOrder != null ? a.teamOrder : 99, tb = b.teamOrder != null ? b.teamOrder : 99;
         if (ta !== tb) return ta - tb;
-        // Inside a team: car 1, then car 2 (Contract seat), never OVR/name.
-        // Each driver is scoped to their own team so a seat held at another
-        // team/series cannot reorder this lineup.
-        if (BTG.DBCache && BTG.DBCache.byCarOrder) {
-          var carCmp = BTG.DBCache.byCarOrder(activeSeason, { perTeam: true, series: activeSeries })(a, b);
-          if (carCmp) return carCmp;
+        var pointsA=Number(a.standings&&a.standings.pts)||0,pointsB=Number(b.standings&&b.standings.pts)||0;
+        if(pointsA!==pointsB)return pointsB-pointsA;
+        if(BTG.DBCache&&BTG.DBCache.finishCountback){
+          var countback=BTG.DBCache.finishCountback(a.seasonStats&&a.seasonStats.results,b.seasonStats&&b.seasonStats.results);
+          if(countback)return countback;
         }
         return (b.ovr||0)-(a.ovr||0) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
       });
@@ -492,7 +547,7 @@ body::before {
   function renderSidebar() {
     var list = getSeriesDrivers();
     var sb = document.getElementById('sb-list');
-    document.getElementById('sb-head').textContent = activeSeries + ' â€” ' + activeSeason;
+    document.getElementById('sb-head').textContent = activeSeries + ' — ' + activeSeason;
     if (!list.length) { sb.innerHTML = '<div class="dp-empty">No drivers.</div>'; return; }
 
     // Group by team; teamless drivers group by their car (XGT/GT entries)
@@ -506,20 +561,31 @@ body::before {
     });
 
     var html = '';
-    Object.keys(byTeam).forEach(function(teamName) {
+    var previousTeams=BTG.DBCache&&BTG.DBCache.getTeamStandings?BTG.DBCache.getTeamStandings(activeSeries,activeSeason-1):[];
+    function teamIdentity(name){var row=BTG.DBCache&&BTG.DBCache.teamBranding?BTG.DBCache.teamBranding(name):null;return row?String(row.team_id):String(name||'').toLowerCase();}
+    var previousRanks={};previousTeams.forEach(function(t,i){previousRanks[teamIdentity(t.teamId||t.team)]=i;previousRanks[teamIdentity(t.team)]=i;});
+    Object.keys(byTeam).sort(function(a,b){
+      var rankA=previousRanks[teamIdentity(a)],rankB=previousRanks[teamIdentity(b)];
+      return (rankA==null?999:rankA)-(rankB==null?999:rankB);
+    }).forEach(function(teamName) {
       var color = dbTeamRgb(teamName) || '185,29,46';
-      html += '<div class="dp-picker__group"><div class="dp-picker__team">'
-        + BTG.teamLogoImg(teamName, activeSeries, 12)
-        + BTG.esc(teamDisplayName(teamName))
+      /* The team's line wears the same band as the chips beneath it, so the group reads as that team. */
+      var teamBandStyle = BTG.teamBandForReversed ? BTG.teamBandForReversed(teamName) : null;
+      html += '<div class="dp-picker__group"><div class="dp-picker__team"'
+        + (teamBandStyle ? ' style="'+teamBandStyle.style+'"' : '') + '>'
+        + BTG.teamLogoImg(teamName, activeSeries, 19.6)
+        + '<span>' + BTG.esc(teamDisplayName(teamName)) + '</span>'
         + '</div>';
       var color2 = dbTeamRgb(teamName, true);
+      /* The chip wears the team's own band, so the list reads as teams and not as rows. */
+      var chipBand = BTG.teamBandForReversed ? BTG.teamBandForReversed(teamName) : null;
       byTeam[teamName].forEach(function(d) {
-        var num = d.standings ? d.standings.pos : 'â€”';
-        html += '<button class="dp-picker__chip' + (d.id===selectedDriverId?' dp-picker__chip--active':'') + '" data-id="'+BTG.esc(d.id)+'" data-color="'+BTG.esc(color)+'" data-color2="'+BTG.esc(color2)+'">'
-          + '<span class="dp-picker__face">' + BTG.driverPhotoImg(d.fullName || d.name, 32) + '</span>'
+        html += '<button class="dp-picker__chip' + (d.id===selectedDriverId?' dp-picker__chip--active':'') + '" data-id="'+BTG.esc(d.id)+'" data-color="'+BTG.esc(color)+'" data-color2="'+BTG.esc(color2)+'"'
+          + (chipBand ? ' style="'+chipBand.style+'"' : '') + '>'
+          + '<span class="dp-picker__face">' + BTG.driverPhotoImg(d.fullName || d.name, 32, '', activeSeason) + '</span>'
           + '<span class="dp-picker__name">'+BTG.esc(d.fullName || d.name)+'</span>'
-          + '<span class="dp-picker__num">'+num+'</span>'
-          + (d.academy ? '<span class="dp-picker__acad"'+(d.academyColor ? ' style="color:'+BTG.esc(d.academyColor)+'"' : '')+'>'+BTG.teamLogoImg(d.academy, activeSeries, 9)+BTG.esc(d.academy)+'</span>' : '')
+          + (d.academy ? '<span class="dp-picker__acad">'+BTG.teamLogoImg(d.academy, activeSeries, 14)+'</span>' : '')
+          + BTG.numberSlot(d.carNumber, d.team, 24, 'dp-picker__num', false, undefined, activeSeason)
           + '</button>';
       });
       html += '</div>';
@@ -527,15 +593,15 @@ body::before {
     // Teamless drivers grouped by car (XGT/GT entries)
     Object.keys(byCar).forEach(function(carName) {
       html += '<div class="dp-picker__group"><div class="dp-picker__team">'
-        + BTG.carLogoImg(carName, activeSeries, 12)
-        + BTG.esc(carName)
+        + BTG.carLogoImg(carName, activeSeries, 14)
+        + '<span>' + BTG.esc(carName) + '</span>'
         + '</div>';
       byCar[carName].forEach(function(d) {
-        var num = d.standings ? d.standings.pos : 'â€”';
         html += '<button class="dp-picker__chip' + (d.id===selectedDriverId?' dp-picker__chip--active':'') + '" data-id="'+BTG.esc(d.id)+'" data-color="185,29,46">'
-          + '<span class="dp-picker__face">' + BTG.driverPhotoImg(d.fullName || d.name, 32) + '</span>'
+          + '<span class="dp-picker__face">' + BTG.driverPhotoImg(d.fullName || d.name, 32, '', activeSeason) + '</span>'
           + '<span class="dp-picker__name">'+BTG.esc(d.fullName || d.name)+'</span>'
-          + '<span class="dp-picker__num">'+num+'</span>'
+          + (d.academy ? '<span class="dp-picker__acad">'+BTG.teamLogoImg(d.academy, activeSeries, 14)+'</span>' : '')
+          + BTG.numberSlot(d.carNumber, d.team, 24, 'dp-picker__num', false, undefined, activeSeason)
           + '</button>';
       });
       html += '</div>';
@@ -543,17 +609,19 @@ body::before {
     if (privateers.length) {
       html += '<div class="dp-picker__group"><div class="dp-picker__team">Privateers</div>';
       privateers.forEach(function(d) {
-        var num = d.standings ? d.standings.pos : 'â€”';
         var years = (d.history || []).length;
         html += '<button class="dp-picker__chip' + (d.id===selectedDriverId?' dp-picker__chip--active':'') + (years ? ' dp-picker__chip--past' : '') + '" data-id="'+BTG.esc(d.id)+'" data-color="185,29,46">'
-          + '<span class="dp-picker__face">' + BTG.driverPhotoImg(d.fullName || d.name, 32) + '</span>'
+          + '<span class="dp-picker__face">' + BTG.driverPhotoImg(d.fullName || d.name, 32, '', activeSeason) + '</span>'
           + '<span class="dp-picker__name">'+BTG.esc(d.fullName || d.name)+'</span>'
-          + '<span class="dp-picker__num">'+num+'</span>'
+          + BTG.numberSlot(d.carNumber, d.team, 24, 'dp-picker__num', false, undefined, activeSeason)
           + '</button>';
       });
       html += '</div>';
     }
     sb.innerHTML = html;
+    /* The chips carry a number drawn from the team's own sheet, and a number is a picture rather than text: the
+       slots are filled the moment the list is in the page, so every series shows its numbers. */
+    if (BTG.numberSlotHydrate) BTG.numberSlotHydrate(sb);
 
     sb.querySelectorAll('.dp-picker__chip').forEach(function(el) {
       el.onclick = function() {
@@ -571,9 +639,20 @@ body::before {
   function renderDetail(driverId) {
     var d = drivers.find(function(x){return x.id===driverId;});
     if (!d) return;
-    var acadName = d.academy && window.BTG && BTG.Roster && BTG.Roster.teamName
-      ? (BTG.Roster.teamName(d.academy) || d.academy) : d.academy;
-    var color = dbTeamRgb(d.team) || '185,29,46';
+        /*
+     * The academy tag reads as a team's name, so the raw key the save keeps — "aston_martin" — is only the last
+     * resort, de-underscored so it still reads as words rather than as a field name.
+     */
+    var acadName = '';
+    if (d.academy) {
+      acadName = (BTG.DBCache && BTG.DBCache.teamName ? BTG.DBCache.teamName(d.academy) : '')
+        || (window.BTG && BTG.Roster && BTG.Roster.teamName ? BTG.Roster.teamName(d.academy, true) : '')
+        || String(d.academy).replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+    }
+    var affiliation=BTG.DBCache.profileTeam(d.fullName||d.name,activeSeason);
+    var profileTeam=affiliation===undefined?d.team:affiliation;
+    var color = dbTeamRgb(profileTeam) || '110,110,118';
+    if(!profileTeam)BTG.setTeamColors(color,color);
     var panel = document.getElementById('detail-panel');
     panel.className = '';
     panel.innerHTML = '';
@@ -589,24 +668,24 @@ body::before {
 
     var html = '<div class="dp-main">';
 
-    // â•â• LEFT â•â•
+    // ══ LEFT ══
     html += '<div class="dp-left">';
 
-    // Hero â€” wrapped in BorderGlow exactly like TFG (per-card, isSelected)
-    var heroBand = BTG.teamBand ? BTG.teamBand(color, dbTeamRgb(d.team, true)) : null;
+    // Hero — wrapped in BorderGlow exactly like TFG (per-card, isSelected)
+    var heroBand = profileTeam && BTG.teamBandForReversed ? BTG.teamBandForReversed(profileTeam) : null;
     var heroInner = '<div class="dp-card dp-hero dp-hero--band"'+(heroBand ? ' style="'+heroBand.style+'"' : '')+'>'
-      + '<div class="dp-hero__number">'+(d.standings?d.standings.pos:'')+'</div>'
+      + '<div class="dp-hero__number">'+(d.carNumber ? BTG.numberSlot(d.carNumber, profileTeam, 56, 'dp-hero__num', false, undefined, activeSeason) : '')+'</div>'
       + '<div class="dp-hero__photo" style="border-color:'+((heroBand && heroBand.ink) || ('rgb('+color+')'))+';box-shadow:0 0 24px rgb('+color+' / 0.2)">'
-      + BTG.driverPhotoImg(d.fullName || d.name, 76)
+      + BTG.driverPhotoImg(d.fullName || d.name, 76, '', activeSeason)
       + '</div>'
       + '<div class="dp-hero__info">'
       + '<div class="dp-hero__name"><span class="dp-hero__first">'+(nameParts.slice(0,-1).join(' ')||'')+'</span><span class="dp-hero__last">'+(nameParts.slice(-1)[0]||'')+'</span></div>'
-      + '<div class="dp-hero__meta">'+BTG.esc(d.nation||'')+(d.carNumber ? '<span class="dp-hero__sep">Â·</span>#'+BTG.esc(d.carNumber) : '')+'</div>'
+      + '<div class="dp-hero__meta">' + (BTG.flagImg ? BTG.flagImg(d.nation, 18, 13, 'dp-hero__flag') : '') + '</div>'
       + '<div class="dp-hero__team">'
-      + (BTG.entryLabel(d.team, d.car) ? BTG.entryLogoImg(d.team, d.car, d.series || activeSeries, 18) + '<span>'+BTG.esc(BTG.entryLabel(d.team, d.car))+'</span>' : '<span class="dp-hero__free">Free agent</span>')
+      + (profileTeam ? BTG.entryLogoImg(profileTeam, profileTeam?d.car:null, d.series || activeSeries, 18) + '<span>'+BTG.esc(BTG.entryLabel(profileTeam, profileTeam?d.car:null))+'</span>' : '<span class="dp-hero__free">Free agent</span>')
       + '</div>'
-      + (d.academy ? '<div class="dp-hero__academy"'+(d.academyColor ? ' style="color:'+BTG.esc(d.academyColor)+'"' : '')+'>'
-          + BTG.teamLogoImg(d.academy, d.series || activeSeries, 12)
+      + (d.academy ? '<div class="dp-hero__academy">'
+          + '<span class="dp-hero__acad-badge">' + BTG.teamLogoImg(d.academy, d.series || activeSeries, 14) + '</span>'
           + '<span>'+BTG.esc(acadName)+(d.academyRole === 'Reserve' ? ' Reserve' : ' Academy')+'</span></div>' : '')
       + '</div></div>';
     html += BTG.wrapCard(heroInner, {
@@ -619,32 +698,32 @@ body::before {
       className: 'dp-hero-frame'
     });
 
-    // Contract â€” tenure computed from history (scoped to the current series)
-    var tenure = 'â€”';
-    var firstSeasonWithTeam = (d.history||[]).find(function(h){return h.series === d.series && h.team && h.team === d.team;});
+    // Contract — tenure computed from history (scoped to the current series)
+    var tenure = '—';
+    var firstSeasonWithTeam = (d.history||[]).find(function(h){return h.series === d.series && h.team && h.team === profileTeam;});
     if (firstSeasonWithTeam) tenure = 'since ' + firstSeasonWithTeam.season;
     html += '<div class="dp-card"><div class="dp-card__title">Contract</div>'
       + '<div class="dp-contract">'
       + '<div class="dp-contract__row"><span class="dp-contract__label">Team Tenure</span><span class="dp-contract__val">'+tenure+'</span></div>'
-      + '<div class="dp-contract__row"><span class="dp-contract__label">Contract Until</span><span class="dp-contract__val">â€”</span></div>'
-      + '<div class="dp-contract__row"><span class="dp-contract__label">Status</span><span class="dp-contract__val">â€”</span></div>'
+      + '<div class="dp-contract__row"><span class="dp-contract__label">Contract Until</span><span class="dp-contract__val">—</span></div>'
+      + '<div class="dp-contract__row"><span class="dp-contract__label">Status</span><span class="dp-contract__val">—</span></div>'
       + '</div></div>';
 
     // Season Position
     html += '<div class="dp-card"><div class="dp-card__title">Season Position</div>'
-      + '<div class="dp-pos"><span class="dp-pos__rank">'+(d.standings?'P'+d.standings.pos:'â€”')+'</span><span class="dp-pos__pts">'+(d.standings?d.standings.pts+' pts':'â€”')+'</span></div></div>';
+      + '<div class="dp-pos"><span class="dp-pos__rank">'+(d.standings?'P'+d.standings.pos:'—')+'</span><span class="dp-pos__pts">'+(d.standings?d.standings.pts+' pts':'—')+'</span></div></div>';
 
     // Last Season (scoped to the current series)
     var ls = (d.history||[]).find(function(h){return h.series === d.series && h.season===activeSeason-1;});
-    html += '<div class="dp-card"><div class="dp-card__title">Last Season Â· '+(activeSeason-1)+'</div>'
+    html += '<div class="dp-card"><div class="dp-card__title">Last Season · '+(activeSeason-1)+'</div>'
       + '<div class="dp-prev">'
-      + '<div class="dp-prev__row"><span>Position</span><span>'+(ls&&ls.pos&&ls.pos!=='â€”'?'P'+ls.pos:'â€”')+'</span></div>'
-      + '<div class="dp-prev__row"><span>Points</span><span>'+(ls&&ls.points!=null?ls.points:'â€”')+'</span></div>'
-      + '<div class="dp-prev__row"><span>Wins</span><span>'+(ls&&ls.wins?ls.wins:'â€”')+'</span></div>'
-      + '<div class="dp-prev__row"><span>Podiums</span><span>'+(ls&&ls.podiums?ls.podiums:'â€”')+'</span></div>'
-      + '<div class="dp-prev__row"><span>DNFs</span><span>'+(ls&&ls.dnfs?ls.dnfs:'â€”')+'</span></div>'
-      + '<div class="dp-prev__row"><span>Avg Finish</span><span>'+(ls&&ls.avgFinish&&ls.avgFinish!=='â€”'?'P'+ls.avgFinish:'â€”')+'</span></div>'
-      + '<div class="dp-prev__row"><span>Races</span><span>'+(ls&&ls.races?ls.races:'â€”')+'</span></div>'
+      + '<div class="dp-prev__row"><span>Position</span><span>'+(ls&&ls.pos&&ls.pos!=='—'?'P'+ls.pos:'—')+'</span></div>'
+      + '<div class="dp-prev__row"><span>Points</span><span>'+(ls&&ls.points!=null?ls.points:'—')+'</span></div>'
+      + '<div class="dp-prev__row"><span>Wins</span><span>'+(ls&&ls.wins?ls.wins:'—')+'</span></div>'
+      + '<div class="dp-prev__row"><span>Podiums</span><span>'+(ls&&ls.podiums?ls.podiums:'—')+'</span></div>'
+      + '<div class="dp-prev__row"><span>DNFs</span><span>'+(ls&&ls.dnfs?ls.dnfs:'—')+'</span></div>'
+      + '<div class="dp-prev__row"><span>Avg Finish</span><span>'+(ls&&ls.avgFinish&&ls.avgFinish!=='—'?'P'+ls.avgFinish:'—')+'</span></div>'
+      + '<div class="dp-prev__row"><span>Races</span><span>'+(ls&&ls.races?ls.races:'—')+'</span></div>'
       + '</div></div>';
 
     // Favorite Track + Favorite Track Type (whole career)
@@ -652,10 +731,10 @@ body::before {
 
     html += '</div>'; // left
 
-    // â•â• CENTER â•â•
+    // ══ CENTER ══
     html += '<div class="dp-center">';
 
-    // Season Performance â€” Pace (30% quali lap / 70% avg lap), Qualifying,
+    // Season Performance — Pace (30% quali lap / 70% avg lap), Qualifying,
     // Racecraft, vs Teammate (20% quali / 20% avg lap / 60% race) and
     // Reliability. Car placement is derived from race data, not real car data.
     var perfBars = [
@@ -671,7 +750,7 @@ body::before {
       + perfBars.map(function(p){ return gbar(p.label, p.val, p.color, ratingGrade(p.score)); }).join('')
       + '</div></div>';
 
-    // Season Race Positions â€” sparkline
+    // Season Race Positions — sparkline
     var spark = buildSparkline(d);
     html += '<div class="dp-card"><div class="dp-card__title">Season Race Positions</div>'
       + '<div class="dp-sparkline" id="sparkline">'+spark+'</div></div>';
@@ -679,21 +758,21 @@ body::before {
     // Season Stats
     html += '<div class="dp-card"><div class="dp-card__title">Season Stats</div>'
       + '<div class="dp-stats-grid">'
-      + statCell(ss.races||'â€”','Races')+statCell(ss.avgFinish||'â€”','Avg Finish')+statCell(ss.wins||'â€”','Wins')+statCell(ss.avgGrid||'â€”','Avg Grid')
-      + statCell(ss.podiums||'â€”','Podiums')+statCell(ss.poles||'â€”','Poles')+statCell(ss.dnfs||'â€”','DNFs')+statCell('â€”','Poleâ†’Win')
+      + statCell(ss.races||'—','Races')+statCell(ss.avgFinish||'—','Avg Finish')+statCell(ss.wins||'—','Wins')+statCell(ss.avgGrid||'—','Avg Grid')
+      + statCell(ss.podiums||'—','Podiums')+statCell(ss.poles||'—','Poles')+statCell(ss.dnfs||'—','DNFs')+statCell('—','Pole→Win')
       + '</div>'
       + '<div style="margin-top:10px"><div class="dp-card__subtitle">Sprint Races</div>'
       + '<div class="dp-stats-grid" style="grid-template-columns:repeat(4,1fr)">'
-      + statCell(ss.sprints||'â€”','Sprints')+statCell(ss.sprintWins||'â€”','Wins')+statCell(ss.sprintPodiums||'â€”','Podiums')+statCell(ss.sprintPts||'â€”','Points')
+      + statCell(ss.sprints||'—','Sprints')+statCell(ss.sprintWins||'—','Wins')+statCell(ss.sprintPodiums||'—','Podiums')+statCell(ss.sprintPts||'—','Points')
       + '</div></div></div>';
 
     html += '</div>'; // center
 
-    // â•â• RIGHT â•â•
+    // ══ RIGHT ══
     html += '<div class="dp-right">';
 
     // Verdict
-    var h2hScore = (perf.teammate != null) ? Math.round(perf.teammate) + '%' : 'â€”';
+    var h2hScore = (perf.teammate != null) ? Math.round(perf.teammate) + '%' : '—';
     var teamPts = 0;
     for (var ti = 0; ti < drivers.length; ti++) {
       var td = drivers[ti];
@@ -702,25 +781,25 @@ body::before {
       }
     }
     var myPts = d.standings ? (Number(d.standings.pts) || 0) : 0;
-    var ptsShare = teamPts > 0 ? Math.round(myPts / teamPts * 100) + '%' : 'â€”';
+    var ptsShare = teamPts > 0 ? Math.round(myPts / teamPts * 100) + '%' : '—';
     html += '<div class="dp-card"><div class="dp-card__title">Verdict</div>'
-      + '<div class="dp-verdict__label">'+(d.standings?seasonVerdict(d,ss):'â€”')+'</div>'
+      + '<div class="dp-verdict__label">'+(d.standings?seasonVerdict(d,ss):'—')+'</div>'
       + '<div class="dp-verdict__stats">'
       + '<div class="dp-verdict__stat"><span class="dp-verdict__val">'+h2hScore+'</span><span class="dp-verdict__lbl">H2H</span></div>'
       + '<div class="dp-verdict__stat"><span class="dp-verdict__val">'+ptsShare+'</span><span class="dp-verdict__lbl">Pts Share</span></div>'
       + '</div>'
-      + '<div class="dp-verdict__bullets">â€”</div></div>';
+      + '<div class="dp-verdict__bullets">—</div></div>';
 
     // Career Race Record
     var cr = d.careerRecord || {};
     html += '<div class="dp-card"><div class="dp-card__title">Career Race Record</div>'
       + '<div class="dp-career-grid">'
-      + statCell(cr.starts||'â€”','Starts')+statCell(cr.wins||'â€”','Wins')+statCell(cr.podiums||'â€”','Podiums')+statCell(cr.points||'â€”','Points')
-      + statCell(cr.dnfs||'â€”','DNFs')+statCell(cr.bestFinish||'â€”','Best Finish')+statCell(cr.avgFinish||'â€”','Avg Finish')+statCell(cr.yrs||'â€”','Yrs in '+BTG.esc(d.series||'Series'))
-      + statCell(cr.yrsAtTeam||'â€”','Yrs at Team')
+      + statCell(cr.starts||'—','Starts')+statCell(cr.wins||'—','Wins')+statCell(cr.podiums||'—','Podiums')+statCell(cr.points||'—','Points')
+      + statCell(cr.dnfs||'—','DNFs')+statCell(cr.bestFinish||'—','Best Finish')+statCell(cr.avgFinish||'—','Avg Finish')+statCell(cr.yrs||'—','Yrs in '+BTG.esc(d.series||'Series'))
+      + statCell(cr.yrsAtTeam||'—','Yrs at Team')
       + '</div></div>';
 
-    // Past Seasons (full career across every series â€” same driver, not duplicated)
+    // Past Seasons (full career across every series — same driver, not duplicated)
     if (d.history && d.history.length) {
       html += '<div class="dp-card"><div class="dp-card__title">Past Seasons</div>'
         + '<div class="dp-past-head"><span>Season</span><span>Series</span><span>Team</span><span class="px">Pos</span><span class="px">Wins</span><span class="px">Pods</span><span class="px">Pts</span><span class="ps">Rating</span></div>'
@@ -729,13 +808,13 @@ body::before {
           var label = h.team && h.team !== 'Privateer' ? h.team : (h.series || '');
           var logo = h.team && h.team !== 'Privateer' ? BTG.teamLogoImg(h.team, h.series, 14) : '';
           return '<div class="dp-past-row"><span class="yr">'+h.season+'</span>'
-            + '<span class="st">'+BTG.esc(h.series || 'â€”')+'</span>'
+            + '<span class="st">'+BTG.esc(h.series || '—')+'</span>'
             + '<span class="tm">'+logo+BTG.esc(label)+(h.role === 'Reserve' ? '<span class="sx">Reserve</span>' : '')+'</span>'
-            + '<span class="px">'+(h.pos && h.pos !== 'â€”' ? 'P'+h.pos : 'â€”')+'</span>'
-            + '<span class="px">'+(h.wins ? h.wins : 'â€”')+'</span>'
-            + '<span class="px">'+(h.podiums ? h.podiums : 'â€”')+'</span>'
-            + '<span class="px">'+(h.points != null ? h.points : 'â€”')+'</span>'
-            + '<span class="ps"'+(h.grade ? ' style="color:'+gradeColor(h.grade)+'"' : '')+'>'+(h.grade||'â€”')+'</span></div>';
+            + '<span class="px">'+(h.pos && h.pos !== '—' ? 'P'+h.pos : '—')+'</span>'
+            + '<span class="px">'+(h.wins ? h.wins : '—')+'</span>'
+            + '<span class="px">'+(h.podiums ? h.podiums : '—')+'</span>'
+            + '<span class="px">'+(h.points != null ? h.points : '—')+'</span>'
+            + '<span class="ps"'+(h.grade ? ' style="color:'+gradeColor(h.grade)+'"' : '')+'>'+(h.grade||'—')+'</span></div>';
         }).join('') + '</div>';
     }
 
@@ -745,7 +824,7 @@ body::before {
     html += '</div>'; // right
     html += '</div>'; // dp-main
 
-    // Career Timeline (full width below) â€” TFG-style year blocks. The main track
+    // Career Timeline (full width below) — TFG-style year blocks. The main track
     // only shows DRIVING stints (reserve/junior/academy never split a season in
     // two); junior + reserve contract drives are rendered as their own coloured
     // rows beneath, matching the save-viewer behaviour.
@@ -778,7 +857,7 @@ body::before {
       if (hist.length) {
         // Year label row (show series tag when a year spans multiple series)
         html += '<div class="dp-tl__years">' + hist.map(function(h){
-            return '<span>' + h.season + (h.series && h.series !== d.series ? 'Â·'+BTG.esc(h.series.slice(0,4)) : '') + '</span>';
+            return '<span>' + h.season + (h.series && h.series !== d.series ? '·'+BTG.esc(h.series.slice(0,4)) : '') + '</span>';
           }).join('') + '</div>'
         + '<div class="dp-tl__track">';
 
@@ -792,12 +871,12 @@ body::before {
             var mid = Math.round((b.startYear + b.endYear) / 2);
             if (h.season === mid && b.series === h.series) showLogo = true;
           });
-          // Brand-change â—† when consecutive years differ in team
+          // Brand-change ◆ when consecutive years differ in team
           var isBrandChange = prev && prev.team && h && h.team && prev.team !== h.team;
           var cellStyle = 'background:' + bg + ';opacity:0.75;';
           html += '<div class="dp-tl__cell" style="' + cellStyle + '">'
             + (showLogo && (team || h.car) ? BTG.entryLogoImg(h.team, h.car, h.series, 12) : '')
-            + (isBrandChange ? '<span class="dp-tl__mark">â—†</span>' : '')
+            + (isBrandChange ? '<span class="dp-tl__mark">◆</span>' : '')
             + '</div>';
         });
         html += '</div>';
@@ -815,10 +894,10 @@ body::before {
         });
         html += '</div>';
       } else {
-        html += '<div style="color:var(--text-disabled);font-size:11px;padding:4px 0 8px">No driving stints â€” career shown via academy/reserve below.</div>';
+        html += '<div style="color:var(--text-disabled);font-size:11px;padding:4px 0 8px">No driving stints — career shown via academy/reserve below.</div>';
       }
 
-      // Academy + Reserve rows (junior + reserve contract drives) â€” one coloured
+      // Academy + Reserve rows (junior + reserve contract drives) — one coloured
       // block per stint, aligned to the same year axis, in the team's colour.
       var stintRows = acadStints.map(function(s){ return { type:'academy', team:s.team, color:s.color, seasons:s.seasons }; })
         .concat(resStints.map(function(s){ return { type:'reserve', team:s.team, color:s.color, seasons:s.seasons }; }));
@@ -854,6 +933,7 @@ body::before {
     BTG.initBorderGlow(panel);
     // TFG-style conic glow on every .dp-card (driven by --team-rgb + cursor)
     BTG.initCardGlow(panel);
+  if (BTG.numberSlotHydrate) BTG.numberSlotHydrate();
   }
 
   function gradeOf(v) {
@@ -882,7 +962,7 @@ body::before {
     return { 'S':'#f59e0b', 'A':'#34d399', 'B':'#a1a1aa', 'C':'#71717a', 'D':'#ef4444', 'E':'#dc2626', 'F':'#991b1b' }[c] || '#71717a';
   }
   function numOr(v) { return (v == null || v === '' || isNaN(Number(v))) ? 0 : Number(v); }
-  // 0â€“20 letter bands (Save Viewer distribution): an average (50) driver â‰ˆ B.
+  // 0–20 letter bands (Save Viewer distribution): an average (50) driver ≈ B.
   function ratingGrade(score) {
     var g = ['F-','F','F+','E-','E','E+','D-','D','D+','C-','C','C+','B-','B','B+','A-','A','A+','S-','S','S+'];
     var idx = Math.max(0, Math.min(g.length - 1, Math.round(score == null ? 0 : score)));
@@ -937,7 +1017,7 @@ body::before {
     return clamp100(50 + (carMs - myMs) / carMs * 150);
   }
 
-  /** The "car" placement â€” the team's car performance derived from RACE DATA
+  /** The "car" placement — the team's car performance derived from RACE DATA
    *  (this site has no real car data): median quali lap, median race lap and
    *  average grid/finish across the team's drivers. */
   function carPlacement(d, allDrivers) {
@@ -959,16 +1039,31 @@ body::before {
   }
 
   /**
-   * Season performance â€” 5 components, each 0â€“100, modelled on (but simpler
+   * Season performance — 5 components, each 0–100, modelled on (but simpler
    * than) the Save Viewer because this site has no real car data.
-   *  â€¢ Pace        = 30% quali lap + 70% average lap (vs the car's pace)
-   *  â€¢ Qualifying  = grid position vs the car's expected grid
-   *  â€¢ Racecraft   = positions gained + finish quality + podiums/DNFs
-   *  â€¢ vs Teammate = 20% quali H2H + 20% average-lap H2H + 60% race results
-   *  â€¢ Reliability = finish vs the car's expected finish (DNF fallback)
+   *  • Pace        = 30% quali lap + 70% average lap (vs the car's pace)
+   *  • Qualifying  = grid position vs the car's expected grid
+   *  • Racecraft   = positions gained + finish quality + podiums/DNFs
+   *  • vs Teammate = 20% quali H2H + 20% average-lap H2H + 60% race results
+   *  • Reliability = finish vs the car's expected finish (DNF fallback)
    * The car placement is derived from race data (quali pace + average lap +
    * race position), never from real car data. */
-  function computeSeasonPerformance(d, ss, allDrivers) {
+  // Centre the overall season grade on B (13/20) for drivers who have raced.
+  // DSQs retain a ceiling based on their share of valid classifications.
+  function computeSeasonPerformance(d,ss,allDrivers){
+    var perf=rawSeasonPerformance(d,ss,allDrivers);
+    var field=(allDrivers||[]).filter(function(x){return x.series===d.series&&Number(x.seasonStats&&x.seasonStats.races)>0;});
+    if(!field.length||!Number(ss&&ss.races))return perf;
+    function ceiling(stats){var rows=stats.results||[],dsq=rows.filter(function(r){return /\b(?:dsq|dq|disq)\b|disqualif|excluded/i.test(String(r.status||''))||r.dsq===true||r.disqualified===true;}).length;return 20*Math.max(0,1-dsq/Math.max(Number(stats.races)||rows.length,dsq||1));}
+    var values=field.map(function(x){return {score:rawSeasonPerformance(x,x.seasonStats,allDrivers).overallScore,cap:ceiling(x.seasonStats)};});
+    var target=Math.min(13*values.length,values.reduce(function(sum,x){return sum+x.cap;},0));
+    var low=-20,high=20;
+    for(var i=0;i<40;i++){var offset=(low+high)/2,sum=values.reduce(function(total,x){return total+Math.max(0,Math.min(x.cap,x.score+offset));},0);if(sum<target)low=offset;else high=offset;}
+    perf.overallScore=Math.max(0,Math.min(ceiling(ss),perf.overallScore+(low+high)/2));
+    return perf;
+  }
+
+  function rawSeasonPerformance(d, ss, allDrivers) {
     ss = ss || {};
     var list = allDrivers || [];
     var team = d.team, car = d.car;
@@ -982,9 +1077,9 @@ body::before {
     var carM = carPlacement(d, list);
     var results = ss.results || [];
 
-    // â”€â”€ Whole-grid reference: every component is relative to the whole grid
+    // ── Whole-grid reference: every component is relative to the whole grid
     // of the driver's series (the per-team car placement above only states
-    // where the car itself ranks among that grid). â”€â”€
+    // where the car itself ranks among that grid). ──
     var gridVals = { pace: [], quali: [], grid: [], finish: [], rate: [] };
     list.forEach(function (gx) {
       var gs2 = gx.seasonStats || {};
@@ -1012,7 +1107,7 @@ body::before {
       return total ? clamp100(((beat + tie * 0.5) / total) * 100) : 50;
     }
 
-    // Pace: 30% quali lap + 70% average lap â€” lap pace percentile of the grid.
+    // Pace: 30% quali lap + 70% average lap — lap pace percentile of the grid.
     var qPct = fieldPct(ss.qualiMedianMs != null ? Number(ss.qualiMedianMs) : null, gridVals.quali, true);
     var lPct = fieldPct(ss.paceMedianMs != null ? Number(ss.paceMedianMs) : null, gridVals.pace, true);
     var gPct = fieldPct(parseFloat(ss.avgGrid), gridVals.grid, true);
@@ -1063,7 +1158,7 @@ body::before {
     var fqScore = la.fqPerR > 0 ? Math.min(40, ((finishQ / raceCnt) / la.fqPerR) * 20) : 20;
     var racecraft = clamp100(ovtScore + defScore + ovtVolScore + defVolScore + fqScore);
 
-    // Reliability: whole-grid relative â€” finish rate (no DNF) blended with
+    // Reliability: whole-grid relative — finish rate (no DNF) blended with
     // where the driver finishes vs the whole grid.
     var reliability = (ss.smReliability != null) ? clamp100(Number(ss.smReliability)) : null;
     if (reliability == null) {
@@ -1119,6 +1214,15 @@ body::before {
     var raceScore = bandScore(racecraft, 3), teamScore = bandScore(teammate, 0);
     var reliScore = bandScore(reliability, 4);
     var overallScore = Math.round((paceScore + qualiScore + raceScore + teamScore + reliScore) / 5);
+    // Invalid race classifications cannot earn a strong season grade through qualifying alone.
+    var dsqs=results.filter(function(r){return /\b(?:dsq|dq|disq)\b|disqualif|excluded/i.test(String(r.status||''))||r.dsq===true||r.disqualified===true;}).length;
+    if(dsqs){
+      var eligible=Math.max(0,1-dsqs/Math.max(Number(ss.races)||results.length,dsqs));
+      reliability=clamp100(reliability*eligible);reliScore=Math.round(reliScore*eligible);
+      raceScore=Math.round(raceScore*eligible);teamScore=Math.round(teamScore*eligible);
+      overallScore=Math.round((paceScore+qualiScore+raceScore+teamScore+reliScore)/5*eligible);
+    }
+
     return {
       label: isSameCar ? 'vs Same Car' : 'vs Teammate',
       pace: pace, qualifying: qualifying, racecraft: racecraft,
@@ -1153,7 +1257,7 @@ body::before {
     return bestTrack;
   }
 
-  /* â”€â”€ Favorite track + favorite track type (whole career) â”€â”€ */
+  /* ── Favorite track + favorite track type (whole career) ── */
   function favMeta(track) {
     try { return (window.BTG && BTG.circuitMeta) ? BTG.circuitMeta(track) : null; } catch (e) { return null; }
   }
@@ -1201,11 +1305,11 @@ body::before {
     var html = '<div class="dp-card"><div class="dp-card__title">Favorite</div>';
     if (!f) { html += '<div style="color:#8a8a94;font-size:12px;padding:4px 2px;">No race data yet.</div></div>'; return html; }
     var flag = f.flag ? BTG.flagImg(f.flag, 22, 16) : '';
-    var note = f.best ? ('Best: P' + f.best + (f.bestCount > 1 ? ' Â· ' + f.bestCount + 'x' : '')) : 'â€”';
+    var note = f.best ? ('Best: P' + f.best + (f.bestCount > 1 ? ' · ' + f.bestCount + 'x' : '')) : '—';
     html += '<div style="display:flex;align-items:stretch;gap:12px;">'
       + '<div style="flex:1;min-width:0;">'
       + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">' + flag
-      + '<span style="font-size:12px;font-weight:600;">' + esc(f.name || f.track || 'â€”') + '</span></div>'
+      + '<span style="font-size:12px;font-weight:600;">' + esc(f.name || f.track || '—') + '</span></div>'
       + '<div style="font-size:9px;color:#8a8a94;">' + note + '</div>'
       + '</div>'
       + '<div style="width:1px;background:rgba(255,255,255,0.1);"></div>'
@@ -1213,12 +1317,12 @@ body::before {
       + '<div style="font-size:8px;text-transform:uppercase;letter-spacing:.08em;color:#8a8a94;margin-bottom:6px;">Favorite track type</div>'
       + (f.type
           ? '<div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;"><span style="width:9px;height:9px;border-radius:50%;background:' + favColor(f.type) + ';"></span>' + esc(f.type) + '</div>'
-          : '<span style="font-size:10px;color:#8a8a94;">â€”</span>')
+          : '<span style="font-size:10px;color:#8a8a94;">—</span>')
       + '</div></div></div>';
     return html;
   }
 
-  /** Build the TFG dot-plot sparkline (startâ†’finish per race). */
+  /** Build the TFG dot-plot sparkline (start→finish per race). */
   function buildSparkline(d) {
     var results = (d.seasonStats && d.seasonStats.results) || [];
     var color = (d.teamColor || '185,29,46');
@@ -1226,7 +1330,7 @@ body::before {
       var sp = r.grid || 20, fp = r.pos || 20;
       var sy = ((sp - 1) / 19) * 80, fy = ((fp - 1) / 19) * 80;
       var label = abbreviate(r.track) || 'R' + (i+1);
-      return '<div class="dp-sparkline__race" title="'+BTG.esc(label)+': P'+sp+'â†’P'+fp+'">'
+      return '<div class="dp-sparkline__race" title="'+BTG.esc(label)+': P'+sp+'→P'+fp+'">'
         + '<div class="dp-sparkline__track">'
         + (!r.dnf ? '<div class="dp-sparkline__line" style="top:'+Math.min(sy,fy)+'px;height:'+(Math.abs(fy-sy)+3)+'px;background:rgb('+color+')"></div>' : '')
         + '<div class="dp-sparkline__dot" style="top:'+fy+'px;background:'+(r.dnf?'#ef4444':'#34d399')+'"></div>'
@@ -1242,14 +1346,14 @@ body::before {
     var map = {
       'Bahrain':'BHR','Melbourne':'MEL','Shanghai':'CHN','Jeddah':'JED','Miami Gardens':'MIA',
       'Monaco':'MON','Montreal':'CAN','Suzuka':'JPN','Silverstone':'GBR','Monza':'ITA',
-      'Spielberg':'AUT','Sakhir':'BHR','MontmelÃ³':'ESP','MogyorÃ³d':'HUN','Zandvoort':'NED',
-      'Stavelot':'BEL','Austin':'USA','Mexico City':'MEX','SÃ£o Paulo':'BRA','Las Vegas':'LVG',
+      'Spielberg':'AUT','Sakhir':'BHR','Montmeló':'ESP','Mogyoród':'HUN','Zandvoort':'NED',
+      'Stavelot':'BEL','Austin':'USA','Mexico City':'MEX','São Paulo':'BRA','Las Vegas':'LVG',
       'Yas Island':'ABU','Imola':'EMI','Baku':'AZE','Lusail':'QAT','Downtown Core':'SIN'
     };
     return map[track] || track.slice(0,3).toUpperCase();
   }
 
-  /** Clamp a derived performance value to 0â€“100. */
+  /** Clamp a derived performance value to 0–100. */
   function perfVal(ss, raw) {
     if (raw == null || isNaN(raw)) return 0;
     return Math.max(0, Math.min(100, Math.round(raw)));
@@ -1257,11 +1361,11 @@ body::before {
 
   /**
    * Head-to-head metric for a driver.
-   *  â€¢ Teamed entry â†’ "vs Teammate" (compare to the other driver in the team).
-   *  â€¢ Teamless entry (XGT/GT) â†’ "vs Same Car" â€” compared to other drivers on
-   *    the same car, using median lap pace. Weighted 2Ã— from F1 (same-car is a
+   *  • Teamed entry → "vs Teammate" (compare to the other driver in the team).
+   *  • Teamless entry (XGT/GT) → "vs Same Car" — compared to other drivers on
+   *    the same car, using median lap pace. Weighted 2× from F1 (same-car is a
    *    much stronger comparison than a teammate within a constructor).
-   * Returns { label, val (0â€“100), reliability (0â€“100), pace, quali }.
+   * Returns { label, val (0–100), reliability (0–100), pace, quali }.
    */
   function computeH2H(d, ss, allDrivers) {
     var list = allDrivers || [];
@@ -1270,7 +1374,7 @@ body::before {
 
     // Gather peers: teammates if the entry has a team, else same-car drivers.
     // When a team exists but has no teammate (or the team filter finds nobody),
-    // fall back to "vs Same Car" â€” per spec, no teammate â‡’ same-car comparison.
+    // fall back to "vs Same Car" — per spec, no teammate ⇒ same-car comparison.
     var peers;
     var isSameCar = false;
     if (team) {
@@ -1285,7 +1389,7 @@ body::before {
     var reliability = (ss && ss.smReliability != null)
       ? ss.smReliability
       : perfVal(ss, 100 - (ss.dnfs||0)*15);
-    var weight = isSameCar ? 2 : 1; // same-car comparison is 2Ã— from F1
+    var weight = isSameCar ? 2 : 1; // same-car comparison is 2× from F1
 
     // Median lap-pace comparison (AMS Second Monitor data)
     var myPace = ss && ss.paceMedianMs;
@@ -1314,7 +1418,7 @@ body::before {
       quali = perfVal(ss, 100 - ss.avgGrid);
     }
 
-    // Head-to-head win percentage â€” compare the driver against each peer
+    // Head-to-head win percentage — compare the driver against each peer
     // race-by-race (finishing position) and in qualifying (grid position),
     // matching the Save Viewer driver-profile calculation. A tie = loss.
     var wins = 0, losses = 0;
@@ -1363,7 +1467,7 @@ body::before {
     }
   });
 
-  // â”€â”€ Sidebar toggle (slides the sidebar in/out; same inline styling on all screens) â”€â”€
+  // ── Sidebar toggle (slides the sidebar in/out; same inline styling on all screens) ──
   var layoutEl = document.getElementById('dp-layout');
   function closeSidebar() { if (layoutEl) layoutEl.classList.add('sb-collapsed'); }
   function toggleSidebar() { if (layoutEl) layoutEl.classList.toggle('sb-collapsed'); }

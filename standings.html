@@ -1,13 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BeTheGrid â€” Standings</title>
+<title>BeTheGrid — Standings</title>
 <link rel="icon" type="image/x-icon" href="logos/BTG.ico">
 <link rel="stylesheet" href="style.css">
 <style>
-/* â”€â”€ Standings (TFG-inspired, vanilla port) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Standings (TFG-inspired, vanilla port) ──────────────────────────────── */
 :root {
   --bg-base: #18181b;
   --bg-card: #101014;
@@ -49,7 +49,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
 .st-col__title { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
 .st-col__list { display: flex; flex-direction: column; }
 
-/* Row â€” mirrors TFG dash-row / team-glow-row */
+/* Row — mirrors TFG dash-row / team-glow-row */
 .st-row {
   display: flex; align-items: center; gap: 12px; padding: 9px 14px;
   border-left: 3px solid transparent; transition: border-color 200ms, background 200ms;
@@ -192,14 +192,14 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
       <div class="standings-range" id="st-range">
         <span class="standings-range__label">Show</span>
         <button type="button" class="standings-range__jump" data-range="10">Top 10</button>
-        <button type="button" class="standings-range__jump" data-range="all">All</button>
+        <button type="button" class="standings-range__jump active" data-range="all">All</button>
       </div>
       <div class="title-picture" id="st-title-picture" style="display:none;">
         <span class="title-picture__headline" id="st-title-headline"></span>
         <span class="title-picture__detail" id="st-title-detail"></span>
       </div>
       <div class="st-col__list" id="st-drivers">
-        <div class="st-empty">Loading driversâ€¦</div>
+        <div class="st-empty">Loading drivers…</div>
       </div>
     </div>
     <div class="st-col">
@@ -207,7 +207,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
         <span class="st-col__title">Constructors' Championship</span>
       </div>
       <div class="st-col__list" id="st-teams">
-        <div class="st-empty">Loading teamsâ€¦</div>
+        <div class="st-empty">Loading teams…</div>
       </div>
     </div>
   </div>
@@ -215,7 +215,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
   <!-- Race by Race matrix -->
   <div class="st-matrix-wrap" id="st-race" style="display:none;">
     <div class="st-matrix-toolbar">
-      <button type="button" class="st-back" id="st-back">â† Back</button>
+      <button type="button" class="st-back" id="st-back">← Back</button>
       <span style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;" id="st-race-title"></span>
       <div class="st-matrix-quali">
         <button type="button" class="active" data-mode="race">Race</button>
@@ -223,7 +223,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
       </div>
     </div>
     <div class="st-matrix-scroll" id="st-race-scroll">
-      <div class="st-empty">Loading race-by-raceâ€¦</div>
+      <div class="st-empty">Loading race-by-race…</div>
     </div>
   </div>
 </div>
@@ -247,19 +247,20 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
 
 <div class="tfg-attrib">UI by <a href="https://www.patreon.com/c/TFGTools" target="_blank" rel="noopener">TFGTools</a></div>
 
-<script src="js/common.js"></script>
+<script src="js/common.js?v=20261117-profile-team-16"></script>
+<script src="js/driver-numbers.js?v=20261117-yearly-style-6"></script>
 <script src="js/border-glow.js"></script>
-<script src="teams/f1.js"></script>
+<script src="teams/f1.js?v=20261117-lineups-photos"></script>
 <script src="js/circuits.js"></script>
 <script src="js/roster.js"></script>
-<script src="js/db-cache.js"></script>
-<script src="js/data-loader.js"></script>
+<script src="js/db-cache.js?v=20261117-profile-team-16"></script>
+<script src="js/data-loader.js?v=20261117-profile-team-16"></script>
 <script>
 (function() {
   var seriesList = [], activeSeries = null, activeSeason = null, seasons = [];
   var cache = null;
   var drivers = [], teams = [];
-  var standingsRange = 10; // 10 | 'all' — how much of the championship table to read
+  var standingsRange = 'all'; // 10 | 'all' — how much of the championship table to read
   var view = 'overview'; // overview | race
   var raceMode = 'race'; // race | quali
 
@@ -329,7 +330,8 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     applyBorderGlow();
   }
 
-  // â”€â”€ Drivers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Drivers ─────────────────────────────────────────────────────────────
+  // ── Title picture ──────────────────────────────────────
   function renderTitlePicture(list) {
     var el = document.getElementById('st-title-picture');
     var headEl = document.getElementById('st-title-headline');
@@ -360,8 +362,8 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     var listEl = document.getElementById('st-drivers');
     var list = BTG.Data.buildDriverList(activeSeries, activeSeason, { includeAll: true })
       .slice().sort(function (a, b) {
-        var pa = (a.standings && a.standings.pos !== 'â€”') ? Number(a.standings.pos) : 999;
-        var pb = (b.standings && b.standings.pos !== 'â€”') ? Number(b.standings.pos) : 999;
+        var pa = (a.standings && a.standings.pos !== '—') ? Number(a.standings.pos) : 999;
+        var pb = (b.standings && b.standings.pos !== '—') ? Number(b.standings.pos) : 999;
         if (pa !== pb) return pa - pb;
         var ta = a.teamOrder != null ? a.teamOrder : 99, tb = b.teamOrder != null ? b.teamOrder : 99;
         if (ta !== tb) return ta - tb;
@@ -371,30 +373,32 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     drivers = list;
     var shown = standingsRange === 'all' ? list : list.slice(0, standingsRange);
     listEl.innerHTML = shown.map(function (d, i) {
-      var pos = (d.standings && d.standings.pos !== 'â€”') ? Number(d.standings.pos) : i + 1;
+      var pos = (d.standings && d.standings.pos !== '—') ? Number(d.standings.pos) : i + 1;
       var posMod = pos === 1 ? 'gold' : pos === 2 ? 'silver' : pos === 3 ? 'bronze' : 'normal';
       var rgb = teamRgb(d.team);
       var ss = d.seasonStats || {};
       var num = d.carNumber != null ? d.carNumber : '';
       var full = d.fullName || d.name;
+      var form = d.recent || null;
       return '<div class="st-row" style="--team-rgb:' + rgb + '" data-name="' + esc(full) + '">'
-        + '<span class="st-row__pos st-row__pos--' + posMod + '">' + (pos > 99 ? 'â€”' : pos) + '</span>'
+        + '<span class="st-row__pos st-row__pos--' + posMod + '">' + (pos > 99 ? '—' : pos) + '</span>'
         + (BTG.flagImg ? BTG.flagImg(d.nation, 18, 12) : '')
-        + '<span class="st-row__photo">' + BTG.driverPhotoImg(full, 30, '') + '</span>'
-        + (num ? '<span class="st-row__num">#' + num + '</span>' : '')
+        + '<span class="st-row__photo">' + BTG.driverPhotoImg(full, 30, '', activeSeason) + '</span>'
+        + BTG.numberSlot(num, d.team, 20, 'st-row__num', undefined, undefined, activeSeason)
         + '<span class="st-row__name" style="color:' + teamColorCss(d.team) + '">' + esc(full) + '</span>'
         + (pos === 1 ? '<span class="st-row__state st-row__state--leader">Leader</span>' : '')
         + '<span class="st-row__team">' + esc(d.team || '') + '</span>'
-        + (ss.wins ? '<span class="st-row__pts" style="color:#4ade80;font-size:10px;">ðŸ†' + ss.wins + '</span>' : '')
-        + '<span class="st-row__pts">' + (d.standings ? d.standings.pts : 'â€”') + ' pts</span>'
+        + (ss.wins ? '<span class="st-row__pts" style="color:#4ade80;font-size:10px;">🏆' + ss.wins + '</span>' : '')
+        + '<span class="st-row__pts">' + (d.standings ? d.standings.pts : '—') + ' pts</span>'
         + '</div>';
     }).join('');
+    if (BTG.numberSlotHydrate) BTG.numberSlotHydrate(listEl);
     listEl.querySelectorAll('.st-row').forEach(function (el) {
       el.onclick = function () { showDriverModal(el.getAttribute('data-name')); };
     });
   }
 
-  // â”€â”€ Constructors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Constructors ────────────────────────────────────────────────────────
   function loadTeams() {
     var listEl = document.getElementById('st-teams');
     var list = BTG.DBCache.getTeamStandings(activeSeries, activeSeason);
@@ -413,7 +417,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     }).join('');
   }
 
-  // â”€â”€ Driver modal (same as the original index.html) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Driver modal (same as the original index.html) ──────────────────────
   function showDriverModal(name) {
     var d = drivers.find(function (x) { return (x.fullName || x.name) === name; });
     if (!d) return;
@@ -422,23 +426,23 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
       BTG.setTeamColors(d.teamColor, _t && _t.colorSecondary);
     }
     document.getElementById('modal-name').textContent = d.name;
-    document.getElementById('modal-team').textContent = (d.team || 'Privateer') + ' Â· ' + (d.series || activeSeries);
-    document.getElementById('modal-overall').textContent = (d.careerRecord && d.careerRecord.avgFinish !== 'â€”') ? d.careerRecord.avgFinish : 'â€”';
-    document.getElementById('modal-flag').innerHTML = BTG.driverPhotoImg(d.fullName || d.name, 48) + ' ' + BTG.flagImg(d.nation, 48, 36);
+    document.getElementById('modal-team').textContent = (d.team || 'Privateer') + ' · ' + (d.series || activeSeries);
+    document.getElementById('modal-overall').textContent = (d.careerRecord && d.careerRecord.avgFinish !== '—') ? d.careerRecord.avgFinish : '—';
+    document.getElementById('modal-flag').innerHTML = BTG.driverPhotoImg(d.fullName || d.name, 48, '', activeSeason) + ' ' + BTG.flagImg(d.nation, 48, 36);
     var career = (BTG.DBCache && BTG.DBCache.driverCareer) ? BTG.DBCache.driverCareer(d.name) : [];
     document.getElementById('modal-lifetime').innerHTML = career.length
       ? career.map(function (c) {
           return '<div class="ml-series"><div class="ml-head"><span class="ml-series-logo">' + BTG.seriesLogoImg(c.series, 14) + '</span>'
-            + (c.teamKeys.length ? '<span class="ml-teams">' + c.teamKeys.map(function (t) { return esc(t); }).join(' Â· ') + '</span>' : '')
+            + (c.teamKeys.length ? '<span class="ml-teams">' + c.teamKeys.map(function (t) { return esc(t); }).join(' · ') + '</span>' : '')
             + (c.numbers && c.numbers.length ? '<span class="ml-nums">#' + c.numbers.join(' #') + '</span>' : '')
             + '</div><div class="ml-stats">'
-            + '<span>Seasons <b>' + (c.years || 'â€”') + '</b></span>'
+            + '<span>Seasons <b>' + (c.years || '—') + '</b></span>'
             + '<span>Starts <b>' + c.starts + '</b></span>'
             + '<span>Wins <b>' + c.wins + '</b></span>'
-            + '<span>Sprint <b>' + (c.sprintWins || 'â€”') + '</b></span>'
+            + '<span>Sprint <b>' + (c.sprintWins || '—') + '</b></span>'
             + '<span>Podiums <b>' + c.podiums + '</b></span>'
             + '<span>Points <b>' + c.points + '</b></span>'
-            + '<span>Best <b>' + (c.bestPos ? 'P' + c.bestPos : 'â€”') + '</b></span>'
+            + '<span>Best <b>' + (c.bestPos ? 'P' + c.bestPos : '—') + '</b></span>'
             + '</div></div>';
         }).join('')
       : '<div class="muted">No series yet.</div>';
@@ -447,8 +451,8 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
       ? contracts.map(function (h) {
           var roleLabel = (str0(h.entity_type) === 'tp' ? 'Team Principal' : str0(h.role));
           return '<div class="mc-row' + (h.is_current ? ' current' : '') + '">'
-            + '<div class="mc-team">' + esc(str0(h.team_key) || 'â€”') + (h.is_current ? ' <span class="tag-pill">current</span>' : '') + '</div>'
-            + '<div class="mc-meta">' + esc(roleLabel) + ' Â· ' + (h.from_year || 'â€”') + 'â€“' + (h.till_year || 'â€”') + '</div>'
+            + '<div class="mc-team">' + esc(str0(h.team_key) || '—') + (h.is_current ? ' <span class="tag-pill">current</span>' : '') + '</div>'
+            + '<div class="mc-meta">' + esc(roleLabel) + ' · ' + (h.from_year || '—') + '–' + (h.till_year || '—') + '</div>'
             + '</div>';
         }).join('')
       : '<div class="muted">No contract history.</div>';
@@ -456,7 +460,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     BTG.openModal('driver-modal');
   }
 
-  // â”€â”€ Race by Race matrix (ported from the TFG standings page) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Race by Race matrix (ported from the TFG standings page) ────────────
   function seasonIdFor(series, year) {
     var rs = (cache || {}).race_seasons || [];
     for (var i = 0; i < rs.length; i++) {
@@ -480,7 +484,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
 
   function renderRaceByRace() {
     var title = document.getElementById('st-race-title');
-    title.textContent = activeSeries + ' ' + activeSeason + ' â€” Race by Race';
+    title.textContent = activeSeries + ' ' + activeSeason + ' — Race by Race';
     var sid = seasonIdFor(activeSeries, activeSeason);
     var scroll = document.getElementById('st-race-scroll');
     var data = cache || (BTG.DBCache ? BTG.DBCache.data() : null) || {};
@@ -498,8 +502,8 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     // 2. Seed drivers from the standings so totals stay correct.
     var rows = BTG.Data.buildDriverList(activeSeries, activeSeason, { includeAll: true })
       .slice().sort(function (a, b) {
-        var pa = (a.standings && a.standings.pos !== 'â€”') ? Number(a.standings.pos) : 999;
-        var pb = (b.standings && b.standings.pos !== 'â€”') ? Number(b.standings.pos) : 999;
+        var pa = (a.standings && a.standings.pos !== '—') ? Number(a.standings.pos) : 999;
+        var pb = (b.standings && b.standings.pos !== '—') ? Number(b.standings.pos) : 999;
         if (pa !== pb) return pa - pb;
         var ta = a.teamOrder != null ? a.teamOrder : 99, tb = b.teamOrder != null ? b.teamOrder : 99;
         if (ta !== tb) return ta - tb;
@@ -519,7 +523,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
         carNum: d.carNumber != null ? d.carNumber : '',
         cells: {}, // colIdx -> { racePos, racePts, raceDnf, sprintPos, sprintPts, sprintDnf, qualiPos }
         total: (d.standings && d.standings.pts != null) ? Number(d.standings.pts) : 0,
-        pos: (d.standings && d.standings.pos !== 'â€”') ? Number(d.standings.pos) : 999
+        pos: (d.standings && d.standings.pos !== '—') ? Number(d.standings.pos) : 999
       };
     });
 
@@ -585,17 +589,17 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     driverList.forEach(function (d, di) {
       html += '<tr><td class="st-matrix__driver"><span style="display:inline-flex;align-items:center;gap:6px;padding:0 4px;">'
         + '<span class="st-matrix__rank st-matrix__rank--' + posMod(di + 1) + '">' + (di + 1) + '</span>'
-        + (BTG.driverPhotoImg ? BTG.driverPhotoImg(d.name, 22, '') : '')
+        + (BTG.driverPhotoImg ? BTG.driverPhotoImg(d.name, 22, '', activeSeason) : '')
         + (BTG.flagImg ? BTG.flagImg(d.flag, 16, 11) : '')
         + '<span style="color:' + teamColorCss(d.team) + ';font-weight:700;font-size:11px;white-space:nowrap;">' + esc(d.name) + '</span>'
         + '</span></td>';
       allRaces.forEach(function (r, ci) {
         var cell = d.cells[ci];
-        if (!cell) { html += '<td><span class="st-matrix__dot">Â·</span></td>'; return; }
+        if (!cell) { html += '<td><span class="st-matrix__dot">·</span></td>'; return; }
         if (raceMode === 'quali') {
           var qp = cell.qualiPos;
           var qc = qp === 1 ? 'st-matrix__cell--p1' : qp <= 10 ? 'st-matrix__cell--pts' : 'st-matrix__cell--off';
-          html += '<td><span class="st-matrix__cell ' + qc + '" style="min-width:26px;">' + (qp != null ? qp : 'â€”') + '</span></td>';
+          html += '<td><span class="st-matrix__cell ' + qc + '" style="min-width:26px;">' + (qp != null ? qp : '—') + '</span></td>';
           return;
         }
         var mainPos = cell.racePos !== undefined ? cell.racePos : cell.sprintPos;
@@ -604,9 +608,9 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
         var hasSprint = cell.sprintPos !== undefined && Number(r.weekend_type) === 1;
         var totalPts = racePts + sprintPts;
         html += '<td><span class="st-matrix__cell ' + cellCls(mainPos, mainDnf, totalPts) + '">'
-          + (mainDnf ? 'DNF' : (mainPos != null ? mainPos : 'â€”'));
+          + (mainDnf ? 'DNF' : (mainPos != null ? mainPos : '—'));
         if (hasSprint) {
-          html += '<span class="st-matrix__sprint">' + (cell.sprintDnf ? 'SÃ—' : 'S' + (cell.sprintPos != null ? cell.sprintPos : '')) + '</span>';
+          html += '<span class="st-matrix__sprint">' + (cell.sprintDnf ? 'S×' : 'S' + (cell.sprintPos != null ? cell.sprintPos : '')) + '</span>';
         }
         if (totalPts > 0 && !mainDnf) {
           html += '<span class="st-matrix__ptsbadge">' + totalPts + '</span>';
@@ -621,7 +625,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     scroll.innerHTML = html;
   }
 
-  // â”€â”€ Series-based border glow (same as the home page) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Series-based border glow (same as the home page) ────────────────────
   function applyBorderGlow() {
     var accent = BTG.seriesAccent(activeSeries); // "r,g,b"
     var accentSpace = accent.replace(/,/g, ' '); // CSS rgb(... / a) needs spaces
@@ -645,7 +649,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-variant-nume
     if (BTG.initBorderGlow) BTG.initBorderGlow();
   }
 
-  // â”€â”€ Boot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Boot ────────────────────────────────────────────────────────────────
   BTG.DBCache.init().then(function (dbData) {
     cache = dbData;
     if (dbData && dbData.races && dbData.races.length) {
