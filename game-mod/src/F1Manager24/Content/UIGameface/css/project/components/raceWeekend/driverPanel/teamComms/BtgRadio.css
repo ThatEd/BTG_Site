@@ -1,0 +1,46 @@
+/* BTG live radio pop-up. The panel itself is styled by TeamCommSkin.css (same
+   class names); this file only places it and slides it in and out. */
+/* Both class names are needed: TeamCommSkin.css sets "position: relative" on
+   .TeamCommSkin_root and would otherwise win.
+   50px in from the right edge of the screen (at 1080p), mid-height;
+   slides in from off screen. */
+.TeamCommSkin_root.BtgRadio_root {
+  position: absolute;
+  left: auto;
+  right: 2.7777777778rem;
+  top: 25.3333333333rem;
+  z-index: 9000;
+  margin-bottom: 0;
+  opacity: 0;
+  transform: translateX(15rem);
+  transition: transform 0.35s ease-out, opacity 0.25s linear;
+  pointer-events: none;
+}
+.TeamCommSkin_root.BtgRadio_root.shown {
+  opacity: 1;
+  transform: translateX(0rem);
+}
+/* Message lines span the panel so driver lines can be right-aligned. */
+.BtgRadio_line {
+  width: 100%;
+  text-align: left;
+}
+.BtgRadio_line.isDriver {
+  text-align: right;
+}
+/* Logo from the site instead of the game's own team logo. */
+.BtgRadio_logo {
+  object-fit: contain;
+}
+/* Status line, test paks only. */
+.BtgRadio_debug {
+  position: absolute;
+  left: 40rem;
+  top: 0.2rem;
+  z-index: 9001;
+  padding: 0.15rem 0.4rem;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #00ff66;
+  font-size: 0.7rem;
+  pointer-events: none;
+}

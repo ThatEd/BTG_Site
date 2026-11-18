@@ -14,3 +14,7 @@ node_modules/
 
 # NOTE: cache/public-data.json and data-cache.json are deliberately tracked —
 # the site renders from them and the update-db-cache workflow commits them.
+
+# ── Game mod build output ───────────────────────────────────────────────
+game-mod/dist/
+docs/

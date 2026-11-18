@@ -173,14 +173,22 @@
     return (t && t.logo) ? str(t.logo) : '';
   }
 
+  function canonicalDriverName(name){
+    var rows=D&&D.drivers||[],label=function(d){return d.full_name||d.driver_name||d.name||'';};
+    var exact=rows.find(function(d){return nameKey(label(d))===nameKey(name);});if(exact)return label(exact);
+    // Imported contracts occasionally transpose surname letters. Resolve only
+    // an unambiguous match with the same first name against canonical Drivers.
+    var key=function(value){var p=nameKey(value).split(' ');return p.slice(0,-1).join(' ')+'|'+p.slice(-1)[0].split('').sort().join('');};
+    var matches=rows.filter(function(d){return key(label(d))===key(name);});return matches.length===1?label(matches[0]):name;
+  }
   // Membership belongs to a season, not the contract's current-row marker.
   function drivingContracts(series,year){
     var rows=(D&&D.driver_cars||[]).filter(function(c){return seriesOfTeam(c.team_id)===series;});
-    if(rows.length)return rows.filter(function(c){return (c.contract_role?String(c.contract_role).toLowerCase()==='driving':Number(c.seat)>=1&&Number(c.seat)<=2)&&c.from_year!=null&&c.till_year!=null&&Number(c.from_year)<=year&&Number(c.till_year)>=year;}).map(function(c){return {name:c.driver_name,team_id:c.team_id};});
-    return (D&&D.contract_history||[]).filter(function(h){return h.entity_type==='driver'&&h.role==='Driving'&&(h.series||seriesOfTeam(h.team_id))===series&&h.from_year!=null&&h.till_year!=null&&Number(h.from_year)<=year&&Number(h.till_year)>=year;}).map(function(h){return {name:h.entity_name,team_id:h.team_id};});
+    if(rows.length)return rows.filter(function(c){return (c.contract_role?String(c.contract_role).toLowerCase()==='driving':Number(c.seat)>=1&&Number(c.seat)<=2)&&c.from_year!=null&&c.till_year!=null&&Number(c.from_year)<=year&&Number(c.till_year)>=year;}).map(function(c){return {name:canonicalDriverName(c.driver_name),team_id:c.team_id};});
+    return (D&&D.contract_history||[]).filter(function(h){return h.entity_type==='driver'&&h.role==='Driving'&&(h.series||seriesOfTeam(h.team_id))===series&&h.from_year!=null&&h.till_year!=null&&Number(h.from_year)<=year&&Number(h.till_year)>=year;}).map(function(h){return {name:canonicalDriverName(h.entity_name),team_id:h.team_id};});
   }
   function profileTeam(name,year){
-    var contracts=(D&&D.driver_cars||[]).filter(function(c){return nameKey(c.driver_name)===nameKey(name)&&c.from_year!=null&&c.till_year!=null&&Number(c.from_year)<=year&&Number(c.till_year)>=year;});
+    var contracts=(D&&D.driver_cars||[]).filter(function(c){return nameKey(canonicalDriverName(c.driver_name))===nameKey(name)&&c.from_year!=null&&c.till_year!=null&&Number(c.from_year)<=year&&Number(c.till_year)>=year;});
     if(!contracts.length)return undefined;
     var real=contracts.filter(function(c){return c.team_id!=999&&!/^(?:none|no team|free agent)$/i.test(teamName(c.team_id));}).sort(function(a,b){return Number(a.seat)-Number(b.seat);});
     return real.length?teamName(real[0].team_id):null;
@@ -235,7 +243,7 @@
   function seatRowsByName() {
     var map = {};
     function add(nm, seat, from, till, rank, teamId, teamSeries) {
-      var k = nameKey(nm);
+      var k = nameKey(canonicalDriverName(nm));
       if (!k || !(seat >= 1)) return;
       (map[k] = map[k] || []).push({
         seat: seat, from: from, till: till, rank: rank,

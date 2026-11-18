@@ -1,0 +1,21 @@
+  @font-face {
+    font-family: 'Octosquares';
+    src: url('../fonts/Octosquares-Trial-Black.ttf') format('truetype');
+    font-weight: 900;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Formula1 Bold';
+    src: url('../fonts/Formula1-Bold_web_0 (1).ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Formula1 Regular';
+    src: url('../fonts/Formula1-Regular_web_0 (1).ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }

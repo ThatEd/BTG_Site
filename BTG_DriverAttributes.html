@@ -569,6 +569,8 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
 .scout-legend-row{display:flex; align-items:center; gap:9px; font-size:11.5px; color:var(--copy-faint);}
 .scout-legend-swatch{width:10px; height:10px; border-radius:3px; flex-shrink:0;}
 </style>
+<link rel="stylesheet" href="css/radio-card.css">
+<link rel="stylesheet" href="css/dashboard-radio.css?v=container-preview-2">
 </head>
 <body data-page="dashboard">
 
@@ -1514,6 +1516,8 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
   </section>
 
   <!-- 07 · ACCOUNT SETTINGS -->
+  <section id="radio-section" class="hidden"><div class="section-head"><div class="section-head-mark"></div><div class="section-head-body"><h2>Game-connected radio</h2></div></div><div id="dashboard-radio"></div></section>
+
   <section id="account-section" class="hidden">
     <div class="section-head">
       <div class="section-head-mark"></div>
@@ -2031,7 +2035,7 @@ async function tryAutoLogin() {
 }
 
 /* ---------- dashboard sidebar / tabs ---------- */
-const ALL_DASH_SECTIONS = ['overview-section','mailbox-section','chat-section','salary-section','transactions-section','driver-section','attr-section','aggr-section','submit-section','admin-roster-section','admin-team-section','admin-results-section','admin-override-section','tp-section','contracts-section','scouting-section','partorders-section','partsallocation-section','carorders-section','manufacturercontracts-section','sponsors-section','season-section','account-section'];
+const ALL_DASH_SECTIONS = ['radio-section','overview-section','mailbox-section','chat-section','salary-section','transactions-section','driver-section','attr-section','aggr-section','submit-section','admin-roster-section','admin-team-section','admin-results-section','admin-override-section','tp-section','contracts-section','scouting-section','partorders-section','partsallocation-section','carorders-section','manufacturercontracts-section','sponsors-section','season-section','account-section'];
 
 const DASH_TABS = {
   driver: [
@@ -2077,7 +2081,10 @@ const DASH_TABS = {
   ]
 };
 
+['driver','tp','admin'].forEach(function(role){DASH_TABS[role].splice(3,0,{id:'radio',label:'Radio creator',sections:['radio-section']});});
+
 const TAB_ICONS = {
+  radio:'<path d="M12 2v12M8 6v8a4 4 0 0 0 8 0V6M5 12v2a7 7 0 0 0 14 0v-2M12 21v-3"/>',
   overview: '<path d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm10 0h6v-9h-6v9zm0-16v5h6V4h-6z"/>',
   roster: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
   teams: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
@@ -2453,6 +2460,7 @@ function showDashTab(tabId) {
   const tab = (DASH_TABS[role] || []).find(function (t) { return t.id === tabId; });
   if (tab) tab.sections.forEach(function (id) { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
   document.querySelectorAll('#dash-nav button').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === tabId); });
+  if (tabId === 'radio' && window.DashboardRadio) DashboardRadio.mount(document.getElementById('dashboard-radio'));
   if (tabId === 'partorders') renderPartOrders();
   if (tabId === 'partsallocation') renderPartsAllocation();
   if (tabId === 'season') { loadSeasonClock(); loadSeasonClockUI(); }
@@ -7605,5 +7613,7 @@ tryAutoLogin();
 <script src="js/driver-numbers.js?v=20261117-yearly-style-6"></script>
 <script src="js/lineup-data.js"></script>
 <script src="js/lineup-admin.js?v=20261117-studio"></script>
+<script src="js/radio-card.js?v=shared-radio-1"></script>
+<script src="js/dashboard-radio.js?v=mod-fields-only-2"></script>
 </body>
 </html>

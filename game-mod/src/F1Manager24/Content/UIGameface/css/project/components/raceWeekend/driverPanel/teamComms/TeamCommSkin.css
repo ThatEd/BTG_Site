@@ -1,0 +1,343 @@
+@keyframes RadioWavesAnim01 {
+  0% { opacity: 0.1; } 50% { opacity: 0; } 100% { opacity: 0.1; }
+}
+@keyframes RadioWavesAnim02 {
+  0% { opacity: 0; } 50% { opacity: 0.1; } 100% { opacity: 0; }
+}
+@keyframes TeamCommWaveAnim {
+  0%, 100% { height: 100%; }
+  50% { height: 15%; }
+}
+@keyframes TeamCommWaveAnimReflect {
+  0%, 100% { height: 100%; }
+  50% { height: 15%; }
+}
+
+/* ── Root ── */
+.TeamCommSkin_root {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 11rem;
+  overflow: hidden;
+  margin-bottom: 0.5555555556rem;
+  background-color: rgba(28, 28, 32, 0.99);
+}
+.TeamCommSkin_root.collapsed {
+  height: auto;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.TeamCommSkin_root.paused {
+  width: auto;
+  min-width: 11rem;
+}
+
+/* ── Message-type colour tokens ── */
+.TeamCommSkin_root.Miscelaneous    { --colour: var(--whiteColor); --colour-triplet: var(--whiteColor-triplet); --colour-filter: var(--whiteColor-filter); }
+.TeamCommSkin_root.PittingAndStrategy { --colour: var(--highlight); --colour-triplet: var(--highlight-triplet); --colour-filter: var(--highlight-filter); }
+.TeamCommSkin_root.Positive        { --colour: var(--positive); --colour-triplet: var(--positive-triplet); --colour-filter: var(--positive-filter); }
+.TeamCommSkin_root.FastestTime     { --colour: var(--bestTime); --colour-triplet: var(--bestTime-triplet); --colour-filter: var(--bestTime-filter); }
+.TeamCommSkin_root.Negative        { --colour: var(--negative); --colour-triplet: var(--negative-triplet); --colour-filter: var(--negative-filter); }
+.TeamCommSkin_root.WetWeather      { --colour: var(--wet); --colour-triplet: var(--wet-triplet); --colour-filter: var(--wet-filter); }
+.TeamCommSkin_root.SafetyCar       { --colour: var(--yellowFlag); --colour-triplet: var(--yellowFlag-triplet); --colour-filter: var(--yellowFlag-filter); }
+.TeamCommSkin_root.RedFlag         { --colour: var(--redFlag); --colour-triplet: var(--redFlag-triplet); --colour-filter: var(--redFlag-filter); }
+.TeamCommSkin_root.MinorDamage     { --colour: var(--minorDamage); --colour-triplet: var(--minorDamage-triplet); --colour-filter: var(--minorDamage-filter); }
+.TeamCommSkin_root.MajorDamage     { --colour: var(--warning); --colour-triplet: var(--warning-triplet); --colour-filter: var(--warning-filter); }
+.TeamCommSkin_root.CriticalDamage  { --colour: var(--negative); --colour-triplet: var(--negative-triplet); --colour-filter: var(--negative-filter); }
+.TeamCommSkin_root.Cold            { --colour: var(--cold); --colour-triplet: var(--cold-triplet); --colour-filter: var(--cold-filter); }
+.TeamCommSkin_root.Penalty         { --colour: var(--f1Red); --colour-triplet: var(--f1Red-triplet); --colour-filter: var(--f1Red-filter); }
+
+/* ── Team colour tokens ── */
+.TeamCommSkin_root.team1  { --colour: var(--team1);  --colour-triplet: var(--team1-triplet);  --colour-filter: var(--team1-filter); }
+.TeamCommSkin_root.team2  { --colour: var(--team2);  --colour-triplet: var(--team2-triplet);  --colour-filter: var(--team2-filter); }
+.TeamCommSkin_root.team3  { --colour: var(--team3);  --colour-triplet: var(--team3-triplet);  --colour-filter: var(--team3-filter); }
+.TeamCommSkin_root.team4  { --colour: var(--team4);  --colour-triplet: var(--team4-triplet);  --colour-filter: var(--team4-filter); }
+.TeamCommSkin_root.team5  { --colour: var(--team5);  --colour-triplet: var(--team5-triplet);  --colour-filter: var(--team5-filter); }
+.TeamCommSkin_root.team6  { --colour: var(--team6);  --colour-triplet: var(--team6-triplet);  --colour-filter: var(--team6-filter); }
+.TeamCommSkin_root.team7  { --colour: var(--team7);  --colour-triplet: var(--team7-triplet);  --colour-filter: var(--team7-filter); }
+.TeamCommSkin_root.team8  { --colour: var(--team8);  --colour-triplet: var(--team8-triplet);  --colour-filter: var(--team8-filter); }
+.TeamCommSkin_root.team9  { --colour: var(--team9);  --colour-triplet: var(--team9-triplet);  --colour-filter: var(--team9-filter); }
+.TeamCommSkin_root.team10 { --colour: var(--team10); --colour-triplet: var(--team10-triplet); --colour-filter: var(--team10-filter); }
+.TeamCommSkin_root.team32 { --colour: var(--team32); --colour-triplet: var(--team32-triplet); --colour-filter: var(--team32-filter); }
+
+/* ═══════════════════════════════
+   BAND 1 — top: driver name + RADIO, right aligned
+   ═══════════════════════════════ */
+.TeamCommSkin_top {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 0.3rem 0.5rem 1.2rem 0.5rem;
+  gap: 0.05rem;
+  background-color: rgba(28, 28, 32, 0.99);
+}
+.TeamCommSkin_driverName {
+
+  font-size: 1.2rem;
+  color: var(--colour);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.TeamCommSkin_radioRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+}
+.TeamCommSkin_radioLabel {
+
+  font-size: 1.2rem;
+  color: var(--whiteColor);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  margin-top: 0;
+}
+
+/* ═══════════════════════════════
+   BAND 2 — mid: number top-left, logo top-right, wave full width below
+   ═══════════════════════════════ */
+.TeamCommSkin_mid {
+  display: flex;
+  flex-direction: column;
+  border-top: 0.0555555556rem solid rgba(var(--whiteColor-triplet), 0.08);
+  border-bottom: 0.0555555556rem solid rgba(var(--whiteColor-triplet), 0.08);
+  background-color: rgba(28, 28, 32, 0.99);
+  padding: 0rem 0.5rem 0rem 0.5rem;
+  gap: 0;
+  position: relative;
+  min-height: 2.5rem;
+}
+
+/* Top row: number left, logo right */
+.TeamCommSkin_midTop {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+  margin-bottom: -0.3rem;
+}
+
+.TeamCommSkin_posBlock {
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+  background-color: rgba(28, 28, 32, 0.99);
+  padding-right: 0.2rem;
+}
+.TeamCommSkin_position {
+  font-family: F12025Numbers;
+  font-size: 2.8rem;
+  letter-spacing: -10px;
+  color: var(--colour);
+  line-height: 1;
+  margin-top: -1rem;
+  margin-left: -0.3rem;
+  text-shadow: 1px 0 var(--colour), -1px 0 var(--colour), 0 1px var(--colour), 0 -1px var(--colour);
+}
+
+/* Team logo — top right of mid */
+.TeamCommSkin_teamLogo,
+.TeamCommSkin_teamLogo.TeamLogoSmall_root {
+  display: block !important;
+  position: absolute !important;
+  bottom: 2.5rem !important;
+  right: 0.4rem !important;
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  z-index: 3;
+  overflow: visible !important;
+}
+.TeamCommSkin_teamLogo img,
+.TeamCommSkin_teamLogo .Texture_root,
+.TeamCommSkin_teamLogo .Texture_image {
+  position: static !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
+  object-position: center;
+}
+
+/* Waveform — two rows stacked, meeting in the middle */
+.TeamCommSkin_waveArea {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+/* Top bars — anchored at bottom, grow upward */
+.TeamCommSkin_waveTop {
+  width: 100%;
+  height: 1.8rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: stretch;
+  overflow: hidden;
+}
+/* Bottom bars — anchored at top, grow downward */
+.TeamCommSkin_waveBottom {
+  width: 100%;
+  height: 1rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: stretch;
+  overflow: hidden;
+  opacity: 0.35;
+}
+/* Vertical stripe overlay — full height with colour overlay hiding bottom 80% */
+.TeamCommSkin_waveBarStripe {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0px,
+    transparent 2px,
+    rgba(0,0,0,0.5) 2px,
+    rgba(0,0,0,0.5) 3px
+  );
+  pointer-events: none;
+}
+/* Covers bottom 80% of stripe to hide lines there */
+.TeamCommSkin_waveBarStripeHide {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 60%;
+  background-color: var(--colour);
+  pointer-events: none;
+}
+.TeamCommSkin_waveBarWrap {
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  position: relative;
+}
+.TeamCommSkin_waveBar {
+  width: 100%;
+  height: 100%;
+  background-color: var(--colour);
+  animation: TeamCommWaveAnim 0.5s ease-in-out infinite;
+}
+/* Reflect wrapper — anchored at top */
+.TeamCommSkin_waveBarReflectWrap {
+  display: flex;
+  align-items: flex-start;
+  overflow: hidden;
+}
+.TeamCommSkin_waveBarReflect {
+  width: 100%;
+  height: 100%;
+  background-color: var(--colour);
+  animation: TeamCommWaveAnimReflect 0.5s ease-in-out infinite;
+}
+/* Top fade overlay — gradient from background to transparent */
+.TeamCommSkin_waveFadeTop {
+  position: absolute;
+  left: 0; right: 0;
+  top: 0;
+  height: 0.3rem;
+  background: linear-gradient(to bottom, rgba(28,28,32,1) 0%, rgba(28,28,32,0) 100%);
+  pointer-events: none;
+  z-index: 4;
+}
+/* Bottom fade overlay — gradient from transparent to background */
+.TeamCommSkin_waveFadeBottom {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 0;
+  height: 0.3rem;
+  background: linear-gradient(to top, rgba(28,28,32,1) 0%, rgba(28,28,32,0) 100%);
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* Radio wave sprites */
+.TeamCommSkin_radioWaves.isVoiced {
+  position: absolute;
+  width: 8rem;
+  height: 1.1111111111rem;
+  background-size: 5.6666666667rem 1.1111111111rem;
+  mask-image: linear-gradient(to left, var(--whiteColor), transparent);
+  filter: var(--colour-filter);
+  opacity: 0;
+}
+.TeamCommSkin_radioWaves.isVoiced.radioWaves01 {
+  background-image: url(/img/icons/radioWave01.svg);
+  animation-name: RadioWavesAnim01;
+  animation-duration: 0.6s;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-out;
+}
+.TeamCommSkin_radioWaves.isVoiced.radioWaves02 {
+  background-image: url(/img/icons/radioWave02.svg);
+  animation-name: RadioWavesAnim02;
+  animation-duration: 0.6s;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-out;
+}
+
+/* ═══════════════════════════════
+   BAND 3 — bottom: message text
+   ═══════════════════════════════ */
+.TeamCommSkin_bottom {
+  padding: 0.1rem 0.5rem 0.1rem 0.5rem;
+  border-top: 0.0555555556rem solid rgba(var(--whiteColor-triplet), 0.08);
+}
+.TeamCommSkin_text {
+  font-size: var(--fontSize14);
+  font-weight: 800;
+  color: var(--whiteColor);
+  text-transform: uppercase;
+  line-height: 1.3;
+  text-shadow: 0rem 0rem 0.3333333333rem rgba(var(--blackColor-triplet), 1);
+  opacity: 0.9;
+  word-break: break-word;
+}
+.TeamCommSkin_text.isDriver {
+  color: var(--colour);
+}
+.TeamCommSkin_text.isPrev {
+  margin-bottom: 0.5rem;
+}
+
+/* Notification pip */
+.TeamCommSkin_notificationIcon {
+  position: absolute;
+  top: 0.2222222222rem;
+  right: 0.2222222222rem;
+  border-style: solid;
+  border-width: 0 0.6111111111rem 0.6111111111rem 0;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+  border-right-color: var(--special2);
+}
+.TeamCommSkin_notificationIcon.negative {
+  border-right-color: var(--negative);
+}
+
+/* Paused state */
+.TeamCommSkin_container.paused {
+  background-color: rgba(var(--interactive-triplet), 0.8);
+}
+.TeamCommSkin_buttons {
+  background-color: var(--background);
+  border-top: 0.1111111111rem solid rgba(var(--whiteColor-triplet), 0.1);
+  padding: 0.5555555556rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+.TeamCommSkin_topButton {
+  margin-bottom: 0.2222222222rem;
+}

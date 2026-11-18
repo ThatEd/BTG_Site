@@ -1,0 +1,15 @@
+#dashboard-radio{container-type:inline-size}
+.dashboard-radio{display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
+.dashboard-radio-controls{grid-row:2;min-width:0}
+.dashboard-radio .field{margin-bottom:16px}
+.dashboard-radio textarea{width:100%;resize:vertical;min-height:90px;font:inherit}
+.dashboard-radio .btn-row{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.dashboard-radio-preview{grid-row:1;position:static;min-width:0;align-self:start;background:#101116;padding:8px;border-radius:8px}
+.dashboard-radio-preview canvas{display:block;width:100%;height:auto;max-width:none}
+.dashboard-radio #radio-result{min-height:2em}
+.dashboard-radio select{width:100%;max-width:100%}
+@container(min-width:1000px){
+ .dashboard-radio{grid-template-columns:minmax(280px,380px) minmax(0,1fr);gap:28px}
+ .dashboard-radio-controls{grid-row:1;grid-column:1}
+ .dashboard-radio-preview{grid-row:1;grid-column:2;position:sticky;top:85px;padding:12px}
+}

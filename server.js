@@ -38,6 +38,9 @@ function contentType(file) {
   return MIME[path.extname(file).toLowerCase()] || 'application/octet-stream';
 }
 
+// In-memory messages for the live radio stand-in (see /api/radio-poll below).
+
+
 const server = http.createServer((req, res) => {
   // Normalize URL, default to index.html
   let urlPath;
@@ -55,6 +58,11 @@ const server = http.createServer((req, res) => {
       res.end(JSON.stringify({sheets}));
     } catch (e) { res.writeHead(500, {'Content-Type':'application/json'}); res.end(JSON.stringify({error:'number_discovery_failed'})); }
     return;
+  }
+
+  // Local preview verifies real sessions and uses the same sender policy as production.
+  if(urlPath==='/api/radio-poll'||urlPath.startsWith('/api/radio-rpc/')){
+    require('./server/radio-local')(req,res,urlPath);return;
   }
 
   // API: list series folders under Data/ (auto-discovery)
