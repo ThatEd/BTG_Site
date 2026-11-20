@@ -176,6 +176,11 @@ body {
       seen[s.series_id] = true;
       seriesList.push({ id: str(s.series_id), name: seriesName(str(s.series_id)) });
     });
+    var seriesOrder = ['F1', 'F2', 'XGT'];
+    seriesList.sort(function (a, b) {
+      var ai = seriesOrder.indexOf(a.id), bi = seriesOrder.indexOf(b.id);
+      return (ai < 0 ? seriesOrder.length : ai) - (bi < 0 ? seriesOrder.length : bi);
+    });
     if (!seriesList.length) seriesList = [{ id: 'F1', name: seriesName('F1') }];
     if (!seriesList.some(function (s) { return s.id === activeSeries; })) activeSeries = seriesList[0].id;
 
