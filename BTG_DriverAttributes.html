@@ -1015,7 +1015,12 @@ section h2{font-family:var(--head-face); font-size:19px; font-weight:600; text-t
           <label for="tp-offer-salary">Offered salary</label>
           <input type="text" id="tp-offer-salary" placeholder="e.g. 8,000,000">
         </div>
+        <div class="field">
+          <label for="tp-offer-role">Role</label>
+          <select id="tp-offer-role"><option value="Driving">Driving</option><option value="Reserve">Reserve</option><option value="Junior">Junior</option><option value="Affiliate">Affiliate</option></select>
+        </div>
       </div>
+      <div class="muted" id="tp-offer-minpay" style="margin:-6px 0 12px;"></div>
       <div class="field-row">
         <div class="field">
           <label for="tp-offer-from">From (year)</label>
@@ -2695,9 +2700,31 @@ function refreshMinPayFor(teamId, driverId, roleId, resultId) {
         username: CURRENT_USER.username, password: CURRENT_USER.password,
         team: teamKey, driver: driverName, role: roleVal
       });
-      resEl.textContent = (data.ok && data.minPay > 0) ? 'Minimum salary: ' + fmtMoney(data.minPay) : '';
+      resEl.textContent = (data.ok && data.minPay > 0) ? 'Minimum offerable salary: ' + fmtMoney(data.minPay) : '';
     } catch (e) { resEl.textContent = ''; }
   }, 250);
+}
+
+let TP_QUICK_MINPAY_TIMER = null;
+function refreshTpQuickOfferMinPay() {
+  var resultEl = document.getElementById('tp-offer-minpay');
+  var driverEl = document.getElementById('tp-offer-driver');
+  var roleEl = document.getElementById('tp-offer-role');
+  if (!resultEl || !driverEl || !roleEl) return;
+  var driver = String(driverEl.value || '');
+  var team = String((DASH && DASH.tp && DASH.tp.team) || selectedTpTeam() || '');
+  var role = String(roleEl.value || 'Driving');
+  if (!driver || !team) { resultEl.textContent = ''; return; }
+  clearTimeout(TP_QUICK_MINPAY_TIMER);
+  TP_QUICK_MINPAY_TIMER = setTimeout(async function () {
+    try {
+      var data = await callGateway('contractMinPay', {
+        username: CURRENT_USER.username, password: CURRENT_USER.password,
+        team: team, driver: driver, role: role
+      });
+      resultEl.textContent = (data.ok && data.minPay > 0) ? 'Minimum offerable salary for ' + role + ': ' + fmtMoney(data.minPay) : '';
+    } catch (e) { resultEl.textContent = ''; }
+  }, 200);
 }
 
 function contractBuyoutSlider(id, value) {
@@ -6179,6 +6206,11 @@ function renderTp() {
   const y = CURRENT_YEAR || 2024;
   document.getElementById('tp-offer-from').value = y;
   document.getElementById('tp-offer-till').value = y + 2;
+  ['tp-offer-driver','tp-offer-role'].forEach(function (id) {
+    var field = document.getElementById(id);
+    if (field) field.onchange = refreshTpQuickOfferMinPay;
+  });
+  refreshTpQuickOfferMinPay();
 }
 
 /* ════════ Scouting window (TP contract page + admin Drivers tab) ════════ */
@@ -7317,6 +7349,7 @@ document.getElementById('clock-set-btn').addEventListener('click', async functio
 document.getElementById('tp-send-offer-btn').addEventListener('click', async () => {
   const driver = document.getElementById('tp-offer-driver').value;
   const salary = document.getElementById('tp-offer-salary').value;
+  const role = document.getElementById('tp-offer-role').value;
   const from = document.getElementById('tp-offer-from').value;
   const till = document.getElementById('tp-offer-till').value;
   const terms = document.getElementById('tp-offer-terms').value.trim();
@@ -7330,7 +7363,7 @@ document.getElementById('tp-send-offer-btn').addEventListener('click', async () 
   try {
     const data = await callGateway('sendContractOffer', {
       username: CURRENT_USER.username, password: CURRENT_USER.password,
-      team: DASH.tp.team, target: driver, salary: salary, from: from, till: till, terms: terms, message: message
+      team: DASH.tp.team, target: driver, salary: salary, role: role, from: from, till: till, terms: terms, message: message
     });
     if (data.ok) {
       showResult(resultEl, true, '✓ Offer sent to ' + driver + '.');
