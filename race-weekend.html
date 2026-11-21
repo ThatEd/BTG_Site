@@ -167,6 +167,3 @@ body::before {
 <script src="js/race-weekend.js"></script>
 </body>
 </html>
-  /* Team colours, from the shared registry, so this page can paint a team's own colour. */
-  function teamRgbFor(name) { return BTG.teamRgbFor ? (BTG.teamRgbFor(name) || 'var(--accent-rgb)') : 'var(--accent-rgb)'; }
-  function teamColorCssFor(name) { return 'rgb(' + String(teamRgbFor(name)).replace(/\s+/g, ',') + ')'; }
