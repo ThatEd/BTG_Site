@@ -486,6 +486,7 @@ window.BTG = window.BTG || {};
     var rowPoints = Number(r.points || 0) + Number(r.bonus_points || 0);
     return {
       driverId: r.driver_name || '',
+      pitDriverDbId: r.driver_id != null ? r.driver_id : null,
       teamName: teamName,
       teamId: teamId,
       TeamID: teamId,
@@ -506,6 +507,51 @@ window.BTG = window.BTG || {};
       positionsGained: grid > 0 && pos > 0 && pos < 99 ? grid - pos : null,
       avgLap: laps > 0 && finishTime > 0 ? finishTime / laps : 0
     };
+  }
+  function applyCachePitStopDetails(rows, cache, raceId) {
+    var details = (cache && cache.race_pit_stops || []).filter(function (stop) {
+      return String(stop.race_id) === String(raceId);
+    });
+    // Keep the race_results summaries only when this race has no detailed pit
+    // stop rows at all. If details exist, they are authoritative for count,
+    // total time and fastest stop; race_results.pit_stops is not reliable.
+    if (!details.length) return rows;
+
+    var byDriverId = Object.create(null);
+    var byDriverName = Object.create(null);
+    function add(map, key, stop) {
+      if (key == null || key === '') return;
+      key = String(key);
+      var item = map[key] || (map[key] = { count: 0, total: 0, best: 0 });
+      item.count++;
+      var time = Number(stop.stop_time_seconds);
+      if (Number.isFinite(time) && time > 0) {
+        item.total += time;
+        if (!item.best || time < item.best) item.best = time;
+      }
+    }
+    details.forEach(function (stop) {
+      add(byDriverId, stop.driver_id, stop);
+      var name = String(stop.driver_name || '').trim().toLowerCase();
+      if (name) add(byDriverName, name, stop);
+    });
+
+    rows.forEach(function (row) {
+      var name = String(row.driverId || '').trim().toLowerCase();
+      var item = row.pitDriverDbId != null ? byDriverId[String(row.pitDriverDbId)] : null;
+      if (!item && name) item = byDriverName[name];
+      // A race with detailed rows treats a missing driver entry as zero stops.
+      row.pitStops = item ? item.count : 0;
+      if (item) {
+        row.pitTotal = item.total;
+        row.pitBest = item.best;
+      } else {
+        row.pitTotal = 0;
+        row.pitBest = 0;
+      }
+      delete row.pitDriverDbId;
+    });
+    return rows;
   }
   function rowFromCacheSprint(s, teamNameOf) {
     var pos = Number(s.finish_position || 0);
@@ -580,6 +626,7 @@ window.BTG = window.BTG || {};
     state.raceResult = (cache.race_results || []).filter(function (r) { return String(r.race_id) === String(raceId); })
       .map(function (r) { return rowFromCacheResult(r, teamNameOf); })
       .sort(function (a, b) { return (a.finishingPos || 99) - (b.finishingPos || 99); });
+    applyCachePitStopDetails(state.raceResult, cache, raceId);
     state.sprintResult = (cache.race_sprints || []).filter(function (s) { return String(s.race_id) === String(raceId); })
       .map(function (s) { return rowFromCacheSprint(s, teamNameOf); })
       .sort(function (a, b) { return (a.finishingPos || 99) - (b.finishingPos || 99); });
